@@ -368,6 +368,14 @@ const Econ = {
       const d = DEF(b.type);
       if (!d.out || !d.out.grain || b.done === false) continue;
       if (b.block || !b.staff) continue;
+
+      if (Grid.soilUnder(b) <= S.autoRestAt) {
+        b.resting = true;
+        b.staff = 0; b.rate = 0; b.status = 'resting';
+        if (!offline) UI.toast('\u{1F4A4} ' + d.name + ' has worked its ground out and stopped itself. ' +
+          'It will recover and resume on its own - click it to override.', 10000);
+        continue;
+      }
       Grid.footTiles(b.type, b.x, b.y, (tx, ty) => {
         if (!Grid.inB(tx, ty)) return;
         cropped.add(Grid.key(tx, ty));

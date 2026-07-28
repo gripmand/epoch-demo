@@ -8,7 +8,7 @@ const Main = {
 
   setSpeed(v) {
 
-    const max = window.EPOCH_DEV ? 100000 : 4;
+    const max = window.EPOCH_DEV ? 100000 : 1;
     if (v === 0) Main.paused = !Main.paused;
     else { Main.speed = Util.clamp(v, 1, max); Main.paused = false; }
     UI.reflectSpeed();

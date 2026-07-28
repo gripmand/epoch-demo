@@ -24,8 +24,8 @@ const UI = {
     UI.els.tallyBtn = document.getElementById('btn-tally');
     if (UI.els.tallyBtn) UI.els.tallyBtn.onclick = () => UI.togglePanel('tally-panel', UI.tallyHTML);
     document.getElementById('btn-reset').onclick = UI.promptReset;
-    for (const [id, v] of [['spd-pause', 0], ['spd-1', 1], ['spd-2', 2], ['spd-4', 4]])
-      document.getElementById(id).onclick = () => Main.setSpeed(v);
+
+    document.getElementById('spd-pause').onclick = () => Main.setSpeed(0);
     UI.reflectSpeed();
   },
 
@@ -232,14 +232,12 @@ const UI = {
   },
 
   reflectSpeed() {
-    const map = { 0: 'spd-pause', 1: 'spd-1', 2: 'spd-2', 4: 'spd-4' };
-    for (const id of Object.values(map)) {
-      const el = document.getElementById(id);
-      if (el) el.classList.remove('active');
-    }
 
-    const el = document.getElementById(map[Main.paused ? 0 : Main.speed]);
-    if (el) el.classList.add('active');
+    const el = document.getElementById('spd-pause');
+    if (!el) return;
+    el.classList.toggle('active', !!Main.paused);
+    el.textContent = Main.paused ? '▶' : '❚❚';
+    el.title = (Main.paused ? 'Resume' : 'Pause') + ' (Space)';
   },
 
   toggleOverlays() {

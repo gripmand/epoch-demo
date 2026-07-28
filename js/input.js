@@ -281,10 +281,7 @@ const Input = {
     switch (e.key) {
       case 'Escape': Input.setTool('select'); Input.selected = null; UI.hideInspector();
         for (const p of document.querySelectorAll('.panel')) p.remove(); break;
-      case ' ': e.preventDefault(); Main.setSpeed(Main.paused ? Main.speed : 0); break;
-      case '1': Main.setSpeed(1); break;
-      case '2': Main.setSpeed(2); break;
-      case '3': Main.setSpeed(4); break;
+      case ' ': e.preventDefault(); Main.setSpeed(0); break;
       case 'h': case 'H': UI.togglePanel('help-panel', UI.helpHTML); break;
       case 'g': case 'G': UI.togglePanel('guide-panel', UI.guideHTML); break;
       case 'o': case 'O': UI.toggleOverlays(); break;

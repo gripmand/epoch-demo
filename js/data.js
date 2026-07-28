@@ -74,6 +74,8 @@ const TUNE = {
     waterLeach: 2,
     middenBonus: 3.0,
     minYield: 0.05,
+
+    autoRestAt: 0.02,
   },
 
   ROCK_YIELD: 900,
