@@ -274,6 +274,11 @@ const Input = {
 
   onKey(e) {
     if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+    if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+      e.preventDefault();
+      UI.saveNow();
+      return;
+    }
     const step = Rend.tgt.di * 0.09;
     const az = Rend.tgt.az;
     const fwd = [-Math.sin(az) * step, -Math.cos(az) * step];
@@ -282,6 +287,7 @@ const Input = {
       case 'Escape': Input.setTool('select'); Input.selected = null; UI.hideInspector();
         for (const p of document.querySelectorAll('.panel')) p.remove(); break;
       case ' ': e.preventDefault(); Main.setSpeed(0); break;
+
       case 'h': case 'H': UI.togglePanel('help-panel', UI.helpHTML); break;
       case 'g': case 'G': UI.togglePanel('guide-panel', UI.guideHTML); break;
       case 'o': case 'O': UI.toggleOverlays(); break;

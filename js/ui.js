@@ -25,6 +25,8 @@ const UI = {
     UI.els.tallyBtn = on('btn-tally', () => UI.togglePanel('tally-panel', UI.tallyHTML));
     on('btn-reset', UI.promptReset);
 
+    on('btn-save', UI.saveNow);
+
     on('spd-pause', () => Main.setSpeed(0));
     UI.reflectSpeed();
   },
@@ -229,6 +231,19 @@ const UI = {
       const btn = UI.els.palBody.querySelector('.pal-btn[data-type="' + type + '"]');
       if (btn) btn.classList.add('active');
     }
+  },
+
+  saveNow() {
+    const ok = Game.save();
+    if (!ok) {
+      UI.toast('Could not save - this browser is blocking storage. Private windows often do.', 12000);
+      return;
+    }
+    const s = G.s;
+    const t = new Date();
+    const hh = String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0');
+    UI.toast('Saved at ' + hh + ' - ' + s.buildings.length + ' buildings, ' +
+      Game.totalResidents(s) + ' residents, ' + Util.fmtMoney(s.money) + '.', 6000);
   },
 
   reflectSpeed() {
@@ -1100,6 +1115,7 @@ const UI = {
       '<p><b>Advancing:</b> meet an era’s requirements and you’ll be asked to advance. Not ready? The era chip (top left) glows — click it whenever you choose. Cities transform between eras; they never reset.</p>' +
       '<p><b>Adjacency:</b> Farm↔Mill +25%, Quarry↔Stonecutter +25%, Park/Temple boost housing, industry hurts it. Fertile soil (dark green) boosts farms.</p>' +
       '<p><b>The world is yours to shape:</b> newly bought land keeps its wild trees — clear them with ⛏️ Demolish ($' + TUNE.CLEAR_TREE + ' each) before building. The <b>Terraform</b> tab paints grass, fertile soil, water, rock, mountains and trees so you can design the land itself.</p>' +
+      '<p><b>Saving:</b> the city autosaves every 10 seconds and when you close the tab. The <b>Save</b> button (or <b>Ctrl+S</b>) saves immediately and tells you what it saved.</p>' +
       '<p><b>Camera — mouse only:</b> left-drag grabs the ground and pans · right-drag looks left, right and up/down · scroll wheel zooms toward your cursor · click any building to focus on it · double-click the ground to center there. (<b>WASD</b> and <b>Q/E</b> also work.)</p>' +
       '<p><b>You start unable to read.</b> A new city keeps no records, so it has no production rates, no soil readings and no dashboard — only what you can see: fields paling as they salt, a crowd or an empty street, the grain in the granary. Build a \u{1F4DC} <b>Scribe’s House</b> and every number in the game appears, along with the <b>Tally</b>. Writing was invented to count grain; here you have to invent it too.</p>' +
       '<p><b>Keys:</b> <b>Esc</b> select · <b>Space</b> pause · <b>1/2/3</b> speed · <b>O</b> coverage · <b>T</b> the Tally · <b>H</b> this guide. Autosaves every 10 seconds.</p>';
