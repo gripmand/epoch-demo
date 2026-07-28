@@ -17,15 +17,15 @@ const UI = {
 
     UI.buildPalette();
 
-    UI.els.era.onclick = () => UI.togglePanel('era-panel', UI.eraPanelHTML);
-    document.getElementById('btn-guide').onclick = () => UI.togglePanel('guide-panel', UI.guideHTML);
-    document.getElementById('btn-help').onclick = () => UI.togglePanel('help-panel', UI.helpHTML);
-    document.getElementById('btn-overlay').onclick = UI.toggleOverlays;
-    UI.els.tallyBtn = document.getElementById('btn-tally');
-    if (UI.els.tallyBtn) UI.els.tallyBtn.onclick = () => UI.togglePanel('tally-panel', UI.tallyHTML);
-    document.getElementById('btn-reset').onclick = UI.promptReset;
+    const on = (id, fn) => { const el = document.getElementById(id); if (el) el.onclick = fn; return el; };
+    if (UI.els.era) UI.els.era.onclick = () => UI.togglePanel('era-panel', UI.eraPanelHTML);
+    on('btn-guide', () => UI.togglePanel('guide-panel', UI.guideHTML));
+    on('btn-help', () => UI.togglePanel('help-panel', UI.helpHTML));
+    on('btn-overlay', UI.toggleOverlays);
+    UI.els.tallyBtn = on('btn-tally', () => UI.togglePanel('tally-panel', UI.tallyHTML));
+    on('btn-reset', UI.promptReset);
 
-    document.getElementById('spd-pause').onclick = () => Main.setSpeed(0);
+    on('spd-pause', () => Main.setSpeed(0));
     UI.reflectSpeed();
   },
 
