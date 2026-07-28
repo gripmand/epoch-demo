@@ -37,13 +37,13 @@ const Main = {
   boot() {
     const canvas = document.getElementById('game');
 
-    const fresh = /[?&](fresh|new)\b/.test(location.search);
-    if (fresh) {
-      try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
-
-      if (window.history && history.replaceState) {
-        history.replaceState(null, '', location.pathname);
-      }
+    const wantsFresh = /[?&](fresh|new)\b/.test(location.search);
+    let hasSave = false;
+    try { hasSave = !!localStorage.getItem(SAVE_KEY); } catch (e) {}
+    const fresh = wantsFresh && !hasSave;
+    const askFresh = wantsFresh && hasSave;
+    if (wantsFresh && window.history && history.replaceState) {
+      history.replaceState(null, '', location.pathname);
     }
     const loaded = fresh ? false : Game.load();
     if (!loaded) Game.newGame();
@@ -83,6 +83,8 @@ const Main = {
     } else {
       UI.toast('City loaded — Era ' + G.s.era + ' · ' + ERAS[G.s.era - 1].name + '. Autosaves every 10s.');
     }
+
+    if (askFresh) setTimeout(() => UI.promptReset(), 700);
 
     setInterval(Game.save, TUNE.AUTOSAVE_MS);
     window.addEventListener('beforeunload', Game.save);
