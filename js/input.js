@@ -166,8 +166,11 @@ const Input = {
       const gz = (e.clientY - d.sy) * wpp / Math.max(0.35, Math.cos(d.polar));
       const rx = Math.cos(d.az), rz = -Math.sin(d.az);
       const fx = -Math.sin(d.az), fz = -Math.cos(d.az);
-      const nx = d.camTx - (gx * rx + gz * fx);
-      const nz = d.camTz - (gx * rz + gz * fz);
+
+      const sx = TUNE.INVERT_PAN_X ? -1 : 1;
+      const sy = TUNE.INVERT_PAN_Y ? -1 : 1;
+      const nx = d.camTx - (sx * gx * rx + sy * gz * fx);
+      const nz = d.camTz - (sx * gx * rz + sy * gz * fz);
       const dts = Math.max(0.008, (now - d.pt) / 1000);
       Rend.vel.x = Util.clamp((nx - d.px) / dts, -90, 90);
       Rend.vel.z = Util.clamp((nz - d.pz) / dts, -90, 90);

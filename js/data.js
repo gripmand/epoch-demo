@@ -5,6 +5,9 @@ const TUNE = {
   CHUNK: 4,
 
   START_MONEY: 3000,
+
+  INVERT_PAN_X: false,
+  INVERT_PAN_Y: true,
   FLOUR_PER_RESIDENT: 0.06,
 
   FOUNDING_GRANT: false,
