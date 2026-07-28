@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EPOCH — Era 1 Prototype</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="hud">
+  <div class="hud-chip" id="era-chip" title="Click for era requirements">
+    <div class="era-name">Era 1 · Anunnaki</div>
+    <div id="era-track"><div id="era-bar"></div></div>
+  </div>
+  <div class="hud-chip">
+    <div class="hud-label">Treasury</div>
+    <div class="hud-val" id="hud-money">$0</div>
+    <div class="hud-sub" id="hud-net">+0/s</div>
+  </div>
+  <div class="hud-chip" id="rent-chip" title="Real-money rent accrued by your Town Hall — upgrade it to earn faster">
+    <div class="hud-label">Real Rent Accrued</div>
+    <div class="hud-val gold" id="hud-rent">$0.0000000</div>
+    <div class="hud-sub gold-dim" id="hud-rent-rate">Hall L1</div>
+  </div>
+</div>
+
+<div id="resbar">
+  <div class="res" title="Charter Points — accrue 1/hour on the real clock. Nothing speeds them up."><span class="res-ico">📜</span><span id="hud-cp">0</span></div>
+  <div class="res" title="Builders — each construction site occupies one"><span class="res-ico">🏗️</span><span id="hud-builders">0 / 0</span></div>
+  <div class="res"><span class="res-ico">👤</span><span id="hud-pop">0 / 0</span></div>
+  <div class="res"><span class="res-ico">🔨</span><span id="hud-workers">0 / 0</span></div>
+  <div class="res"><span class="res-ico">🌾</span><span id="hud-grain">0</span></div>
+  <div class="res"><span class="res-ico">🍞</span><span id="hud-flour">0</span></div>
+  <div class="res hidden" id="chip-stone"><span class="res-ico">🪨</span><span id="hud-stone">0</span></div>
+  <div class="res hidden" id="chip-blocks"><span class="res-ico">🧱</span><span id="hud-blocks">0</span></div>
+</div>
+
+<div id="controls">
+  <button id="spd-pause" title="Pause (Space)">❚❚</button>
+  <button id="spd-1" title="Speed 1× (1)">1×</button>
+  <button id="spd-2" title="Speed 2× (2)">2×</button>
+  <button id="spd-4" title="Speed 4× (3)">4×</button>
+  <button id="btn-overlay" title="Show water &amp; power coverage (O)">Coverage</button>
+  <button id="btn-tally" class="hidden" title="The Scribe's tally: what the city produces (T)">Tally</button>
+  <button id="btn-guide" title="Guide for this era (G)">Era Guide</button>
+  <button id="btn-help" title="Controls &amp; basics (H)">Help</button>
+  <button id="btn-reset" title="Start a new world">New</button>
+</div>
+
+<div id="inspector" class="hidden"></div>
+<div id="palette"></div>
+<div id="toasts"></div>
+<canvas id="minimap" width="170" height="170" title="Click to jump"></canvas>
+
+<script src="js/vendor/three.min.js"></script>
+<script src="js/util.js"></script>
+<script src="js/data.js"></script>
+<script src="js/grid.js"></script>
+<script src="js/state.js"></script>
+<script src="js/econ.js"></script>
+<script src="js/guide.js"></script>
+
+<script src="js/gfx.js"></script>
+<script src="js/shapes.js"></script>
+<script src="js/render.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/input.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
