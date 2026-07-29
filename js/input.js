@@ -11,6 +11,8 @@ const Input = {
   lastPaint: null,
   tt: null,
 
+  rot: 0,
+
   setTool(mode, type) {
     Input.tool = { mode, type: type || null, payload: null };
     if (mode !== 'select') { Input.selected = null; UI.hideInspector(); }
@@ -20,9 +22,11 @@ const Input = {
 
   startMove(b) {
     Input.tool = { mode: 'move', type: b.type, payload: b };
+    Input.rot = b.rot || 0;
     Input.selected = null;
     UI.hideInspector();
-    UI.toast('Moving ' + DEF(b.type).name + ' — click a valid spot to set it down. Esc or right-click to cancel.');
+    UI.toast('Moving ' + DEF(b.type).name + ' — click a valid spot to set it down. ' +
+      'Press R to rotate it. Esc or right-click to cancel.');
   },
 
   init(canvas) {
@@ -90,12 +94,27 @@ const Input = {
 
     switch (Input.tool.mode) {
       case 'select':
+
+        if (e.altKey && p) {
+          const eb = Grid.buildingAt(p.x, p.y);
+
+          if (eb && !DEF(eb.type).fixed && !DEF(eb.type).monument && !DEF(eb.type).noBuild) {
+            const ed = DEF(eb.type);
+            if ((ed.era || 1) <= s.era || (window.Dev && Dev.flags.freeBuild)) {
+              Input.setTool(eb.type === 'road' ? 'road' : 'build', eb.type);
+              UI.firstToast('eyedrop', '✎ Alt+click copies a building into your hand — ' + ed.name + ' armed.');
+              return;
+            }
+          }
+        }
         Input.leftDown = { sx: e.clientX, sy: e.clientY, tile: p, planeY: p ? p.point.y : 0, moved: false, shift: e.shiftKey };
         break;
       case 'road':
         if (!p) return;
         Input.painting = true;
         Input.lastPaint = p;
+        Input.paintStart = { x: p.x, y: p.y };
+        Input.stroke = { kind: 'road', tiles: [], cost: 0, t: performance.now() };
         Input.placeRoad(s, p.x, p.y);
         break;
       case 'terra':
@@ -111,14 +130,14 @@ const Input = {
         if (!p) return;
         const b = Input.tool.payload;
         if (!b || !s.buildings.includes(b)) { Input.setTool('select'); return; }
-        if (Grid.canPlace(s, b.type, p.x, p.y, b.id)) {
-          Grid.moveBuilding(s, b, p.x, p.y);
+        if (Grid.canPlace(s, b.type, p.x, p.y, b.id, Input.rot)) {
+          Grid.moveBuilding(s, b, p.x, p.y, Input.rot);
           Grid.rebuild(s);
           Input.setTool('select');
           Input.selected = b;
           UI.showInspector(b);
         } else {
-          UI.toast('Can’t place it there — needs owned, cleared, buildable ground' + (DEF(b.type).onRock ? ' with rock' : '') + '.');
+          UI.toast('Can’t place it there — ' + Grid.whyBlocked(s, b.type, p.x, p.y, Input.rot) + '.', 9000);
         }
         break;
       }
@@ -132,12 +151,35 @@ const Input = {
       case 'buyland': {
         if (!p) return;
         const c = Grid.chunkOf(p.x, p.y);
-        if (G.cache.ownedSet.has(c.cx + ',' + c.cy)) break;
+        if (G.cache.ownedSet.has(c.cx + ',' + c.cy)) {
+
+          const why = Grid.sellChunkWhy(s, c.cx, c.cy);
+          if (why) { UI.toast('Cannot sell that parcel — ' + why + '.'); break; }
+          const key = c.cx + ',' + c.cy;
+          const offer = Math.round(Grid.chunkPrice(c.cx, c.cy) * TUNE.SELL_LAND);
+          if (Input.confirmSell !== key || performance.now() - (Input.confirmSellT || 0) > 5000) {
+            Input.confirmSell = key;
+            Input.confirmSellT = performance.now();
+            UI.toast('\u{1F5FA}️ Sell this empty frontier parcel back to the steppe for ' + Util.fmtMoney(offer) +
+              ' (60% of its price)? Click it again to confirm.', 8000);
+            break;
+          }
+          Input.confirmSell = null;
+          const got = Grid.sellChunk(s, c.cx, c.cy);
+          if (got) {
+            Grid.rebuild(s);
+            Econ.log(s, '\u{1F5FA}️', 'A frontier parcel was sold back to the steppe for ' + Util.fmtMoney(got) + '.');
+            UI.toast('Sold. ' + Util.fmtMoney(got) + ' back in the treasury — land is liquid now, at a loss.');
+            Rend._overlayDirty = true;
+          }
+          break;
+        }
         if (!Grid.chunkBuyable(s, c.cx, c.cy)) { UI.toast('Land must border territory you already own.'); break; }
         const price = Grid.chunkPrice(c.cx, c.cy);
         if (Grid.buyChunk(s, c.cx, c.cy)) {
+          Econ.log(s, '\u{1F5FA}️', 'The city bought a new parcel for ' + Util.fmtMoney(price) + '.');
           UI.toast('Bought a 4×4 chunk for ' + Util.fmtMoney(price) + '. Clear its trees and rocks before building.');
-          UI.firstToast('land', 'New land keeps its wild trees — use the Demolish tool to clear them ($' + TUNE.CLEAR_TREE + ' each), or Terraform to reshape it.');
+          UI.firstToast('land', 'New land keeps its wild trees — use the Demolish tool to clear them ($' + TUNE.CLEAR_TREE + ' each), or Terraform to reshape it. Owned EMPTY frontier parcels can be sold back with this same tool.');
           Rend._overlayDirty = true;
         } else UI.toast('Not enough money — that chunk is ' + Util.fmtMoney(price) + '.');
         break;
@@ -210,34 +252,76 @@ const Input = {
     Input.hoverB = p ? Grid.buildingAt(p.x, p.y) : null;
     Rend._overlayDirty = true;
 
-    if (Input.tool.mode === 'buyland' && p) {
-      const c = Grid.chunkOf(p.x, p.y);
-      if (!G.cache.ownedSet.has(c.cx + ',' + c.cy) && Grid.chunkBuyable(G.s, c.cx, c.cy)) {
-        Input.tt.textContent = Util.fmtMoney(Grid.chunkPrice(c.cx, c.cy));
-        Input.tt.classList.remove('hidden');
-        Input.tt.style.left = (e.clientX + 14) + 'px';
-        Input.tt.style.top = (e.clientY - 10) + 'px';
-      } else Input.tt.classList.add('hidden');
-    } else if (Input.tool.mode === 'terra' && p) {
-      Input.tt.textContent = '$' + TUNE.TERRA[Input.tool.type];
+    const showTT = txt => {
+      Input.tt.textContent = txt;
       Input.tt.classList.remove('hidden');
       Input.tt.style.left = (e.clientX + 14) + 'px';
       Input.tt.style.top = (e.clientY - 10) + 'px';
+    };
+
+    if (Input.tool.mode === 'buyland' && p) {
+      const c = Grid.chunkOf(p.x, p.y);
+      if (!G.cache.ownedSet.has(c.cx + ',' + c.cy) && Grid.chunkBuyable(G.s, c.cx, c.cy)) {
+        showTT(Util.fmtMoney(Grid.chunkPrice(c.cx, c.cy)));
+      } else if (G.cache.ownedSet.has(c.cx + ',' + c.cy) && !Grid.sellChunkWhy(G.s, c.cx, c.cy)) {
+        showTT('sell +' + Util.fmtMoney(Math.round(Grid.chunkPrice(c.cx, c.cy) * TUNE.SELL_LAND)));
+      } else Input.tt.classList.add('hidden');
+    } else if (Input.tool.mode === 'terra' && p) {
+      showTT('$' + TUNE.TERRA[Input.tool.type]);
+    } else if (Input.tool.mode === 'road' && Input.painting && Input.stroke) {
+
+      showTT('$' + Input.stroke.cost + ' · ' + Input.stroke.tiles.length + ' tiles' +
+        (e.shiftKey ? ' · straight' : ''));
+    } else if (Input.tool.mode === 'build' && p && Input.tool.type) {
+
+      const depots = Econ.supplyDepots(G.s);
+      let best = Infinity;
+      for (const m of depots) {
+        const md = DEF(m.type);
+        const dist = Math.hypot(p.x - (m.x + md.w / 2), p.y - (m.y + md.h / 2));
+        if (dist < best) best = dist;
+      }
+      const mult = best === Infinity || best <= TUNE.SUPPLY.freeRadius ? 1
+        : Math.min(TUNE.SUPPLY.maxMultiplier, 1 + (best - TUNE.SUPPLY.freeRadius) / TUNE.SUPPLY.premiumPer);
+      const d2 = DEF(Input.tool.type);
+      showTT('$' + d2.cost + (mult > 1.01
+        ? ' · carting ×' + mult.toFixed(2) + ' (' + Math.round(best) + ' tiles out)'
+        : ''));
+    } else if (Input.tool.mode === 'select' && p && !Input.hoverB) {
+
+      const t = G.cache.terrain[Grid.key(p.x, p.y)];
+      const soil = Grid.soilAt(p.x, p.y);
+      let txt = '';
+      if (t === TERRAIN.FERTILE) txt = 'fertile silt — farms +50% here';
+      else if (t === TERRAIN.SALT) txt = 'salt flats — folds and salt pans thrive, barley dies';
+      else if (t === TERRAIN.ROCK) txt = 'rock — finite stone, quarried from Era 3';
+      else if (t === TERRAIN.WATER) txt = 'the channel — clay pits near it, weirs and jetties on it';
+      else if (t === TERRAIN.MOUNTAIN) txt = 'mountain — nothing builds here';
+      else if (Grid.treeAt(G.s, p.x, p.y)) txt = 'wild growth — $' + TUNE.CLEAR_TREE + ' to clear';
+      else if (soil < 0.999) txt = 'worked ground — soil ' + Math.round(soil * 100) + '%';
+      if (txt) showTT(txt); else Input.tt.classList.add('hidden');
     } else Input.tt.classList.add('hidden');
 
     if (Input.painting && p) {
+
+      let target = p;
+      if (Input.tool.mode === 'road' && e.shiftKey && Input.paintStart) {
+        const ps = Input.paintStart;
+        target = Math.abs(p.x - ps.x) >= Math.abs(p.y - ps.y)
+          ? { x: p.x, y: ps.y } : { x: ps.x, y: p.y };
+      }
       let { x, y } = Input.lastPaint;
-      const dx = Math.abs(p.x - x), dy = Math.abs(p.y - y);
-      const sx = x < p.x ? 1 : -1, sy = y < p.y ? 1 : -1;
+      const dx = Math.abs(target.x - x), dy = Math.abs(target.y - y);
+      const sx = x < target.x ? 1 : -1, sy = y < target.y ? 1 : -1;
       let err = dx - dy, guard = 0;
-      while ((x !== p.x || y !== p.y) && guard++ < 512) {
+      while ((x !== target.x || y !== target.y) && guard++ < 512) {
         const e2 = err * 2;
         if (e2 > -dy) { err -= dy; x += sx; }
         else if (e2 < dx) { err += dx; y += sy; }
         if (Input.tool.mode === 'road') Input.placeRoad(G.s, x, y);
         else if (Input.tool.mode === 'terra') Input.terraApply(G.s, x, y);
       }
-      Input.lastPaint = p;
+      Input.lastPaint = target;
     }
   },
 
@@ -251,6 +335,13 @@ const Input = {
       Input.selected = b || null;
       if (b) { UI.showInspector(b); Rend.focusOn(b); } else UI.hideInspector();
     }
+
+    if (Input.stroke && Input.stroke.tiles.length) {
+      Input.lastAction = { kind: 'road', ids: Input.stroke.tiles.slice(),
+        cost: Input.stroke.cost, t: performance.now() };
+    }
+    Input.stroke = null;
+    Input.paintStart = null;
     Input.leftDown = null;
     Input.drag = null;
     Input.painting = false;
@@ -279,6 +370,46 @@ const Input = {
       UI.saveNow();
       return;
     }
+
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+      e.preventDefault();
+      const a = Input.lastAction;
+      if (!a || performance.now() - a.t > 10000) {
+        UI.toast('Nothing to undo — the window is 10 seconds after a placement.');
+        return;
+      }
+      Input.lastAction = null;
+      const s2 = G.s;
+      const ids = a.kind === 'road' ? a.ids : [a.id];
+      let removed = 0;
+      for (const id of ids) {
+        const b = G.cache.byId.get(id) || s2.buildings.find(x => x.id === id);
+        if (b) { Grid.removeBuilding(s2, b); removed++; }
+      }
+      if (removed) {
+        s2.money += a.cost;
+        Grid.rebuild(s2);
+        if (Input.selected && ids.includes(Input.selected.id)) { Input.selected = null; UI.hideInspector(); }
+        UI.toast('↩️ Undone — ' + (a.kind === 'road' ? removed + ' road tiles' : 'the building') +
+          ' removed, full ' + Util.fmtMoney(a.cost) + ' refunded.');
+      }
+      return;
+    }
+
+    if (e.key >= '1' && e.key <= '9' && !e.ctrlKey && !e.altKey) {
+      const btns = UI.els.palBody ? UI.els.palBody.querySelectorAll('.pal-btn:not(.locked)') : [];
+      const idx = +e.key - 1;
+      if (btns[idx]) { btns[idx].click(); return; }
+    }
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const tabs = UI.tabsFor();
+      const cur = tabs.findIndex(t => t.key === UI.activeTab);
+      const nxt = tabs[(cur + (e.shiftKey ? tabs.length - 1 : 1)) % tabs.length];
+      UI.activeTab = nxt.key;
+      UI.renderTab();
+      return;
+    }
     const step = Rend.tgt.di * 0.09;
     const az = Rend.tgt.az;
     const fwd = [-Math.sin(az) * step, -Math.cos(az) * step];
@@ -296,6 +427,23 @@ const Input = {
         if (UI.literate(G.s)) UI.togglePanel('tally-panel', UI.tallyHTML);
         else UI.toast('\u{1F4DC} Nobody in this city can write. Build a Scribe\'s House and the numbers appear.', 7000);
         break;
+      case 'c': case 'C': UI.togglePanel('chron-panel', UI.chronicleHTML); break;
+      case 'p': case 'P': UI.photoMode(); break;
+
+      case 'r': case 'R': {
+        if (Input.tool.mode !== 'build' && Input.tool.mode !== 'move') {
+          UI.firstToast('rotate', 'R turns a building — pick one from the palette (or Move an existing one) and press R.');
+          break;
+        }
+        Input.rot = ((Input.rot | 0) + 1) & 3;
+        const rt = Input.tool.mode === 'move' ? Input.tool.payload.type : Input.tool.type;
+        const rs = Grid.dims(rt, Input.rot);
+        Rend._overlayDirty = true;
+        if (window.Sfx) Sfx.play('road');
+        UI.toast('↻ ' + DEF(rt).name + ' turned ' + (Input.rot * 90) + '° — footprint ' +
+          rs.w + '×' + rs.h + '.', 2500);
+        break;
+      }
       case 'q': case 'Q': Rend.tgt.az += 0.12; break;
       case 'e': case 'E': Rend.tgt.az -= 0.12; break;
       case 'ArrowUp': case 'w': case 'W': Rend.tgt.tx += fwd[0]; Rend.tgt.tz += fwd[1]; break;
@@ -308,6 +456,8 @@ const Input = {
   place(s, type, x, y) {
     const d = DEF(type);
     const dev = window.Dev && Dev.flags;
+
+    if (d.noBuild && !(dev && dev.freeBuild)) return;
     if ((d.era || 1) > s.era && !(dev && dev.freeBuild)) return;
     if (d.unique && s.buildings.some(b => b.type === type) && !(dev && dev.freeBuild)) {
       UI.toast(d.name + ' is a monument — you may only raise one.');
@@ -328,23 +478,31 @@ const Input = {
           s.terraEdits[tk] = G.cache.terrain[tk];
           changed = true;
         }
-      });
+      }, (Input.rot | 0) & 3);
       if (changed) { Grid.rebuild(s); Rend.layerDirty = true; }
     }
-    if (!Grid.canPlace(s, type, x, y)) {
+    const useRot = (Input.rot | 0) & 3;
+    if (!Grid.canPlace(s, type, x, y, undefined, useRot)) {
 
-      UI.toast('Can’t build the ' + d.name + ' there — ' + Grid.whyBlocked(s, type, x, y) + '.', 10000);
+      if (window.Sfx) Sfx.play('deny');
+      UI.toast('Can’t build the ' + d.name + ' there — ' + Grid.whyBlocked(s, type, x, y, useRot) + '.', 10000);
       return;
     }
     if (!(dev && dev.freeBuild)) {
-      if (s.money < d.cost) { UI.toast('Not enough money — ' + d.name + ' costs $' + d.cost + '.'); return; }
+      if (s.money < d.cost) { if (window.Sfx) Sfx.play('deny'); UI.toast('Not enough money — ' + d.name + ' costs $' + d.cost + '.'); return; }
       s.money -= d.cost;
     }
-    const nb = Grid.addBuilding(s, type, x, y);
+    if (window.Sfx) Sfx.play('place', { size: d.w * d.h });
+    const nb = Grid.addBuilding(s, type, x, y, useRot);
     Grid.rebuild(s);
+
+    if (nb && !(dev && dev.freeBuild)) {
+      Input.lastAction = { kind: 'place', id: nb.id, cost: d.cost, t: performance.now() };
+    }
 
     if (d.monument && nb) {
       nb.delivered = {}; nb.complete = false; nb.stage = 0; nb.buildFrac = 0;
+      Econ.log(s, '\u{1F3D7}️', 'The foundation of the ' + d.name + ' was laid.');
       const need = monumentBuild(type, d.era || 1);
       const list = Object.keys(need).map(k => Math.round(need[k]) + ' ' + (k === 'money' ? '' : k)).join(', ');
       UI.toast('\u{1F3D7}️ Foundation laid. The ' + d.name + ' will rise as your city delivers ' +
@@ -377,7 +535,13 @@ const Input = {
       if (s.money < DEF('road').cost) { UI.firstToast('roadbroke', 'Out of money for roads — each tile is $' + DEF('road').cost + '.'); return; }
       s.money -= DEF('road').cost;
     }
-    Grid.addBuilding(s, 'road', x, y);
+    const rb = Grid.addBuilding(s, 'road', x, y);
+
+    if (Input.stroke && Input.stroke.kind === 'road') {
+      Input.stroke.tiles.push(rb.id);
+      Input.stroke.cost += DEF('road').cost;
+    }
+    if (window.Sfx) Sfx.play('road');
     Grid.rebuild(s);
     UI.firstToast('road', 'Roads connect buildings to the Town Hall. $10 a tile, and NO upkeep — ' +
       'so lay them out properly; a good layout costs you nothing to keep.');
@@ -406,10 +570,12 @@ const Input = {
 
     if (DEF(b.type).monument && !b.complete && Object.keys(b.delivered || {}).length) {
       const p = Econ.monumentProgress(G.s, b);
-      if (Input.confirmRaze !== b.id) {
+
+      if (Input.confirmRaze !== b.id || performance.now() - (Input.confirmRazeT || 0) > 5000) {
         Input.confirmRaze = b.id;
+        Input.confirmRazeT = performance.now();
         UI.toast('⚠️ That site is ' + Math.round(p.frac * 100) + '% built. Tearing it down returns the ' +
-          'foundation fee only — every delivery is lost. Click Demolish again to confirm.', 9000);
+          'foundation fee only — every delivery is lost. Click Demolish again within 5s to confirm.', 9000);
         return;
       }
     }
@@ -418,6 +584,7 @@ const Input = {
 
     const refund = Math.floor((base != null ? base : 100) * TUNE.DEMOLISH_REFUND);
     G.s.money += refund;
+    if (window.Sfx) Sfx.play('demolish');
     Grid.removeBuilding(G.s, b);
     Grid.rebuild(G.s);
     if (Input.selected === b) { Input.selected = null; UI.hideInspector(); }

@@ -201,11 +201,11 @@ const Grid = {
     return false;
   },
 
-  footHasTree(s, type, x, y) {
+  footHasTree(s, type, x, y, rot) {
     let hit = false;
     Grid.footTiles(type, x, y, (tx, ty) => {
       if (Grid.inB(tx, ty) && Grid.treeAt(s, tx, ty)) hit = true;
-    });
+    }, rot);
     return hit;
   },
 
@@ -265,7 +265,7 @@ const Grid = {
   soilUnder(b) {
     const d = DEF(b.type);
     let sum = 0, n = 0;
-    Grid.footTiles(b.type, b.x, b.y, (tx, ty) => {
+    Grid.tilesOf(b,(tx, ty) => {
       if (!Grid.inB(tx, ty)) return;
       sum += Grid.soilAt(tx, ty); n++;
     });
@@ -320,14 +320,53 @@ const Grid = {
     return true;
   },
 
-  footTiles(type, x, y, fn) {
+  sellChunkWhy(s, cx, cy) {
+    const key = cx + ',' + cy;
+    if (!G.cache.ownedSet.has(key)) return 'not yours';
+
+    const cc = TUNE.WORLD / TUNE.CHUNK / 2 - 1;
+    if (cx >= cc && cx <= cc + 2 && cy >= cc && cy <= cc + 2) return 'this is founding ground — the city keeps it';
+
+    const edge = !G.cache.ownedSet.has((cx + 1) + ',' + cy) || !G.cache.ownedSet.has((cx - 1) + ',' + cy) ||
+                 !G.cache.ownedSet.has(cx + ',' + (cy + 1)) || !G.cache.ownedSet.has(cx + ',' + (cy - 1));
+    if (!edge) return 'only frontier parcels can be sold — this one is surrounded by your own land';
+
+    for (let dy = 0; dy < TUNE.CHUNK; dy++)
+      for (let dx = 0; dx < TUNE.CHUNK; dx++) {
+        const tx = cx * TUNE.CHUNK + dx, ty = cy * TUNE.CHUNK + dy;
+        if (Grid.inB(tx, ty) && G.cache.occ[Grid.key(tx, ty)] >= 0)
+          return 'something is standing on it — demolish first';
+      }
+    return null;
+  },
+
+  sellChunk(s, cx, cy) {
+    if (Grid.sellChunkWhy(s, cx, cy)) return false;
+    const refund = Math.round(Grid.chunkPrice(cx, cy) * TUNE.SELL_LAND);
+    s.money += refund;
+    const key = cx + ',' + cy;
+    s.owned = s.owned.filter(k => k !== key);
+    G.cache.ownedSet.delete(key);
+    if (window.Rend && Rend.repaintChunk) Rend.repaintChunk(cx, cy);
+    return refund;
+  },
+
+  dims(type, rot) {
     const d = DEF(type);
-    for (let dy = 0; dy < d.h; dy++)
-      for (let dx = 0; dx < d.w; dx++)
+    return (rot & 1) ? { w: d.h, h: d.w } : { w: d.w, h: d.h };
+  },
+  dimsOf(b) { return Grid.dims(b.type, b.rot || 0); },
+
+  tilesOf(b, fn) { Grid.footTiles(b.type, b.x, b.y, fn, b.rot || 0); },
+
+  footTiles(type, x, y, fn, rot) {
+    const s = Grid.dims(type, rot);
+    for (let dy = 0; dy < s.h; dy++)
+      for (let dx = 0; dx < s.w; dx++)
         fn(x + dx, y + dy);
   },
 
-  canPlace(s, type, x, y, ignoreId) {
+  canPlace(s, type, x, y, ignoreId, rot) {
     const d = DEF(type);
 
     if (window.Dev && Dev.flags.freeBuild) {
@@ -337,11 +376,11 @@ const Grid = {
         if (!Grid.inB(tx, ty)) { devOk = false; return; }
         const occ = G.cache.occ[Grid.key(tx, ty)];
         if (occ >= 0 && occ !== ignoreId) devOk = false;
-      });
+      }, rot);
       return devOk;
     }
 
-    let ok = true, rock = 0;
+    let ok = true, rock = 0, salt = 0;
     Grid.footTiles(type, x, y, (tx, ty) => {
       if (!ok) return;
       if (!Grid.inB(tx, ty) || !Grid.owned(tx, ty)) { ok = false; return; }
@@ -349,26 +388,33 @@ const Grid = {
       if (occ >= 0 && occ !== ignoreId) { ok = false; return; }
       const t = G.cache.terrain[Grid.key(tx, ty)];
       if (t === TERRAIN.ROCK) rock++;
+      if (t === TERRAIN.SALT) salt++;
       if (t === TERRAIN.MOUNTAIN) { ok = false; return; }
 
       if (type === 'road' || d.onRock) { if (t === TERRAIN.WATER) ok = false; }
+
+      else if (d.onWater) { if (t !== TERRAIN.WATER) ok = false; }
       else if (t !== TERRAIN.GRASS && t !== TERRAIN.FERTILE && t !== TERRAIN.SALT) ok = false;
 
       if (ok && Grid.treeAt(s, tx, ty)) ok = false;
-    });
+    }, rot);
 
     if (ok && d.onRock && rock < 2) ok = false;
 
-    if (ok && d.nearWater && !Grid.waterWithin(x, y, d, d.nearWater)) ok = false;
-    if (ok && d.dryLand && !Grid.isDryLand(x, y, d)) ok = false;
+    if (ok && d.onSalt && salt < 2) ok = false;
+
+    const sz = Grid.dims(type, rot);
+    if (ok && d.nearWater && !Grid.waterWithin(x, y, sz, d.nearWater)) ok = false;
+    if (ok && d.dryLand && !Grid.isDryLand(x, y, sz)) ok = false;
     return ok;
   },
 
-  whyBlocked(s, type, x, y) {
+  whyBlocked(s, type, x, y, rot) {
     const d = DEF(type);
     if (!d) return 'unknown building';
-    if (!Grid.inB(x, y) || !Grid.inB(x + d.w - 1, y + d.h - 1)) return 'that is off the edge of the world';
-    let unowned = false, occupied = false, tree = false, mountain = false, water = false, wrong = false;
+    const sz = Grid.dims(type, rot);
+    if (!Grid.inB(x, y) || !Grid.inB(x + sz.w - 1, y + sz.h - 1)) return 'that is off the edge of the world';
+    let unowned = false, occupied = false, tree = false, mountain = false, water = false, wrong = false, dry = false, salt = 0;
     Grid.footTiles(type, x, y, (tx, ty) => {
       if (!Grid.inB(tx, ty)) { unowned = true; return; }
       if (!Grid.owned(tx, ty)) unowned = true;
@@ -377,23 +423,27 @@ const Grid = {
       const t = G.cache.terrain[Grid.key(tx, ty)];
       if (t === TERRAIN.MOUNTAIN) mountain = true;
       if (t === TERRAIN.WATER) water = true;
-      if (type !== 'road' && !d.onRock && t !== TERRAIN.GRASS && t !== TERRAIN.FERTILE && t !== TERRAIN.SALT) wrong = true;
-    });
+      if (t === TERRAIN.SALT) salt++;
+      if (d.onWater && t !== TERRAIN.WATER) dry = true;
+      if (type !== 'road' && !d.onRock && !d.onWater && t !== TERRAIN.GRASS && t !== TERRAIN.FERTILE && t !== TERRAIN.SALT) wrong = true;
+    }, rot);
 
     if (unowned) return 'you do not own that land yet — buy the parcel first';
     if (occupied) return 'something is already standing there';
     if (tree) return 'wild trees in the way — clear them with Demolish ($' + TUNE.CLEAR_TREE + ' each)';
     if (mountain) return 'you cannot build on mountain';
-    if (water) return 'that is in the water';
+    if (d.onWater && dry) return 'a ' + d.name + ' stands IN the water — every tile of it must sit on a channel';
+    if (!d.onWater && water) return 'that is in the water';
     if (wrong) return 'the ground there will not take a building';
-    if (d.onRock && Grid.rockFrac({ type, x, y }) * d.w * d.h < 2) {
+    if (d.onSalt && salt < 2) return 'a ' + d.name + ' must sit ON salt flats — at least 2 crusted tiles under it. Look for the white ground on the dry interfluve';
+    if (d.onRock && Grid.rockFrac({ type, x, y, rot }) * sz.w * sz.h < 2) {
       return 'a ' + d.name + ' must sit on ROCK — at least 2 rocky tiles under its footprint';
     }
-    if (d.nearWater && !Grid.waterWithin(x, y, d, d.nearWater)) {
+    if (d.nearWater && !Grid.waterWithin(x, y, sz, d.nearWater)) {
       return 'a ' + d.name + ' must be within ' + d.nearWater + ' tiles of water — move it to the bank';
     }
 
-    if (d.dryLand && !Grid.isDryLand(x, y, d)) {
+    if (d.dryLand && !Grid.isDryLand(x, y, sz)) {
       return 'a ' + d.name + ' needs DRY ground — every tile under it must be plain grass or salt flat, ' +
         'never your irrigated fields or the riverbank. Look for the pale ground away from the water, ' +
         'or a salt flat';
@@ -420,14 +470,16 @@ const Grid = {
     return ok;
   },
 
-  moveBuilding(s, b, x, y) {
+  moveBuilding(s, b, x, y, rot) {
     b.x = x; b.y = y;
+    if (rot !== undefined) b.rot = (rot | 0) & 3;
     G.cache.dirty = true;
   },
 
-  addBuilding(s, type, x, y) {
+  addBuilding(s, type, x, y, rot) {
     const b = {
       id: s.nextId++, type, x, y, placed: s.placeCounter++,
+      rot: (rot | 0) & 3,
       residents: 0, staff: 0, lastStaffEff: 0, status: 'ok',
 
       level: DEF(type).cap ? 1 : 0, evolve: 0,
@@ -458,9 +510,10 @@ const Grid = {
 
     for (const b of s.buildings) {
       C.byId.set(b.id, b);
-      Grid.footTiles(b.type, b.x, b.y, (tx, ty) => {
+      Grid.tilesOf(b,(tx, ty) => {
         C.occ[Grid.key(tx, ty)] = b.id;
-        if (b.type === 'road') C.road[Grid.key(tx, ty)] = 1;
+
+        if (b.type === 'road' || DEF(b.type).bridge) C.road[Grid.key(tx, ty)] = 1;
       });
     }
 
@@ -500,7 +553,7 @@ const Grid = {
 
     for (const b of s.buildings) {
       if (b.type === 'townhall') { b.conn = true; continue; }
-      if (b.type === 'road') { b.conn = C.connRoads.has(Grid.key(b.x, b.y)); continue; }
+      if (b.type === 'road' || DEF(b.type).bridge) { b.conn = C.connRoads.has(Grid.key(b.x, b.y)); continue; }
       b.conn = Grid.touchesConnectedRoad(s, b, hall);
     }
   },
@@ -508,7 +561,7 @@ const Grid = {
   touchesConnectedRoad(s, b, hall) {
     const C = G.cache;
     let found = false;
-    Grid.footTiles(b.type, b.x, b.y, (tx, ty) => {
+    Grid.tilesOf(b,(tx, ty) => {
       if (found) return;
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
         const nx = tx + dx, ny = ty + dy;
@@ -523,9 +576,21 @@ const Grid = {
   },
 
   stampRadius(map, b, radius) {
-    Grid.footTiles(b.type, b.x, b.y, (tx, ty) => {
+    Grid.tilesOf(b,(tx, ty) => {
       for (let dy = -radius; dy <= radius; dy++)
         for (let dx = -radius; dx <= radius; dx++) {
+          const nx = tx + dx, ny = ty + dy;
+          if (Grid.inB(nx, ny)) map[Grid.key(nx, ny)] = 1;
+        }
+    });
+  },
+
+  stampRadiusCircle(map, b, radius) {
+    const r2 = (radius + 0.5) * (radius + 0.5);
+    Grid.tilesOf(b,(tx, ty) => {
+      for (let dy = -radius; dy <= radius; dy++)
+        for (let dx = -radius; dx <= radius; dx++) {
+          if (dx * dx + dy * dy > r2) continue;
           const nx = tx + dx, ny = ty + dy;
           if (Grid.inB(nx, ny)) map[Grid.key(nx, ny)] = 1;
         }
@@ -538,13 +603,13 @@ const Grid = {
     for (const b of s.buildings) {
       const d = DEF(b.type);
 
-      if (d.waterRadius) Grid.stampRadius(C.water, b, d.waterRadius + rankRadiusBonus(b));
+      if (d.waterRadius) Grid.stampRadiusCircle(C.water, b, d.waterRadius + rankRadiusBonus(b));
     }
   },
 
   covered(map, b) {
     let hit = false;
-    Grid.footTiles(b.type, b.x, b.y, (tx, ty) => {
+    Grid.tilesOf(b,(tx, ty) => {
       if (map[Grid.key(tx, ty)]) hit = true;
     });
     return hit;
@@ -553,14 +618,14 @@ const Grid = {
   fertileFrac(b) {
     const d = DEF(b.type);
     let fert = 0, total = d.w * d.h;
-    Grid.footTiles(b.type, b.x, b.y, (tx, ty) => {
+    Grid.tilesOf(b,(tx, ty) => {
       if (G.cache.terrain[Grid.key(tx, ty)] === TERRAIN.FERTILE) fert++;
     });
     return fert / total;
   },
 
   gap(a, b) {
-    const da = DEF(a.type), db = DEF(b.type);
+    const da = Grid.dimsOf(a), db = Grid.dimsOf(b);
     return Util.rectGap(a.x, a.y, da.w, da.h, b.x, b.y, db.w, db.h);
   },
 
@@ -569,7 +634,7 @@ const Grid = {
   rockFrac(b) {
     const d = DEF(b.type);
     let rock = 0;
-    Grid.footTiles(b.type, b.x, b.y, (tx, ty) => {
+    Grid.tilesOf(b,(tx, ty) => {
       if (G.cache.terrain[Grid.key(tx, ty)] === TERRAIN.ROCK) rock++;
     });
     return rock / (d.w * d.h);
@@ -577,75 +642,99 @@ const Grid = {
 
   recomputeAdjacency(s) {
     const grainFarms = s.buildings.filter(b => DEF(b.type).out && DEF(b.type).out.grain);
+
+    const producers = s.buildings.filter(b => DEF(b.type).out || DEF(b.type).procOut);
+    const processors = s.buildings.filter(b => DEF(b.type).procIn);
     const mills = s.buildings.filter(b => b.type === 'mill');
-    const quarries = s.buildings.filter(b => b.type === 'quarry');
     const floors = s.buildings.filter(b => DEF(b.type).threshing);
-    const cutters = s.buildings.filter(b => b.type === 'stonecutter');
     const parks = s.buildings.filter(b => b.type === 'park');
+    const shrines = s.buildings.filter(b => DEF(b.type).amenityRadius);
     const temples = s.buildings.filter(b => b.type === 'temple');
     const industry = s.buildings.filter(b => DEF(b.type).industry);
     const shops = s.buildings.filter(b => DEF(b.type).sells);
     const homes = s.buildings.filter(b => DEF(b.type).cap);
+    const ovens = s.buildings.filter(b => b.type === 'breadoven');
+    const weighs = s.buildings.filter(b => b.type === 'weighhouse');
+    const bureaus = s.buildings.filter(b => b.type === 'woolbureau');
+    const byres = s.buildings.filter(b => b.type === 'oxbyre');
 
     const scribes = s.buildings.filter(b => DEF(b.type).keepsTally && b.done !== false);
+
+    const within = (a, o, r) => {
+      const ad = Grid.dimsOf(a), od = Grid.dimsOf(o);
+      return Util.rectDist(a.x, a.y, ad.w, ad.h, o.x, o.y, od.w, od.h) <= r;
+    };
 
     for (const b of s.buildings) {
       const d = DEF(b.type);
       if (d.out && d.out.grain) {
 
-        b.adjBoost = mills.some(o => Grid.adjacent(b, o)) || floors.some(o => Grid.adjacent(b, o));
+        let boost = mills.some(o => Grid.adjacent(b, o)) ? TUNE.ADJ_BONUS : 0;
+        for (const o of floors) {
+          if (Grid.adjacent(b, o)) boost = Math.max(boost, TUNE.ADJ_BONUS * rankOutMult(o));
+        }
+        b.adjBoost = boost;
         b.fertile = Grid.fertileFrac(b);
-      } else if (b.type === 'mill') {
-        b.adjBoost = grainFarms.some(o => Grid.adjacent(b, o));
-      } else if (d.procIn === 'clay') {
-        b.adjBoost = s.buildings.some(o => o.type === 'claypit' && Grid.adjacent(b, o));
-      } else if (d.procIn === 'wool') {
-        b.adjBoost = s.buildings.some(o => o.type === 'sheepfold' && Grid.adjacent(b, o));
-      } else if (b.type === 'brewery') {
-        b.adjBoost = grainFarms.some(o => Grid.adjacent(b, o));
-      } else if (b.type === 'quarry') {
-        b.adjBoost = cutters.some(o => Grid.adjacent(b, o));
-        b.rockFrac = Grid.rockFrac(b);
-      } else if (b.type === 'stonecutter') {
-        b.adjBoost = quarries.some(o => Grid.adjacent(b, o));
-      } else if (d.sells) {
+      } else if (d.out) {
 
-        b.scribed = scribes.some(o => {
+        const kind = Object.keys(d.out)[0];
+        b.adjBoost = processors.some(o => DEF(o.type).procIn === kind && Grid.adjacent(b, o))
+          ? TUNE.ADJ_BONUS : 0;
+        if (b.type === 'quarry') b.rockFrac = Grid.rockFrac(b);
+      } else if (d.procIn) {
+
+        b.adjBoost = producers.some(o => {
           const od = DEF(o.type);
-          return Util.rectGap(b.x, b.y, d.w, d.h, o.x, o.y, od.w, od.h) <= TUNE.SCRIBE.radius;
-        });
+          return ((od.out && od.out[d.procIn] !== undefined) || od.procOut === d.procIn) &&
+            Grid.adjacent(b, o);
+        }) ? TUNE.ADJ_BONUS : 0;
       } else if (d.cap) {
 
-        const nearPark = parks.some(o => {
-          const od = DEF(o.type);
-          return Util.rectGap(b.x, b.y, d.w, d.h, o.x, o.y, od.w, od.h) <= (od.capRadius || 1);
-        });
-        const nearTemple = temples.some(o => Grid.gap(b, o) <= 2);
+        const nearPark = parks.some(o => within(b, o, DEF(o.type).capRadius || 1));
+
+        const nearShrine = shrines.some(o => within(b, o, DEF(o.type).amenityRadius));
+        const nearTemple = temples.some(o => within(b, o, 2));
         const nearInd = industry.some(o => Grid.adjacent(b, o));
 
-        b.cap = Math.max(1, houseCap(d, b) + (nearPark ? 1 : 0) + (nearTemple ? 1 : 0) - (nearInd ? 1 : 0));
-        b.nearPark = nearPark; b.nearTemple = nearTemple; b.nearInd = nearInd;
-        b.nearMarket = shops.some(o => {
-          const od = DEF(o.type);
-          return Util.rectGap(b.x, b.y, d.w, d.h, o.x, o.y, od.w, od.h) <= od.custRadius;
-        });
+        b.cap = Math.max(1, houseCap(d, b) + ((nearPark || nearShrine) ? 1 : 0) + (nearTemple ? 1 : 0) - (nearInd ? 1 : 0));
+        b.nearPark = nearPark; b.nearShrine = nearShrine; b.nearTemple = nearTemple; b.nearInd = nearInd;
+
+        b.nearOvenIds = ovens.filter(o => within(b, o, TUNE.OVEN.radius)).map(o => o.id);
+        b.nearOven = b.nearOvenIds.length > 0;
+        b.nearMarket = shops.some(o => within(b, o, DEF(o.type).custRadius || 6));
 
         b.nearHomes = homes.reduce((n, o) => {
           if (o === b) return n;
-          const od = DEF(o.type);
-          return n + (Util.rectGap(b.x, b.y, d.w, d.h, o.x, o.y, od.w, od.h) <= 2 ? 1 : 0);
+          return n + (within(b, o, 2) ? 1 : 0);
         }, 0);
+      }
+
+      if (d.sells || d.sellsRaw) {
+        b.scribed = scribes.some(o => within(b, o, TUNE.SCRIBE.radius));
+        b.weighedBy = weighs.filter(o => within(b, o, TUNE.WEIGH.radius)).map(o => o.id);
+
+        b.bureauBy = (d.sells === 'cloth' || d.sells === 'dyedcloth')
+          ? bureaus.filter(o => within(b, o, TUNE.BUREAU.radius)).map(o => o.id) : [];
+      }
+
+      if (d.plowed) {
+        b.oxNear = byres.filter(o => within(b, o, TUNE.OX.radius)).map(o => o.id);
+      }
+
+      if (d.procIn === 'wool') {
+        b.bureauSlowBy = bureaus.filter(o => within(b, o, TUNE.BUREAU.radius)).map(o => o.id);
       }
     }
   },
 
   customerSurvey(s, b) {
-    const d = DEF(b.type);
+    const d = Grid.dimsOf(b);
     let n = 0, sum = 0;
     for (const h of s.buildings) {
-      const hd = DEF(h.type);
-      if (!hd.cap || !h.residents) continue;
-      const gap = Util.rectGap(b.x, b.y, d.w, d.h, h.x, h.y, hd.w, hd.h);
+      if (!DEF(h.type).cap || !h.residents) continue;
+      const hd = Grid.dimsOf(h);
+
+      const gap = Util.rectDist(b.x, b.y, d.w, d.h, h.x, h.y, hd.w, hd.h);
       n += h.residents;
       sum += gap * h.residents;
     }
@@ -653,14 +742,14 @@ const Grid = {
   },
 
   residentsWithin(s, b, radius) {
-    const d = DEF(b.type);
+    const d = Grid.dimsOf(b);
     let n = 0;
     for (const h of s.buildings) {
 
       if (!DEF(h.type).cap || !h.residents) continue;
       const hd = DEF(h.type);
 
-      if (Util.rectGap(b.x, b.y, d.w, d.h, h.x, h.y, hd.w, hd.h) <= radius) n += h.residents;
+      if (Util.rectDist(b.x, b.y, d.w, d.h, h.x, h.y, hd.w, hd.h) <= radius) n += h.residents;
     }
     return n;
   },

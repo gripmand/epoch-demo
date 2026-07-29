@@ -38,8 +38,9 @@ const Main = {
     const canvas = document.getElementById('game');
 
     const wantsFresh = /[?&](fresh|new)\b/.test(location.search);
+
     let hasSave = false;
-    try { hasSave = !!localStorage.getItem(SAVE_KEY); } catch (e) {}
+    try { hasSave = !!Game.rawSave(); } catch (e) {}
     const fresh = wantsFresh && !hasSave;
     const askFresh = wantsFresh && hasSave;
     if (wantsFresh && window.history && history.replaceState) {
@@ -51,6 +52,7 @@ const Main = {
     Rend.init(canvas);
     UI.init();
     Input.init(canvas);
+    if (window.Sfx) Sfx.init();
 
     let away = null;
     if (loaded) {
@@ -70,6 +72,12 @@ const Main = {
     if (!loaded) {
 
       setTimeout(() => UI.togglePanel('guide-panel', UI.guideHTML), 700);
+      const askName = () => {
+        if (G.s.cityName || G.s.tick > 1200) return;
+        if (document.querySelector('.panel')) { setTimeout(askName, 2500); return; }
+        UI.promptNaming();
+      };
+      setTimeout(askName, 4000);
 
       UI.toast(TUNE.FOUNDING_GRANT
         ? 'ERA 1 — ANUNNAKI. The sky-teachers hand you a founding village and ' +
@@ -80,6 +88,23 @@ const Main = {
           'no village, no rations, an EMPTY granary. Build a Well, 2-3 Farms, a Mill touching a Farm, ' +
           'then Houses and a Market. Food before people: houses with nothing milled go hungry. ' +
           'Press G for the guide.', 16000);
+    } else if (Game.migratedFrom) {
+
+      setTimeout(() => {
+        let dry = 0;
+        for (const b of G.s.buildings) {
+          const d = DEF(b.type);
+          if (d && d.needsWater && !Grid.covered(G.cache.water, b)) dry++;
+        }
+        UI.toast('\u{1F3DB}️ Your city carried over — and the whole Era 1 update is now live: new buildings ' +
+          'and chains, Town Hall policies, the Chronicle (C), the salt map (O), and R to rotate. Press G for the guide.',
+          20000);
+        if (dry) {
+          UI.toast('⚠️ ' + dry + ' building' + (dry === 1 ? ' is' : 's are') + ' out of water. Coverage is now a ' +
+            'true CIRCLE rather than a square, so anything that sat in a corner of the old radius needs a well ' +
+            'nudged closer — or ranked, which adds a tile of reach. Press O to see the coverage.', 24000);
+        }
+      }, 1500);
     } else {
       UI.toast('City loaded — Era ' + G.s.era + ' · ' + ERAS[G.s.era - 1].name + '. Autosaves every 10s.');
     }

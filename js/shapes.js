@@ -461,6 +461,80 @@ const Shapes = {
 
   RECIPES: {
 
+    fishweir(d) {
+      const g = new THREE.Group();
+      const W = d.w * 0.72, D = d.h * 0.80;
+      const DECK = 0.78;
+
+      for (const z of [-D * 0.42, -D * 0.14, D * 0.14, D * 0.42]) {
+        for (const x of [-W * 0.42, W * 0.42]) {
+          const p = Shapes.cyl(0.055, DECK + 0.06, 'timber', 6);
+          p.position.set(x, 0, z);
+          g.add(p);
+        }
+      }
+
+      for (let i = 0; i < 7; i++) {
+        const s = Shapes.box(0.06, 0.66, 0.06, 'thatchDim');
+        s.position.set(-W * 0.62, 0.26, -D * 0.46 + (D * 0.92) * (i / 6));
+        g.add(s);
+      }
+      const rail = Shapes.box(0.05, 0.05, D * 0.95, 'timber');
+      rail.position.set(-W * 0.62, 0.88, 0);
+      g.add(rail);
+
+      const deck = Shapes.box(W, 0.08, D, 'timber');
+      deck.position.y = DECK;
+      g.add(deck);
+
+      const hut = Shapes.box(W * 0.86, 0.32, D * 0.30, 'thatch');
+      hut.position.set(0, DECK + 0.08, -D * 0.30);
+      g.add(hut);
+      const roof = Shapes.gable(W * 0.86, 0.20, D * 0.30, 'thatchDim', 0.06);
+      roof.position.set(0, DECK + 0.40, -D * 0.30);
+      g.add(roof);
+
+      for (const x of [-W * 0.30, W * 0.30]) {
+        const post = Shapes.box(0.06, 0.42, 0.06, 'timber');
+        post.position.set(x, DECK + 0.08, D * 0.34);
+        g.add(post);
+      }
+      const bar = Shapes.box(W * 0.68, 0.05, 0.05, 'timber');
+      bar.position.set(0, DECK + 0.46, D * 0.34);
+      g.add(bar);
+      for (let i = 0; i < 3; i++) {
+        const f = Shapes.box(0.07, 0.17, 0.05, 'ware');
+        f.position.set(-W * 0.22 + i * (W * 0.22), DECK + 0.26, D * 0.34);
+        g.add(f);
+      }
+      return g;
+    },
+
+    jetty(d) {
+      const g = new THREE.Group();
+      const W = d.w * 0.92, D = d.h * 0.92;
+      const DECK = 0.74;
+      for (const x of [-W * 0.34, W * 0.34]) {
+        for (const z of [-D * 0.34, D * 0.34]) {
+          const p = Shapes.cyl(0.055, DECK + 0.05, 'timber', 6);
+          p.position.set(x, 0, z);
+          g.add(p);
+        }
+      }
+      const deck = Shapes.box(W, 0.09, D, 'timber');
+      deck.position.y = DECK;
+      g.add(deck);
+
+      const boat = Shapes.cyl(0.10, D * 0.86, 'thatch', 6);
+      boat.rotation.x = Math.PI / 2;
+      boat.position.set(W * 0.30, 0.46, -D * 0.43);
+      g.add(boat);
+      const post = Shapes.box(0.06, 0.30, 0.06, 'timber');
+      post.position.set(-W * 0.30, DECK + 0.09, 0);
+      g.add(post);
+      return g;
+    },
+
     templeHousehold(d) {
       const g = new THREE.Group();
       const w = d.w * 0.88, dp = d.h * 0.88;

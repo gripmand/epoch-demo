@@ -51,7 +51,24 @@ body[data-era-theme="cosmic"]    { --chip-bg: rgba(16, 10, 28, 0.92); --chip-bor
 #rent-chip { border-color: rgba(240, 205, 110, 0.4); }
 .locked-rent { opacity: 0.55; }
 .locked-rent::after { content: ' 🔒'; font-size: 10px; }
-#rent-chip .hud-val { font-variant-numeric: tabular-nums; }
+
+/* ---- THE RENT TICKER (Dylan, 2026-07-28) ----------------------------------
+   One number, and it only ever goes up. The era cap, the tier comparison and
+   the lock are gone from the HUD — they live on the Town Hall panel, where a
+   player goes to ASK. Here there is only the climb.
+   ★ Deliberately UNDERSTATED (Dylan's second call): ordinary chip size, no
+   glow, no special colour — it earns attention by moving, not by shouting.
+   Monospaced + tabular is not decoration: without it the digits wobble the
+   whole string sideways every time they roll. */
+#rent-chip { min-width: 172px; }
+#hud-rent {
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  letter-spacing: -0.3px;
+}
+/* leading zeros recede so the eye lands on the digits that are actually moving */
+.rent-dim { color: rgba(245, 218, 141, 0.34); font-weight: 600; }
+#hud-rent-rate { display: none; }
 
 #minimap {
   position: absolute; right: 10px; bottom: 10px;

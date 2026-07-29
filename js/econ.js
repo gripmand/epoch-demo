@@ -20,7 +20,9 @@ const Econ = {
     for (const b of s.buildings)
     {
       const d = DEF(b.type);
-      if (b.done !== false && b.conn && d && (d.storeGrain || d.storeFlour || b.type === 'stoneyard')) stores++;
+
+      if (b.done !== false && !(d && d.needsRoad && !b.conn) && d &&
+          (d.storeGrain || d.storeFlour || d.storeCraft || b.type === 'stoneyard')) stores++;
     }
     return Math.min(TUNE.OFFLINE_CAP_MAX_H,
       subTier(s).offlineH + stores * TUNE.OFFLINE_CAP_PER_STORE);
@@ -42,8 +44,10 @@ const Econ = {
     s.offline = true;
 
     const step = Math.max(1, Math.ceil(secs / 200000));
-    let simulated = 0;
-    for (let n = 0; n < secs; n += step) { Econ.tick(s, true); simulated += step; }
+    const baseM = Econ.M;
+    Econ.M = baseM * step;
+    for (let n = 0; n < secs; n += step) Econ.tick(s, true);
+    Econ.M = baseM;
     s.offline = false;
 
     const goods = [];
@@ -95,14 +99,29 @@ const Econ = {
 
     C.tallyTick = {};
 
+    C.tickExport = 0; C.tickDole = 0; C.tickDues = 0;
+    C.grainDraw = { mill: 0, brewery: 0, oxen: 0, dole: 0 };
+
     const byPlaced = s.buildings.slice()
       .filter(b => b.done !== false)
       .sort((a, b) => a.placed - b.placed);
+
+    if (s.policyRationLaw && s.hunger >= TUNE.HUNGER_WARN) {
+      const foodFirst = b => {
+        const d = DEF(b.type);
+        return (d.out && (d.out.grain || d.out.dates || d.out.fish)) ||
+          d.procOut === 'flour' || d.sells === 'flour' ||
+          b.type === 'breadoven' || b.type === 'templeGranary' ? 0 : 1;
+      };
+      byPlaced.sort((a, b) => foodFirst(a) - foodFirst(b) || a.placed - b.placed);
+    }
     let pool = Game.totalResidents(s);
     C.workersTotal = pool;
     for (const b of byPlaced) {
       const d = DEF(b.type);
       b.staff = 0;
+
+      if (b.mothballed) { b.block = null; b.status = 'mothballed'; b.rate = 0; continue; }
       if (!d.workers) continue;
 
       if (b.resting) {
@@ -118,19 +137,52 @@ const Econ = {
     }
     C.workersUsed = C.workersTotal - pool;
 
+    C.fedByres = new Set();
+    for (const b of byPlaced) {
+      if (b.type !== 'oxbyre') continue;
+      if (b.block || !b.staff) continue;
+      const want = TUNE.OX.fodder * (b.staff / DEF('oxbyre').workers) * Econ.M;
+      if (want > 0 && s.stock.grain >= want) {
+        s.stock.grain -= want;
+        Econ.note('grain', 0, want);
+        C.grainDraw.oxen += want;
+        C.fedByres.add(b.id);
+      }
+    }
+
+    C.beerBonus = 0;
+    if (s.policyBeerRation) {
+      const need = TUNE.BEER_RATION.perResident * Game.totalResidents(s) * Econ.M;
+      if (need > 0 && s.stock.beer >= need) {
+        s.stock.beer -= need;
+        Econ.note('beer', 0, need);
+        C.beerBonus = TUNE.BEER_RATION.bonus;
+      }
+    }
+
     for (const b of byPlaced) {
       const d = DEF(b.type);
 
       b.supply = Econ.supplyMultiplier(s, b);
 
-      if (d.sells) {
+      if (d.sells || d.sellsRaw) {
         const sv = Grid.customerSurvey(s, b);
         b.customers = sv.n;
         b.custDist = sv.meanDist;
         b.trade = Econ.tradeMultiplier(sv.meanDist);
       } else b.trade = 1;
-      upkeep += d.upkeep * b.supply * b.trade * rankUpkeepMult(b) * Econ.M;
-      premium += d.upkeep * (b.supply * b.trade - 1) * rankUpkeepMult(b) * Econ.M;
+
+      let uBase = d.upkeep * rankUpkeepMult(b);
+      if (b.mothballed) {
+        upkeep += d.upkeep * TUNE.MOTHBALL_UPKEEP * Econ.M;
+      } else {
+        if (b.resting) uBase *= TUNE.FALLOW_UPKEEP;
+        else if (d.workers) uBase *= TUNE.STAFF_UPKEEP_FLOOR +
+          (1 - TUNE.STAFF_UPKEEP_FLOOR) * (b.staff / d.workers);
+        const uFull = uBase * b.supply * b.trade;
+        upkeep += uFull * Econ.M;
+        premium += (uFull - uBase) * Econ.M;
+      }
       if (b.type === 'townhall') {
         income += HALLS[s.hallLevel].trickle * Econ.M;
 
@@ -155,7 +207,28 @@ const Econ = {
         b.status = b.block || 'ok';
         if (b.status === 'ok') { income += d.trickle * Econ.M; b.rate = d.trickle; }
         else b.rate = 0;
-      } else if (!d.workers && !d.cap) {
+      } else if (b.type === 'templeGranary' && !b.mothballed) {
+
+        if (b.block) b.status = b.block;
+        else if (b.staff === 0) b.status = 'no_staff';
+        else {
+          b.status = b.staff < d.workers ? 'understaffed' : 'ok';
+          const dues = TUNE.DUES.per * Grid.residentsWithin(s, b, TUNE.DUES.radius) *
+            (b.staff / d.workers) * Econ.M;
+          income += dues;
+          C.tickDues += dues;
+        }
+      } else if (b.type === 'oxbyre' && !b.mothballed) {
+        b.status = b.block ? b.block
+          : b.staff === 0 ? 'no_staff'
+          : C.fedByres.has(b.id) ? (b.staff < d.workers ? 'understaffed' : 'ok')
+          : 'no_input';
+      } else if (d.workers && !d.out && !d.procIn && !d.sells && !d.sellsRaw && !b.mothballed) {
+
+        b.status = b.block ? b.block
+          : b.staff === 0 ? 'no_staff'
+          : b.staff < d.workers ? 'understaffed' : 'ok';
+      } else if (!d.workers && !d.cap && !b.mothballed) {
 
         b.status = (d.needsRoad && !b.conn) ? 'no_road'
           : (d.needsWater && !Grid.covered(C.water, b)) ? 'no_water' : 'ok';
@@ -164,7 +237,8 @@ const Econ = {
 
     for (const b of byPlaced) {
       const d = DEF(b.type);
-      if (!d.out || !d.workers) continue;
+      if (!d.out || !d.workers || b.mothballed) continue;
+      if (b.type === 'oxbyre') continue;
 
       if (b.resting) {
         b.soil = Grid.soilUnder(b);
@@ -180,22 +254,39 @@ const Econ = {
 
         b.soil = Grid.soilUnder(b);
         const soilMult = TUNE.SOIL.minYield + (1 - TUNE.SOIL.minYield) * b.soil;
+
+        const oxen = (b.oxNear || []).some(id => C.fedByres.has(id)) ? TUNE.OX.bonus : 0;
         const mult = (1 + TUNE.FERTILE_BONUS * (b.fertile || 0)) *
-                     (1 + (b.adjBoost ? TUNE.ADJ_BONUS : 0)) * soilMult * rankOutMult(b);
-        made = d.out.grain * staffEff * mult * Econ.M;
+                     (1 + (b.adjBoost || 0)) * (1 + oxen) * soilMult * rankOutMult(b);
+        made = d.out.grain * staffEff * mult * Econ.M * (1 + C.beerBonus);
         Econ.addStock(s, 'grain', made);
       } else if (d.out.clay || d.out.wool) {
 
         const kind = d.out.clay ? 'clay' : 'wool';
-        const mult = (1 + (b.adjBoost ? TUNE.ADJ_BONUS : 0)) * rankOutMult(b);
-        made = d.out[kind] * staffEff * mult * Econ.M;
+        const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b);
+        made = d.out[kind] * staffEff * mult * Econ.M * (1 + C.beerBonus);
+        Econ.addStock(s, kind, made);
+      } else if (d.out.dates || d.out.fish || d.out.salt || d.out.reeds || d.out.sesame) {
+
+        const kind = Object.keys(d.out)[0];
+
+        const oxen = (b.oxNear || []).some(id => C.fedByres.has(id)) ? TUNE.OX.bonus : 0;
+        let mult = (1 + (b.adjBoost || 0)) * (1 + oxen) * rankOutMult(b);
+        if (d.saltProof) {
+          b.soil = Grid.soilUnder(b);
+          if (b.soil < 0.3) mult *= 1.5;
+        } else if (d.slowSalt) {
+          b.soil = Grid.soilUnder(b);
+          mult *= TUNE.SOIL.minYield + (1 - TUNE.SOIL.minYield) * b.soil;
+        }
+        made = d.out[kind] * staffEff * mult * Econ.M * (1 + C.beerBonus);
         Econ.addStock(s, kind, made);
       } else if (d.out.stone) {
 
         const left = Econ.quarryStoneLeft(b);
         b.stoneLeft = left;
-        const mult = (0.5 + 0.5 * (b.rockFrac || 0)) * (1 + (b.adjBoost ? TUNE.ADJ_BONUS : 0)) * rankOutMult(b);
-        made = left > 0 ? d.out.stone * staffEff * mult * Econ.M : 0;
+        const mult = (0.5 + 0.5 * (b.rockFrac || 0)) * (1 + (b.adjBoost || 0)) * rankOutMult(b);
+        made = left > 0 ? d.out.stone * staffEff * mult * Econ.M * (1 + C.beerBonus) : 0;
         if (made > 0) {
           Econ.spendQuarry(s, b, made);
           Econ.addStock(s, 'stone', made);
@@ -206,20 +297,34 @@ const Econ = {
       b.status = staffEff < 1 ? 'understaffed' : 'ok';
     }
 
-    for (const b of byPlaced) {
+    const procs = byPlaced.filter(b => DEF(b.type).procIn && DEF(b.type).workers && !b.mothballed);
+    if (s.policyFeedFirst !== false) {
+      procs.sort((a, b) =>
+        ((DEF(b.type).procOut === 'flour') ? 1 : 0) - ((DEF(a.type).procOut === 'flour') ? 1 : 0) ||
+        a.placed - b.placed);
+    }
+    for (const b of procs) {
       const d = DEF(b.type);
-      if (!d.procIn || !d.workers) continue;
       if (b.block) { b.status = b.block; b.rate = 0; continue; }
       const staffEff = b.staff / d.workers;
       if (b.staff === 0) { b.status = 'no_staff'; b.rate = 0; continue; }
-      const want = d.procRate * staffEff * (1 + (b.adjBoost ? TUNE.ADJ_BONUS : 0)) * rankOutMult(b) * Econ.M;
+
+      b.bureauSlow = Econ.anyAuraLive(b.bureauSlowBy);
+      const slow = b.bureauSlow ? (1 - TUNE.BUREAU.slow) : 1;
+      const want = d.procRate * staffEff * (1 + (b.adjBoost || 0)) *
+        rankOutMult(b) * slow * Econ.M * (1 + C.beerBonus);
       const use = Math.min(want, s.stock[d.procIn]);
       s.stock[d.procIn] -= use;
       Econ.note(d.procIn, 0, use);
+      if (d.procIn === 'grain') {
+        C.grainDraw[d.procOut === 'flour' ? 'mill' : 'brewery'] += use;
+      }
       const made = use * d.procRatio;
       Econ.addStock(s, d.procOut, made);
       if (d.procOut === 'flour') { flourMade += made; s.cum.flour += made; }
       b.rate = made;
+
+      b.prodRate = made;
       b.status = use <= 0.0001 ? 'no_input' : (staffEff < 1 ? 'understaffed' : 'ok');
     }
 
@@ -236,21 +341,85 @@ const Econ = {
       if (h.cap == null) h.cap = DEF(h.type).cap;
     }
     const residents = Game.totalResidents(s);
-    const demand = residents * TUNE.FLOUR_PER_RESIDENT * Econ.M;
 
-    const eaten = offline ? Math.min(demand, s.stock.flour) : Math.min(demand, s.stock.flour);
-    s.stock.flour -= eaten;
-    Econ.note('flour', 0, eaten);
+    let effRes = residents;
+    if (residents > 0) {
+
+      let covered = 0;
+      for (const h of houses) {
+        if (h.residents && Econ.anyAuraLive(h.nearOvenIds)) covered += h.residents;
+      }
+      if (covered > 0) effRes = residents - covered * (1 - TUNE.OVEN.factor);
+    }
+
+    const demand = effRes * TUNE.FLOUR_PER_RESIDENT * Econ.M;
+    let shortfall = demand;
+    for (const f of TUNE.FOODS) {
+      if (shortfall <= 0) break;
+      const have = s.stock[f.kind] || 0;
+      if (have <= 0) continue;
+      const useEquiv = Math.min(shortfall, have * f.eff);
+      const useUnits = useEquiv / f.eff;
+      s.stock[f.kind] -= useUnits;
+      Econ.note(f.kind, 0, useUnits);
+      shortfall -= useEquiv;
+    }
+
+    if (shortfall > 0 && s.hunger >= TUNE.DOLE.hungerAt) {
+      const granary = byPlaced.find(b => b.type === 'templeGranary' &&
+        !b.mothballed && b.staff > 0 && !b.block);
+      if (granary) {
+        const equiv = Math.min(shortfall, TUNE.DOLE.rate * Econ.M,
+          (s.stock.grain || 0) / TUNE.DOLE.grainPerFlour);
+        if (equiv > 0) {
+          const grain = equiv * TUNE.DOLE.grainPerFlour;
+          s.stock.grain -= grain;
+          Econ.note('grain', 0, grain);
+          C.grainDraw.dole += grain;
+          C.tickDole += equiv;
+          shortfall -= equiv;
+        }
+      }
+    }
+    const eaten = demand - shortfall;
     const fed = (offline || demand <= 0) ? 1 : eaten / demand;
 
     const rise = 1 / (TUNE.STARVE_MINUTES * 60);
     if (fed < 0.99) s.hunger = Math.min(1, s.hunger + (1 - fed) * rise);
-    else s.hunger = Math.max(0, s.hunger - TUNE.HUNGER_RECOVER);
+    else {
+
+      const target = residents * TUNE.FLOUR_PER_RESIDENT * TUNE.TEMPO * TUNE.LARDER.recoverMin;
+      const larder = residents > 0
+        ? Math.max(0.25, Math.min(1, Econ.foodEquiv(s) / Math.max(1, target))) : 1;
+      s.hunger = Math.max(0, s.hunger - TUNE.HUNGER_RECOVER * larder);
+    }
+
+    if (!offline) {
+      if (s.hunger <= 0.001) { C.h25Told = 0; C.h50Told = 0; C.famineLogged = 0; }
+      if (s.hunger >= TUNE.MIGRATION.hungerStop && !C.h25Told) {
+        C.h25Told = 1;
+        UI.toast('\u{1F35E} The city is going hungry — newcomers are turning away. Check the Tally (T): ' +
+          'is the Mill starving, or are there simply too many mouths?', 10000);
+      }
+      if (s.hunger >= TUNE.HUNGER_WARN && !C.h50Told) {
+        C.h50Told = 1;
+        UI.toast('⚠️ FAMINE RISING. Residents will hold on for roughly ' +
+          Math.round(TUNE.STARVE_MINUTES * (1 - s.hunger)) + ' more minutes. Import grain at the Hall, ' +
+          'open the Temple Granary\'s dole, or get flour moving — then the recovery is fast.', 12000);
+        if (!C.famineLogged) { C.famineLogged = 1; Econ.log(s, '⚠️', 'Famine took hold of the city.'); }
+      }
+    }
 
     if (s.hunger >= 1 && s.tick % 10 === 0) Econ.removeResident(s, houses);
     if (s.tick % 6 === 0) {
+
       const blocked = houses.find(h => h.block && h.residents > 0);
-      if (blocked) { blocked.residents--; Econ.floater(blocked, '-1'); }
+      if (blocked) {
+        const room = houses.find(h => !h.block && h.residents < h.cap);
+        blocked.residents--;
+        if (room) room.residents++;
+        else Econ.floater(blocked, '-1');
+      }
     }
 
     if (s.tick % 10 === 0) {
@@ -269,9 +438,12 @@ const Econ = {
     }
     Econ.evolveHousing(s, houses, offline);
 
+    const monRes = Econ.monumentReserve(s);
+
+    const reserveMin = Econ.reserveMinutes(s, byPlaced);
     for (const b of byPlaced) {
       const d = DEF(b.type);
-      if (!d.sells) continue;
+      if ((!d.sells && !d.sellsRaw) || b.mothballed) continue;
       if (b.block) { b.status = b.block; b.rate = 0; continue; }
       if (b.staff === 0) { b.status = 'no_staff'; b.rate = 0; continue; }
       const staffEff = b.staff / d.workers;
@@ -279,32 +451,96 @@ const Econ = {
       const cust = b.customers != null ? b.customers : Grid.customerSurvey(s, b).n;
       if (cust < d.custMin) { b.status = 'no_customers'; b.rate = 0; continue; }
 
-      const keep = d.sells === 'flour'
-        ? residents * TUNE.FLOUR_PER_RESIDENT * TUNE.FLOUR_RESERVE_MIN : 0;
-
       const scribeMult = b.scribed ? (1 + TUNE.SCRIBE.bonus) : 1;
-      const sell = Math.min(d.sellRate * staffEff * scribeMult * rankOutMult(b) * Econ.M,
-                            Math.max(0, s.stock[d.sells] - keep));
-      s.stock[d.sells] -= sell;
-      Econ.note(d.sells, 0, sell);
-      const gain = sell * d.sellPrice;
+      const throughput = staffEff * scribeMult * rankOutMult(b) * Econ.M * (1 + C.beerBonus);
+
+      b.weighed = Econ.anyAuraLive(b.weighedBy);
+      b.bureau = Econ.anyAuraLive(b.bureauBy);
+      const priceMult = rankPriceMult(b) *
+        (b.weighed ? 1 + TUNE.WEIGH.bonus : 1) *
+        (b.bureau ? 1 + TUNE.BUREAU.priceBonus : 1);
+
+      let sell = 0, gain = 0;
+      if (d.sellsRaw) {
+
+        let kind = null, best = 0;
+        for (const k of d.sellsRaw) {
+          const avail = (s.stock[k] || 0) - (monRes[k] || 0);
+          if (avail > best) { best = avail; kind = k; }
+        }
+        b.rawKind = kind;
+        if (kind) {
+          sell = Math.min(d.sellRate * throughput, Math.max(0, best));
+          s.stock[kind] -= sell;
+          Econ.note(kind, 0, sell);
+          gain = sell * TUNE.PRICES[kind] * 0.8 * priceMult;
+        }
+      } else {
+
+        const keep = (d.sells === 'flour'
+          ? residents * TUNE.FLOUR_PER_RESIDENT * TUNE.TEMPO * reserveMin : 0) + (monRes[d.sells] || 0);
+        sell = Math.min(d.sellRate * throughput,
+                        Math.max(0, s.stock[d.sells] - keep));
+        s.stock[d.sells] -= sell;
+        Econ.note(d.sells, 0, sell);
+        gain = sell * d.sellPrice * priceMult;
+      }
       income += gain;
       b.rate = sell;
+      b.lastGain = gain;
       b.status = sell <= 0.0001 ? 'no_input' : (staffEff < 1 ? 'understaffed' : 'ok');
-      if (!offline && gain > 0 && s.tick % 60 === b.id % 60) Econ.floater(b, '+$' + Math.round(gain * 60));
+      if (!offline && gain > 0 && s.tick % 60 === b.id % 60) {
+        Econ.floater(b, '+$' + Math.round(gain * 60));
+
+        if (window.Sfx) Sfx.play('coin', { price: d.sellPrice || (b.rawKind ? TUNE.PRICES[b.rawKind] : 5) });
+      }
     }
 
+    const monDrawn = Econ.buildMonuments(s, offline);
+
+    income += C.tickExport;
     s.money += income - upkeep;
     s.cum.earned += Math.max(0, income - upkeep);
+    const flow = income - upkeep - monDrawn;
 
-    C.net = C.ratesDirty ? (income - upkeep) : C.net * 0.9 + (income - upkeep) * 0.1;
+    C.net = C.ratesDirty ? flow : C.net * 0.9 + flow * 0.1;
+    C.tickMonSpend = monDrawn;
 
-    if (!offline && s.money < 0) UI.firstToast('broke', 'Out of money. Upkeep still runs — demolish something (50% refund) or wait on Town Hall income.');
+    if (!offline && s.money < 0) UI.firstToast('broke', 'Out of money. Upkeep still runs — mothball or demolish something, import nothing, and wait on Town Hall income. A mothballed building costs a fifth of its upkeep.');
 
-    Econ.buildMonuments(s, offline);
+    if (!offline) {
+      const perMin = C.net * 60;
+      if (perMin > 0.5) { C.posTicks = (C.posTicks || 0) + 1; C.negTicks = 0; }
+      else if (perMin < -0.5) { C.negTicks = (C.negTicks || 0) + 1; C.posTicks = 0; }
+      else { C.posTicks = 0; C.negTicks = 0; }
+      if (C.posTicks === 60 && !s.firsts.breakeven) {
+        s.firsts.breakeven = 1;
+        if (window.Sfx) Sfx.play('bell');
+        UI.toast('\u{1F514} YOUR CITY PAYS FOR ITSELF. Net has held positive a full minute — from here, ' +
+          'time itself earns you money. Build the next chain.', 12000);
+        Econ.log(s, '\u{1F514}', 'The city broke even — it pays for itself now.');
+      }
+      if (C.posTicks === 60) C.slumpTold = 0;
+      if (s.firsts.breakeven && C.negTicks === 60 && !C.slumpTold) {
+        C.slumpTold = 1;
+        UI.toast('\u{1F53B} The city is eating its treasury — net has been negative a full minute. ' +
+          'Open the Tally (T): find what stalled, mothball what bleeds.', 12000);
+      }
+    }
 
     Econ.checkLiteracy(s, offline);
     Econ.settleTally(s, income, upkeep, premium);
+
+    if (s.records && s.tick % 10 === 0) {
+      const R = s.records, pop = Game.totalResidents(s);
+      if (pop > (R.peakPop || 0)) R.peakPop = pop;
+      const netMin = C.net * 60;
+      if (netMin > (R.bestNet || 0)) R.bestNet = netMin;
+      if (s.hunger <= 0.001) {
+        R.streak = (R.streak || 0) + 10;
+        if (R.streak > (R.bestStreak || 0)) R.bestStreak = R.streak;
+      } else R.streak = 0;
+    }
 
     const next = s.era + 1;
     if (!offline && next <= MAX_ERA && !s.prompted[next] && Econ.eraReady(s)) {
@@ -322,7 +558,11 @@ const Econ = {
     const list = [];
     for (const b of s.buildings) {
       const d = DEF(b.type);
-      if (d.sells && b.done !== false) list.push(b);
+
+      if ((d.sells || d.sellsRaw || d.depot) && b.done !== false && !b.mothballed) {
+        if (d.depot && d.workers && b.staff === 0 && s.tick > 2) continue;
+        list.push(b);
+      }
     }
 
     if (!list.length) {
@@ -336,11 +576,11 @@ const Econ = {
     const SP = TUNE.SUPPLY;
     const depots = Econ.supplyDepots(s);
     if (!depots.length) return 1;
-    const d = DEF(b.type);
+    const d = Grid.dimsOf(b);
     const cx = b.x + d.w / 2, cy = b.y + d.h / 2;
     let best = Infinity;
     for (const m of depots) {
-      const md = DEF(m.type);
+      const md = Grid.dimsOf(m);
       const dist = Math.hypot(cx - (m.x + md.w / 2), cy - (m.y + md.h / 2));
       if (dist < best) best = dist;
     }
@@ -366,8 +606,8 @@ const Econ = {
 
     for (const b of s.buildings) {
       const d = DEF(b.type);
-      if (!d.out || !d.out.grain || b.done === false) continue;
-      if (b.block || !b.staff) continue;
+      if (!d.out || !(d.out.grain || d.slowSalt) || b.done === false) continue;
+      if (b.block || !b.staff || b.mothballed) continue;
 
       if (Grid.soilUnder(b) <= S.autoRestAt) {
         b.resting = true;
@@ -376,14 +616,24 @@ const Econ = {
           'It will recover and resume on its own - click it to override.', 10000);
         continue;
       }
-      Grid.footTiles(b.type, b.x, b.y, (tx, ty) => {
+      const dr = drain * (d.slowSalt ? 0.5 : 1);
+      Grid.tilesOf(b,(tx, ty) => {
         if (!Grid.inB(tx, ty)) return;
         cropped.add(Grid.key(tx, ty));
-        const v = Grid.soilAt(tx, ty) - drain * b.lastStaffEff;
+        const v = Grid.soilAt(tx, ty) - dr * b.lastStaffEff;
         if (Grid.setSoil(s, tx, ty, v)) {
           (changedChunks = changedChunks || new Set()).add(Grid.chunkKeyOf(tx, ty));
         }
       });
+
+      if (!s.firsts.saltcrisis && Grid.soilUnder(b) < 0.5) {
+        s.firsts.saltcrisis = 1;
+        if (window.Rend && Rend.focusOn) Rend.focusOn(b);
+        UI.toast('\u{1F9C2} THE LAND IS SALTING — Sumer\'s oldest enemy. This field is under half soil ' +
+          'and fading. Three answers: REST it (its own panel), a MIDDEN or SHADUF in range (×3 recovery), ' +
+          'or convert to Date Palms, which thrive on ruined ground. Press O twice for the salt overlay.', 16000);
+        Econ.log(s, '\u{1F9C2}', 'The first field fell below half soil — the salt has begun.');
+      }
     }
 
     const W = TUNE.WORLD;
@@ -415,14 +665,17 @@ const Econ = {
     C.midden.fill(0);
     for (const b of s.buildings) {
       const d = DEF(b.type);
+      if (!d.soilRadius || b.done === false || b.mothballed) continue;
 
-      if (d.soilRadius && b.done !== false) Grid.stampRadius(C.midden, b, d.soilRadius + rankRadiusBonus(b));
+      if (d.workers && (b.staff === 0 || Econ.blockOf(b))) continue;
+
+      Grid.stampRadiusCircle(C.midden, b, d.soilRadius + rankRadiusBonus(b));
     }
   },
 
   quarryStoneLeft(b) {
     let left = 0;
-    Grid.footTiles(b.type, b.x, b.y, (tx, ty) => {
+    Grid.tilesOf(b,(tx, ty) => {
       if (Grid.inB(tx, ty) && G.cache.terrain[Grid.key(tx, ty)] === TERRAIN.ROCK)
         left += Grid.stoneAt(tx, ty);
     });
@@ -431,7 +684,7 @@ const Econ = {
 
   spendQuarry(s, b, amt) {
     const tiles = [];
-    Grid.footTiles(b.type, b.x, b.y, (tx, ty) => {
+    Grid.tilesOf(b,(tx, ty) => {
       if (Grid.inB(tx, ty) && G.cache.terrain[Grid.key(tx, ty)] === TERRAIN.ROCK &&
           Grid.stoneAt(tx, ty) > 0) tiles.push([tx, ty]);
     });
@@ -442,6 +695,7 @@ const Econ = {
     if (exhausted) {
       G.cache.dirty = true;
       if (window.Rend && Rend.invalidateTerrain) Rend.invalidateTerrain();
+      Econ.log(s, '⛰️', 'An outcrop was quarried to nothing — that stone is gone forever.');
       UI.firstToast('quarryout', 'That outcrop is worked out. Stone does not grow back — to keep quarrying you must buy land that has more rock.');
     }
   },
@@ -474,7 +728,15 @@ const Econ = {
       return;
     }
 
-    const rate = M.perMinute * Math.min(1, M.floor + open / M.openFull);
+    let rate = M.perMinute * Math.min(1, M.floor + open / M.openFull);
+
+    const resNow = Game.totalResidents(s);
+    if (resNow > 0) {
+      const target = resNow * TUNE.FLOUR_PER_RESIDENT * TUNE.TEMPO * TUNE.LARDER.migrateMin;
+      rate *= Math.max(M.floor, Math.min(1, Econ.foodEquiv(s) / Math.max(1, target)));
+    }
+
+    if (s.festival && s.festival.left > 0) rate *= TUNE.FESTIVAL.migMult;
     C.migrateRate = rate;
     s.settlerAcc = (s.settlerAcc || 0) + rate * Econ.M;
     if (s.settlerAcc < 1) return;
@@ -487,9 +749,32 @@ const Econ = {
       if (i >= beds.length) { s.settlerAcc = 0; break; }
       beds[i].residents++;
       s.settlerAcc -= 1;
+      if (s.records) s.records.settlers = (s.records.settlers || 0) + 1;
+
+      if (!offline && window.Sfx && s.records && s.records.settlers % 20 === 1) Sfx.play('settle');
+
+      if (s.festival && s.festival.left > 0) {
+        s.festival.left--;
+        if (s.festival.left <= 0) {
+          s.festival = null;
+          if (!offline) UI.toast('\u{1F37A} The Festival of Ninkasi is over — ' + TUNE.FESTIVAL.settlers +
+            ' newcomers came for the beer and stayed for the city.', 10000);
+        }
+      }
       if (!offline) {
         Econ.floater(beds[i], '+1');
-        UI.firstToast('movein', 'A settler moved in. Residents staff your buildings — and eat your flour, so grow the food before you grow the town.');
+
+        if (!s.firsts.firstsettler) {
+          s.firsts.firstsettler = 1;
+          const NAMES = ['Enheduanna', 'Ur-Nammu', 'Ninlil', 'Gilgamesh', 'Shulgi', 'Kubaba'];
+          const name = NAMES[(s.seed || 0) % NAMES.length];
+          if (window.Rend && Rend.focusOn) Rend.focusOn(beds[i]);
+          UI.toast('\u{1F3E0} ' + name + ' has settled in your city — the first of many. ' +
+            'Residents staff your buildings and eat your food: grow both together.', 12000);
+          Econ.log(s, '\u{1F3E0}', name + ' arrived — the first settler.');
+        } else {
+          UI.firstToast('movein', 'A settler moved in. Residents staff your buildings — and eat your flour, so grow the food before you grow the town.');
+        }
       }
     }
   },
@@ -538,7 +823,9 @@ const Econ = {
           h.level++; h.evolve = 0;
           G.cache.dirty = true;
           if (!offline) {
-            Econ.floater(h, '▲ ' + houseLevelName(s.era, h.level));
+            if (window.Sfx) Sfx.play('evolve');
+            Econ.floater(h, '▲ ' + houseLevelName(s.era, h.level) + ' · +' +
+              Math.max(0, houseCap(DEF(h.type), h) - houseCap(DEF(h.type), { level: h.level - 1 })) + ' beds');
             UI.firstToast('evolve', 'Standing among neighbours, a hut has become a Mudbrick House. Build homes close together and they improve on their own — anything grander than this you buy, from the house\'s own panel.');
           }
         }
@@ -577,7 +864,33 @@ const Econ = {
     return Math.min(3, Math.floor(p.frac * 3.999));
   },
 
+  monumentReserve(s) {
+    const res = {};
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d || !d.monument || b.complete || b.halted || b.done === false) continue;
+      if (Econ.blockOf(b)) continue;
+      const need = monumentBuild(b.type, d.era || 1);
+      for (const k in need) {
+        if (k === 'money') continue;
+        const want = need[k] - ((b.delivered || {})[k] || 0);
+        if (want <= 0) continue;
+        res[k] = (res[k] || 0) +
+          Math.min(want, (MONUMENT_RATE[k] || 6) * Econ.M * TUNE.MON_RESERVE_TICKS);
+      }
+    }
+    return res;
+  },
+
+  reserveMinutes(s, byPlaced) {
+    const g = (byPlaced || s.buildings).find(b => b.type === 'templeGranary' &&
+      b.done !== false && !b.mothballed && b.staff > 0 && !b.block);
+    if (!g) return TUNE.FLOUR_RESERVE_MIN;
+    return TUNE.RESERVE_POLICY[s.granaryPolicy || 'lean'] || TUNE.FLOUR_RESERVE_MIN;
+  },
+
   buildMonuments(s, offline) {
+    let moneyDrawn = 0;
     for (const b of s.buildings) {
       const d = DEF(b.type);
       if (!d || !d.monument) continue;
@@ -592,14 +905,63 @@ const Econ = {
 
       let moved = false;
       for (const k in need) {
-        const want = need[k] - (b.delivered[k] || 0);
+        let want = need[k] - (b.delivered[k] || 0);
         if (want <= 0) continue;
         const rate = (MONUMENT_RATE[k] || 6) * Econ.M;
-        const take = Math.min(want, rate, k === 'money' ? Math.max(0, s.money) : s.stock[k] || 0);
-        if (take <= 0) continue;
-        if (k === 'money') s.money -= take; else { s.stock[k] -= take; Econ.note(k, 0, take); }
-        b.delivered[k] = (b.delivered[k] || 0) + take;
-        moved = true;
+        if (k === 'money') {
+
+          if (b.beerWages) {
+            const capLeft = need.money * 0.5 - (b.beerWageCredit || 0);
+            if (capLeft > 0 && (s.stock.beer || 0) > 0) {
+              const beerTake = Math.min(s.stock.beer, (MONUMENT_RATE.beer || 2) * Econ.M,
+                capLeft / 8, want / 8);
+              if (beerTake > 0) {
+                s.stock.beer -= beerTake;
+                Econ.note('beer', 0, beerTake);
+                const credit = beerTake * 8;
+                b.delivered.money = (b.delivered.money || 0) + credit;
+                b.beerWageCredit = (b.beerWageCredit || 0) + credit;
+                want -= credit;
+                moved = true;
+              }
+            }
+          }
+          const take = Math.min(Math.max(0, want), rate, Math.max(0, s.money));
+          if (take > 0) {
+            s.money -= take;
+            moneyDrawn += take;
+            b.delivered.money = (b.delivered.money || 0) + take;
+            moved = true;
+          }
+        } else if (k === 'clay') {
+
+          let cap = rate;
+          if ((s.stock.mudbrick || 0) > 0 && cap > 0) {
+            const brickTake = Math.min(s.stock.mudbrick, cap / 4, want / 4);
+            if (brickTake > 0) {
+              s.stock.mudbrick -= brickTake;
+              Econ.note('mudbrick', 0, brickTake);
+              b.delivered.clay = (b.delivered.clay || 0) + brickTake * 4;
+              want -= brickTake * 4;
+              cap -= brickTake * 4;
+              moved = true;
+            }
+          }
+          const take = Math.min(Math.max(0, want), cap, s.stock.clay || 0);
+          if (take > 0) {
+            s.stock.clay -= take;
+            Econ.note('clay', 0, take);
+            b.delivered.clay = (b.delivered.clay || 0) + take;
+            moved = true;
+          }
+        } else {
+          const take = Math.min(want, rate, s.stock[k] || 0);
+          if (take <= 0) continue;
+          s.stock[k] -= take;
+          Econ.note(k, 0, take);
+          b.delivered[k] = (b.delivered[k] || 0) + take;
+          moved = true;
+        }
       }
 
       const p = Econ.monumentProgress(s, b);
@@ -609,12 +971,20 @@ const Econ = {
       if (stage !== b.stage) { b.stage = stage; if (window.Rend) Rend.onWorldChange(); }
       if (p.done && !b.complete) {
         b.complete = true;
+        Econ.log(s, d.icon || '\u{1F3DB}️', 'THE ' + d.name.toUpperCase() + ' WAS COMPLETED.');
+
+        if (b.type === 'ziggurat') {
+          s.pendingGift = 1;
+          Econ.log(s, '\u{1F6F8}', 'The Anunnaki departed — humanity rules itself now. Their parting gift awaits a choice.');
+        }
         if (!offline) {
+          if (window.Sfx) Sfx.play('drum');
           UI.toast('\u{1F3DB}️ THE ' + d.name.toUpperCase() + ' IS FINISHED. It begins earning at once — ' +
             'and it is the single largest contributor to your real rent in this age.', 12000);
         }
       }
     }
+    return moneyDrawn;
   },
 
   eraReady(s) {
@@ -668,6 +1038,8 @@ const Econ = {
     if (!Econ.eraReady(s)) return false;
     s.era++;
     const era = ERAS[s.era - 1];
+    Econ.log(s, '\u{1F30D}', 'The age turned: Era ' + s.era + ' — ' + era.name + ', at ' +
+      Game.totalResidents(s) + ' residents and ' + Util.fmtMoney(s.money) + ' in the treasury.');
     const land = Econ.grantEraLand(s);
     Grid.rebuild(s);
     UI.refreshPalette();
@@ -694,14 +1066,21 @@ const Econ = {
     if (s.era < 9) return;
     for (const b of s.buildings) {
       const d = DEF(b.type);
+
       if (d.powerRadius && b.conn && b.lastStaffEff > 0)
-        Grid.stampRadius(C.power, b, d.powerRadius);
+        Grid.stampRadiusCircle(C.power, b, d.powerRadius);
     }
   },
 
   BASE_CAP: { grain: 'GRAIN_CAP', flour: 'FLOUR_CAP', stone: 'STONE_CAP', blocks: 'BLOCKS_CAP',
               clay: 'CLAY_CAP', pottery: 'POTTERY_CAP', wool: 'WOOL_CAP',
-              cloth: 'CLOTH_CAP', beer: 'BEER_CAP' },
+              cloth: 'CLOTH_CAP', beer: 'BEER_CAP',
+              dates: 'DATES_CAP', fish: 'FISH_CAP', salt: 'SALT_CAP', reeds: 'REEDS_CAP',
+              baskets: 'BASKETS_CAP', sesame: 'SESAME_CAP', oil: 'OIL_CAP',
+              dyedcloth: 'DYEDCLOTH_CAP', mudbrick: 'MUDBRICK_CAP' },
+
+  CRAFT_KINDS: ['clay', 'pottery', 'wool', 'cloth', 'beer', 'reeds', 'baskets',
+                'sesame', 'oil', 'dyedcloth', 'mudbrick', 'salt', 'dates', 'fish'],
 
   capOf(s, kind) {
     const m = subTier(s).storageMult;
@@ -711,9 +1090,21 @@ const Econ = {
       let extra = 0;
       for (const b of s.buildings) {
         const d = DEF(b.type);
-        if (!d || !d[key] || b.done === false || !b.conn) continue;
+
+        if (!d || !d[key] || b.done === false || b.mothballed || (d.needsRoad && !b.conn)) continue;
         if (d.needsWater && !Grid.covered(G.cache.water, b)) continue;
         extra += d[key];
+      }
+      return Math.round(m * (base + extra));
+    }
+
+    if (Econ.CRAFT_KINDS.includes(kind)) {
+      let extra = 0;
+      for (const b of s.buildings) {
+        const d = DEF(b.type);
+        if (!d || !d.storeCraft || b.done === false || !b.conn || b.mothballed) continue;
+        if (b.staff !== undefined && d.workers && b.staff === 0) continue;
+        extra += d.storeCraft;
       }
       return Math.round(m * (base + extra));
     }
@@ -726,18 +1117,29 @@ const Econ = {
     const stored = Math.min(amt, Math.max(0, space));
     s.stock[kind] += stored;
     const overflow = amt - stored;
-    if (overflow > 0) s.money += overflow * TUNE.PRICES[kind] * TUNE.EXPORT_MULT;
+    if (overflow > 0) {
+      if (s.holdAtCap && s.holdAtCap[kind]) {
 
-    Econ.note(kind, amt, 0, overflow);
+        Econ.note(kind, amt, 0, 0, overflow);
+      } else {
+
+        G.cache.tickExport += overflow * TUNE.PRICES[kind] * TUNE.EXPORT_MULT;
+        Econ.note(kind, amt, 0, overflow);
+      }
+    } else {
+
+      Econ.note(kind, amt, 0, 0);
+    }
   },
 
-  note(kind, made, used, exported) {
+  note(kind, made, used, exported, held) {
     const T = G.cache.tallyTick;
     if (!T) return;
-    const r = T[kind] || (T[kind] = { made: 0, used: 0, exported: 0 });
+    const r = T[kind] || (T[kind] = { made: 0, used: 0, exported: 0, held: 0 });
     if (made) r.made += made;
     if (used) r.used += used;
     if (exported) r.exported += exported;
+    if (held) r.held = (r.held || 0) + held;
   },
 
   settleTally(s, income, upkeep, premium) {
@@ -750,20 +1152,30 @@ const Econ = {
     const perMin = 60;
     for (const k in T) {
       const t = T[k];
-      const r = C.tally[k] || (C.tally[k] = { made: 0, used: 0, exported: 0 });
+      const r = C.tally[k] || (C.tally[k] = { made: 0, used: 0, exported: 0, held: 0 });
       r.made += (t.made * perMin - r.made) * a;
       r.used += (t.used * perMin - r.used) * a;
       r.exported += (t.exported * perMin - r.exported) * a;
+      r.held = (r.held || 0) + ((t.held || 0) * perMin - (r.held || 0)) * a;
     }
 
     for (const k in C.tally) {
       if (T[k]) continue;
       const r = C.tally[k];
-      r.made *= 1 - a; r.used *= 1 - a; r.exported *= 1 - a;
+      r.made *= 1 - a; r.used *= 1 - a; r.exported *= 1 - a; r.held = (r.held || 0) * (1 - a);
     }
     C.incomeRate += (income * perMin - C.incomeRate) * a;
     C.upkeepRate += (upkeep * perMin - C.upkeepRate) * a;
     C.premiumRate += (premium * perMin - C.premiumRate) * a;
+
+    C.exportRate = (C.exportRate || 0) + ((C.tickExport || 0) * perMin - (C.exportRate || 0)) * a;
+    C.monSpendRate = (C.monSpendRate || 0) + ((C.tickMonSpend || 0) * perMin - (C.monSpendRate || 0)) * a;
+    C.doleRate = (C.doleRate || 0) + ((C.tickDole || 0) * perMin - (C.doleRate || 0)) * a;
+    C.duesRate = (C.duesRate || 0) + ((C.tickDues || 0) * perMin - (C.duesRate || 0)) * a;
+    if (!C.grainDrawAvg) C.grainDrawAvg = { mill: 0, brewery: 0, oxen: 0, dole: 0 };
+    for (const k in C.grainDrawAvg) {
+      C.grainDrawAvg[k] += (((C.grainDraw && C.grainDraw[k]) || 0) * perMin - C.grainDrawAvg[k]) * a;
+    }
   },
 
   checkLiteracy(s, offline) {
@@ -836,19 +1248,89 @@ const Econ = {
     return true;
   },
 
+  auraLive(id) {
+    const b = G.cache.byId.get(id);
+    if (!b || b.done === false || b.mothballed) return false;
+    const d = DEF(b.type);
+    if (d.workers && !b.staff) return false;
+    return !b.block;
+  },
+  anyAuraLive(ids) {
+    if (!ids || !ids.length) return false;
+    for (const id of ids) if (Econ.auraLive(id)) return true;
+    return false;
+  },
+
+  foodEquiv(s) {
+    let sum = 0;
+    for (const f of TUNE.FOODS) sum += (s.stock[f.kind] || 0) * f.eff;
+    return sum;
+  },
+
   removeResident(s, houses) {
-    const occupied = houses.filter(h => h.residents > 0);
+    const occupied = houses.filter(h => h.residents > 0)
+      .sort((a, b) => (a.level || 1) - (b.level || 1) || b.placed - a.placed);
     if (!occupied.length) return;
-    const h = occupied[Math.floor(Math.random() * occupied.length)];
+    const h = occupied[0];
     h.residents--;
+    if (s.records) s.records.lostFamine = (s.records.lostFamine || 0) + 1;
     Econ.floater(h, '-1');
     UI.firstToast('starve', 'Residents are leaving. The city has been hungry for ' + TUNE.STARVE_MINUTES +
       ' minutes — build a Farm, and a Mill to grind its grain into flour.');
   },
 
   floater(b, txt) {
-    const d = DEF(b.type);
+    const d = Grid.dimsOf(b);
     G.cache.floaters.push({ x: b.x + d.w / 2, y: b.y, txt, age: 0 });
     if (G.cache.floaters.length > 40) G.cache.floaters.shift();
+  },
+
+  log(s, icon, msg) {
+    if (!s.chronicle) s.chronicle = [];
+    s.chronicle.push({ tick: s.tick, era: s.era, icon: icon || '\u{1F4DC}', msg });
+    if (s.chronicle.length > 200) s.chronicle.shift();
+  },
+
+  rankDiscount(s) {
+    const t = s.buildings.find(b => b.type === 'tablethouse' && b.done !== false &&
+      !b.mothballed && b.staff > 0 && !Econ.blockOf(b));
+    return t ? 0.85 : 1;
+  },
+
+  importGrain(s) {
+    const cost = TUNE.IMPORT_GRAIN.units * TUNE.IMPORT_GRAIN.price;
+    if (s.money < cost) return false;
+    s.money -= cost;
+
+    const space = Math.max(0, Econ.capOf(s, 'grain') - s.stock.grain);
+    const stored = Math.min(TUNE.IMPORT_GRAIN.units, space);
+    s.stock.grain += stored;
+    const overflow = TUNE.IMPORT_GRAIN.units - stored;
+    if (overflow > 0) s.money += overflow * TUNE.PRICES.grain * TUNE.EXPORT_MULT;
+    Econ.log(s, '\u{1F6B6}', 'A caravan sold the city ' + TUNE.IMPORT_GRAIN.units +
+      ' grain at $' + TUNE.IMPORT_GRAIN.price + ' a sack — four times the fair price.');
+    return cost;
+  },
+
+  festivalCost(s) {
+    return {
+      beer: Math.round(TUNE.FESTIVAL.beerBase + TUNE.FESTIVAL.beerPerRes * Game.totalResidents(s)),
+      cloth: TUNE.FESTIVAL.cloth,
+    };
+  },
+  declareFestival(s) {
+    if (s.festival && s.festival.left > 0) return 'a festival is already running';
+    const c = Econ.festivalCost(s);
+    if ((s.stock.beer || 0) < c.beer) return 'not enough beer — it needs ' + c.beer;
+    if ((s.stock.cloth || 0) < c.cloth) return 'not enough cloth — it needs ' + c.cloth;
+    s.stock.beer -= c.beer;
+    s.stock.cloth -= c.cloth;
+    Econ.note('beer', 0, c.beer);
+    Econ.note('cloth', 0, c.cloth);
+    s.hunger = Math.max(0, s.hunger - TUNE.FESTIVAL.hungerDrop);
+    s.festival = { left: TUNE.FESTIVAL.settlers };
+    Econ.log(s, '\u{1F37A}', 'The city declared the Festival of Ninkasi — ' + c.beer +
+      ' beer and ' + c.cloth + ' cloth poured out for the whole town.');
+    return true;
   },
 };

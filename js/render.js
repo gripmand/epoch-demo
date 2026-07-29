@@ -21,7 +21,7 @@ const Rend = {
   chunks: new Map(),
   buildingObjs: new Map(),
   heights: null,
-  showWater: false, showPower: false,
+  showWater: false, showPower: false, showSoil: false,
 
   layerDirty: true,
   chunksStale: false,
@@ -305,7 +305,7 @@ const Rend = {
 
     for (const b of (s ? s.buildings : [])) {
       if (b.type === 'road') continue;
-      const d = DEF(b.type);
+      const d = Grid.dimsOf(b);
       let sum = 0, cnt = 0;
       for (let iy = b.y * SUB; iy <= (b.y + d.h) * SUB; iy++)
         for (let ix = b.x * SUB; ix <= (b.x + d.w) * SUB; ix++) { sum += H[iy * N + ix]; cnt++; }
@@ -967,6 +967,14 @@ const Rend = {
 
         if (showW && G.cache.water[k]) { g.fillStyle = 'rgba(90,170,230,0.22)'; g.fillRect(x * px, y * px, px, px); }
         if (showP && G.cache.power[k]) { g.fillStyle = 'rgba(240,210,80,0.18)'; g.fillRect(x * px, y * px, px, px); }
+
+        if (Rend.showSoil) {
+          const soil = Grid.soilAt(wx, wy);
+          if (soil < 0.999) {
+            g.fillStyle = 'rgba(240,238,225,' + (0.55 * (1 - soil)).toFixed(3) + ')';
+            g.fillRect(x * px, y * px, px, px);
+          }
+        }
         if (!Grid.owned(wx, wy)) { g.fillStyle = 'rgba(12,16,20,0.16)'; g.fillRect(x * px, y * px, px, px); }
         else if (tool.mode === 'buyland') { g.fillStyle = 'rgba(255,255,255,0.05)'; g.fillRect(x * px, y * px, px, px); }
       }
@@ -1160,16 +1168,22 @@ const Rend = {
         status.visible = false;
         Rend.scene.add(mesh); Rend.scene.add(status);
         o = { type: b.type, skin, stage, mesh, status, top: Shapes.measure(mesh).top };
+
+        if (Rend._hadFirstSync) { o.bornAt = performance.now(); mesh.scale.setScalar(0.7); }
         Rend.buildingObjs.set(b.id, o);
       }
-      const cx = b.x + d.w / 2, cz = b.y + d.h / 2;
+
+      const sz = Grid.dimsOf(b);
+      const cx = b.x + sz.w / 2, cz = b.y + sz.h / 2;
       const gy = Rend.groundY(cx, cz);
       o.mesh.position.set(cx, gy, cz);
-      o.status.position.set(cx + d.w * 0.34, gy + o.top + 0.42, cz);
+      o.mesh.rotation.y = (b.rot || 0) * Math.PI / 2;
+      o.status.position.set(cx + sz.w * 0.34, gy + o.top + 0.42, cz);
       o.b = b;
     }
     for (const [id, o] of Rend.buildingObjs)
       if (!seen.has(id)) { Rend.removeObj(o); Rend.buildingObjs.delete(id); }
+    Rend._hadFirstSync = true;
   },
 
   removeObj(o) {
@@ -1243,7 +1257,8 @@ const Rend = {
       const d = DEF(b.type);
 
       const t = time * 0.9 + (b.id % 32) * 0.618;
-      const cx = b.x + d.w / 2, cz = b.y + d.h / 2;
+      const gd = Grid.dimsOf(b);
+      const cx = b.x + gd.w / 2, cz = b.y + gd.h / 2;
       const sc = Rend.glintScale(rp / base) * (0.86 + Math.sin(t * 1.7) * 0.14);
       Q.setFromAxisAngle(Rend._up, t * 0.55);
       M.compose(V.set(cx, Rend.groundY(cx, cz) + o.top + 0.30 + Math.sin(t) * 0.06, cz),
@@ -1430,7 +1445,7 @@ const Rend = {
       Rend.selRing.rotation.x = -Math.PI / 2;
       Rend.scene.add(Rend.selRing);
     }
-    const d = DEF(b.type);
+    const d = Grid.dimsOf(b);
     const cx = b.x + d.w / 2, cz = b.y + d.h / 2;
     Rend.selRing.visible = true;
     Rend.selRing.scale.setScalar(Math.max(d.w, d.h) * (0.62 + 0.03 * Math.sin(time * 3.5)));
@@ -1447,8 +1462,10 @@ const Rend = {
     if (tool.mode === 'build' || tool.mode === 'move') {
       const type = tool.mode === 'move' ? tool.payload.type : tool.type;
       const d = DEF(type);
-      w = d.w; h = d.h;
-      ok = Grid.canPlace(s, type, Input.hoverT.x, Input.hoverT.y, tool.mode === 'move' ? tool.payload.id : undefined)
+      const sz = Grid.dims(type, Input.rot);
+      w = sz.w; h = sz.h;
+      ok = Grid.canPlace(s, type, Input.hoverT.x, Input.hoverT.y,
+        tool.mode === 'move' ? tool.payload.id : undefined, Input.rot)
         && (tool.mode === 'move' || s.money >= d.cost);
     } else if (tool.mode === 'terra') {
       ok = Grid.owned(Input.hoverT.x, Input.hoverT.y);
@@ -1499,22 +1516,60 @@ const Rend = {
       Rend.scene.add(Rend.ghost);
     }
     const d = DEF(type);
-    const cx = Input.hoverT.x + d.w / 2, cz = Input.hoverT.y + d.h / 2;
-    Rend.ghost.position.set(cx, Rend.groundY(cx, cz) + 0.02, cz);
 
-    const rad = d.waterRadius || d.powerRadius || 0;
+    const gsz = Grid.dims(type, Input.rot);
+    const cx = Input.hoverT.x + gsz.w / 2, cz = Input.hoverT.y + gsz.h / 2;
+    Rend.ghost.position.set(cx, Rend.groundY(cx, cz) + 0.02, cz);
+    Rend.ghost.rotation.y = (Input.rot || 0) * Math.PI / 2;
+
+    let rad = 0, ringCol = 0x5aaae6;
+    if (d.waterRadius) { rad = d.waterRadius; ringCol = 0x5aaae6; }
+    else if (d.powerRadius) { rad = d.powerRadius; ringCol = 0xf0d250; }
+    else if (d.soilRadius) { rad = d.soilRadius; ringCol = 0x9c7b52; }
+    else if (d.capRadius) { rad = d.capRadius; ringCol = 0x8cd98c; }
+    else if (d.amenityRadius) { rad = d.amenityRadius; ringCol = 0x8cd98c; }
+    else if (d.ovenRadius) { rad = d.ovenRadius; ringCol = 0xe0a45f; }
+    else if (type === 'weighhouse') { rad = TUNE.WEIGH.radius; ringCol = 0xd8d8e0; }
+    else if (type === 'scribe') { rad = TUNE.SCRIBE.radius; ringCol = 0xd8c9a0; }
+    else if (type === 'templeGranary') { rad = TUNE.DUES.radius; ringCol = 0xe6c65a; }
+    else if (type === 'oxbyre') { rad = TUNE.OX.radius; ringCol = 0xa8b46a; }
+    else if (type === 'woolbureau') { rad = TUNE.BUREAU.radius; ringCol = 0xc9a0c0; }
     if (rad) {
-      if (!Rend.ring) {
-        Rend.ring = new THREE.Mesh(new THREE.RingGeometry(1, 1.06, 48),
-          Gfx.unlit(d.waterRadius ? 0x5aaae6 : 0xf0d250,
-            { transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false }));
-        Rend.ring.rotation.x = -Math.PI / 2;
+
+      const key = ringCol + ':' + gsz.w + 'x' + gsz.h + ':' + rad;
+      if (!Rend.ring || Rend.ring.userData.key !== key) {
+        if (Rend.ring) { Rend.scene.remove(Rend.ring); Rend.ring.geometry.dispose(); }
+        Rend.ring = new THREE.Mesh(Rend.auraBandGeo(gsz.w, gsz.h, rad, 0.35),
+          Gfx.unlit(ringCol, { transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false }));
+        Rend.ring.userData.key = key;
         Rend.scene.add(Rend.ring);
       }
-      const rr = rad + d.w / 2;
-      Rend.ring.scale.set(rr, rr, 1);
       Rend.ring.position.set(cx, Rend.groundY(cx, cz) + 0.1, cz);
     } else if (Rend.ring) { Rend.scene.remove(Rend.ring); Rend.ring = null; }
+  },
+
+  auraBandGeo(w, h, rad, thick) {
+    const R = rad + 1, inner = Math.max(0.05, R - thick);
+    const hw = w / 2, hh = h / 2, SEG = 10;
+    const corners = [[hw, hh, 0], [-hw, hh, Math.PI / 2],
+                     [-hw, -hh, Math.PI], [hw, -hh, Math.PI * 1.5]];
+    const out = [], inn = [];
+    for (const [ccx, ccz, a0] of corners) {
+      for (let i = 0; i <= SEG; i++) {
+        const a = a0 + (Math.PI / 2) * (i / SEG), c = Math.cos(a), s = Math.sin(a);
+        out.push(ccx + c * R, ccz + s * R);
+        inn.push(ccx + c * inner, ccz + s * inner);
+      }
+    }
+    const n = out.length / 2, pos = [];
+    for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n, a = i * 2, b2 = j * 2;
+      pos.push(out[a], 0, out[a + 1], inn[a], 0, inn[a + 1], out[b2], 0, out[b2 + 1]);
+      pos.push(inn[a], 0, inn[a + 1], inn[b2], 0, inn[b2 + 1], out[b2], 0, out[b2 + 1]);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    return g;
   },
 
   ensureWater() {
@@ -1583,7 +1638,7 @@ const Rend = {
   },
 
   focusOn(b) {
-    const d = DEF(b.type);
+    const d = Grid.dimsOf(b);
     Rend.tgt.tx = b.x + d.w / 2;
     Rend.tgt.tz = b.y + d.h / 2;
     Rend.tgt.di = Util.clamp(Math.min(Rend.tgt.di, 22), Rend.DIST_MIN, Rend.DIST_MAX);
@@ -1723,11 +1778,17 @@ const Rend = {
     Rend.drainSoilQueue();
 
     const toolKey = Input.tool.mode + ':' + (Input.tool.type || '') + ':' +
-                    (Rend.showWater ? 1 : 0) + ':' + (Rend.showPower ? 1 : 0);
+                    (Rend.showWater ? 1 : 0) + ':' + (Rend.showPower ? 1 : 0) + ':' +
+                    (Rend.showSoil ? 1 : 0);
     if (toolKey !== Rend._toolKey || Rend._overlayDirty) {
       Rend._toolKey = toolKey;
       Rend._overlayDirty = false;
       Rend.rebakeAll(s);
+    }
+
+    if (Rend.showSoil) {
+      Rend._soilBakeAt = Rend._soilBakeAt || 0;
+      if (time - Rend._soilBakeAt > 4) { Rend._soilBakeAt = time; Rend.rebakeAll(s); }
     }
 
     const carrying = Input.tool.mode === 'move' ? Input.tool.payload : null;
@@ -1740,7 +1801,13 @@ const Rend = {
       const bad = b.status && b.status !== 'ok' && s.tick > 0;
       o.status.visible = !!bad;
       if (bad) o.status.material.map = b.status === 'understaffed' ? Rend.statusTex.warn : Rend.statusTex.bad;
-      const want = b === Input.selected ? 1.04 : (Input.hoverB === b && Input.tool.mode === 'select') ? 1.02 : 1;
+      let want = b === Input.selected ? 1.04 : (Input.hoverB === b && Input.tool.mode === 'select') ? 1.02 : 1;
+
+      if (o.bornAt) {
+        const age = (performance.now() - o.bornAt) / 1000;
+        if (age < 0.3) want = age < 0.16 ? 0.72 + (age / 0.16) * 0.36 : 1.08;
+        else o.bornAt = 0;
+      }
       o.mesh.scale.lerp(Rend._tmpScale.setScalar(want), 0.25);
     }
     Rend.syncGlints(s, time);

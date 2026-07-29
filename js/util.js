@@ -27,6 +27,12 @@ const Util = {
     return Math.max(gx, gy);
   },
 
+  rectDist(ax, ay, aw, ah, bx, by, bw, bh) {
+    const gx = Math.max(0, bx - (ax + aw - 1) - 1, ax - (bx + bw - 1) - 1);
+    const gy = Math.max(0, by - (ay + ah - 1) - 1, ay - (by + bh - 1) - 1);
+    return Math.hypot(gx, gy);
+  },
+
   fmtMoney(v) {
     const n = Math.floor(v);
     const s = Math.abs(n).toLocaleString('en-US');

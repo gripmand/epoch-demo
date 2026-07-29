@@ -1,6 +1,8 @@
 'use strict';
 
-const SAVE_KEY = 'epoch_save_v5';
+const SAVE_KEY = 'epoch_save_v6';
+
+const LEGACY_KEYS = ['epoch_save_v5'];
 
 const G = {
   s: null,
@@ -45,6 +47,16 @@ const Game = {
       cp: 0,
       cpFrac: 0,
       hallJob: null,
+
+      cityName: '',
+      policyFeedFirst: true,
+      policyRationLaw: false,
+      policyBeerRation: false,
+      granaryPolicy: 'lean',
+      holdAtCap: {},
+      festival: null,
+      chronicle: [],
+      records: {},
     };
 
     const cc = TUNE.WORLD / TUNE.CHUNK / 2 - 1;
@@ -178,15 +190,35 @@ const Game = {
       settlerAcc: s.settlerAcc || 0,
       literate: s.literate ? 1 : 0,
       foundingLeft: +s.foundingLeft || 0,
+
+      cityName: s.cityName || '',
+      policyFeedFirst: s.policyFeedFirst !== false,
+      policyRationLaw: !!s.policyRationLaw,
+      policyBeerRation: !!s.policyBeerRation,
+      granaryPolicy: s.granaryPolicy || 'lean',
+      holdAtCap: s.holdAtCap || {},
+      festival: s.festival || null,
+      chronicle: s.chronicle || [],
+      records: s.records || {},
+
+      freeRank: s.freeRank ? 1 : 0,
+      pendingGift: s.pendingGift ? 1 : 0,
       nextId: s.nextId, placeCounter: s.placeCounter, owned: s.owned, firsts: s.firsts,
       buildings: s.buildings.map(b => ({
         id: b.id, type: b.type, x: b.x, y: b.y, placed: b.placed,
+        rot: (b.rot | 0) & 3,
         residents: b.residents || 0,
         level: b.level || 0,
         bought: b.bought || 0,
         evolve: b.evolve || 0,
         job: b.job || null,
         done: b.done !== false,
+
+        mothballed: !!b.mothballed,
+        rankPrice: b.rankPrice || 0,
+        beerWages: !!b.beerWages,
+        beerWageCredit: b.beerWageCredit || 0,
+        name: b.name || undefined,
 
         resting: !!b.resting,
 
@@ -205,9 +237,20 @@ const Game = {
     catch (e) { return false; }
   },
 
+  rawSave() {
+    try {
+      const cur = localStorage.getItem(SAVE_KEY);
+      if (cur) return cur;
+      for (const k of LEGACY_KEYS) {
+        const old = localStorage.getItem(k);
+        if (old) { Game.migratedFrom = k; return old; }
+      }
+    } catch (e) {}
+    return null;
+  },
+
   load() {
-    let raw;
-    try { raw = localStorage.getItem(SAVE_KEY); } catch (e) { return false; }
+    const raw = Game.rawSave();
     if (!raw) return false;
     let d;
     try { d = JSON.parse(raw); } catch (e) { return false; }
@@ -236,6 +279,18 @@ const Game = {
       cp: +d.cp || 0, cpFrac: +d.cpFrac || 0,
       settlerAcc: +d.settlerAcc || 0,
 
+      cityName: d.cityName || '',
+      policyFeedFirst: d.policyFeedFirst !== false,
+      policyRationLaw: !!d.policyRationLaw,
+      policyBeerRation: !!d.policyBeerRation,
+      granaryPolicy: TUNE.RESERVE_POLICY[d.granaryPolicy] ? d.granaryPolicy : 'lean',
+      holdAtCap: d.holdAtCap || {},
+      festival: d.festival && d.festival.left > 0 ? { left: Math.round(d.festival.left) } : null,
+      chronicle: Array.isArray(d.chronicle) ? d.chronicle.slice(-200) : [],
+      records: d.records || {},
+      freeRank: d.freeRank ? 1 : 0,
+      pendingGift: d.pendingGift ? 1 : 0,
+
       literate: TUNE.TALLY_FROM_START ? 1 : (d.literate === undefined ? 1 : (d.literate ? 1 : 0)),
 
       foundingLeft: d.foundingLeft === undefined ? 0 : Math.max(0, +d.foundingLeft || 0),
@@ -244,6 +299,7 @@ const Game = {
         .filter(b => BUILDINGS[b.type])
         .map(b => ({
           id: b.id, type: b.type, x: b.x, y: b.y, placed: b.placed || 0,
+          rot: (b.rot | 0) & 3,
           residents: b.residents || 0, staff: 0, lastStaffEff: 0, status: 'ok',
 
           level: b.level || (BUILDINGS[b.type] && BUILDINGS[b.type].cap ? 1 : 0),
@@ -252,6 +308,11 @@ const Game = {
           job: b.job || null, done: b.done !== false,
           resting: !!b.resting,
           halted: !!b.halted,
+          mothballed: !!b.mothballed,
+          rankPrice: Math.max(0, Math.round(+b.rankPrice || 0)),
+          beerWages: !!b.beerWages,
+          beerWageCredit: +b.beerWageCredit || 0,
+          name: typeof b.name === 'string' && b.name ? b.name.slice(0, 40) : undefined,
 
           rank: Util.clamp(Math.round(+b.rank || 1), 1, RANK.max),
 
@@ -268,7 +329,12 @@ const Game = {
   },
 
   reset() {
-    try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+
+    try {
+      localStorage.removeItem(SAVE_KEY);
+      for (const k of LEGACY_KEYS) localStorage.removeItem(k);
+    } catch (e) {}
+    Game.migratedFrom = null;
     Game.newGame();
   },
 };

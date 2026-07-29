@@ -25,26 +25,35 @@ const ERA_GUIDES = [
   {
 
     headline: 'Grain feeds your people. CRAFT GOODS make you rich.',
-    mechanic: 'Cropped ground slowly turns salty and yields less, over about five hours of working it. ' +
-      'Leave a field fallow and it recovers; a Midden in range or a position beside water speeds that up. ' +
-      'So you rotate fields, and you buy more land. Stone, when you reach it, has no recovery at all.',
+    mechanic: 'Cropped ground slowly turns salty and yields less — press O twice for the SALT MAP. ' +
+      'Leave a field fallow and it recovers; a Midden or Shaduf in range, or a spot beside water, speeds that up ×3; ' +
+      'Date Palms simply ignore the salt and thrive on ruined ground; Sesame salts it at half rate. ' +
+      'So you rotate fields, convert the worst ground, and buy more land. Stone, when you reach it, has no recovery at all.',
     chain: [
 
       'Farm → Mill → Market  ·  $36/min. Feeds the city; the food chain barely pays, it just keeps everyone alive',
-      'Brewery → Tavern  ·  $52/min. A luxury — but it drinks the grain your Mill wanted, so it is paid for in bread',
+      'Reed Cutter → Basket Weaver  ·  ~$49/min. The LIGHT chain: two buildings, five mouths — for a town watching its flour',
+      'Brewery → Tavern  ·  $52/min. A luxury — but it drinks the grain your Mill wanted. "Bread before beer" (a Hall policy, ON by default) makes sure the Mill eats first',
+      'Sesame Field → Oil Press  ·  ~$52/min, and it salts the soil at only half rate',
       'Clay Pit → Potter\'s Kiln → Pottery Stall  ·  $62/min. Three buildings, and the pit must sit within 3 tiles of water',
-      'Shepherd\'s Fold → Weaver\'s Shed → Cloth Hall  ·  $80/min, the richest in the era. The Fold demands DRY ground — no fertile, no water anywhere under it — so it pays you to use the salt flats nobody else wants',
+      'Shepherd\'s Fold → Weaver\'s Shed → Cloth Hall  ·  $80/min. The Fold demands DRY ground — the salt flats nobody else wants',
+      '…→ Dye Works  ·  $78/min on top of the wool chain: it buys your cloth and sells it dyed at $26 — the new top of the ladder',
     ],
     firstSteps: [
-      'Place your Well first — nothing works without water coverage, and its radius is only 5 tiles.',
+      'Place your Well first — nothing works without water coverage, and its radius is only 5 tiles. Every building now shows its RING while you place it.',
       'Run a road from the É, then put TWO OR THREE Farms and a Mill touching one of them (+25% both ways). One farm cannot keep a mill busy.',
-      'Add FOUR OR FIVE Houses per Mill — no more. Every resident is also a worker, so too few leaves your farm reading NO WORKERS; but one Mill makes 1.8 flour, your Market drinks 0.6 of it, and the rest feeds about twenty people. Houses past that starve the whole town.',
+      'Add FOUR OR FIVE Houses per Mill — no more. One Mill feeds about twenty people; houses past that starve the town. Watch the FLOUR chip: it shows milled vs eaten, and goes red the moment you are short.',
       'Add a Market EARLY — it is the only thing in the food chain that turns flour into money. Until one is standing and road-connected, your only income is the Hall.',
-      'Now build a craft chain. This is the actual economy — the food chain only keeps it alive.',
-      'Every craft chain brings about SEVEN more workers, and workers are mouths. Measured: a village running all three chains needs a SECOND Mill and three more Farms, or it starves at exactly the moment it starts earning.',
+      'Now build a craft chain. This is the actual economy — the food chain only keeps it alive. EVERY chain\'s producer and workshop boost each other +25% when adjacent.',
+      'Every craft chain brings about SEVEN more workers, and workers are mouths. Feed them without more barley: a Fish Weir in the channel, a Date-Palm Orchard on tired ground, a Communal Bread Oven (−15% flour for homes in range).',
+      'When money runs ahead of your workers, buy RANKS on a building\'s own panel — they never cost a worker. ' +
+        'A PRODUCER ranks up to +35% output; a SHOP ranks up to +20% price on the same goods. ' +
+        'Ranks are your MARGIN; to move more volume, open a second shop — and that one does cost mouths.',
+      'Lay the Ziggurat foundation once TWO chains run. Its panel forecasts the bottleneck — it eats clay, beer and wages, and a Brickyard or "pay the builders in beer" can carry half the bill.',
+      'If famine hits anyway: the Hall can IMPORT grain at 4× (always), the Temple Granary opens its dole, the Festival of Ninkasi buys back the town\'s mood in beer — and anything bleeding can be MOTHBALLED at 20% upkeep.',
     ],
     mistake: 'Building only the food chain. Measured: a food-only village nets about $3/min and the era-2 gate ' +
-      'is $47,000 — that is over a week. Three craft chains net ten times as much. And your city KEEPS EARNING ' +
+      'is $45,000 — that is most of a week. Three craft chains net ten times as much. And your city KEEPS EARNING ' +
       'WHILE YOU ARE AWAY, at roughly $2,000 an hour once it is built, so an overnight is worth more than an ' +
       'evening of clicking. Build the chains, then leave it running.',
   },
