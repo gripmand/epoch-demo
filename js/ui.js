@@ -734,6 +734,19 @@ const UI = {
       }
     }
 
+    if (d.monument && b.complete) {
+      rows += row('In-game income', '<span class="good">+$' +
+        (d.trickle * TUNE.TEMPO).toFixed(0) + '/min</span>');
+      rows += row('City dividend', '<span class="gold">+' + Math.round(TUNE.MONUMENT_BOOST * 100) +
+        '% on ALL city income</span>');
+      rows += mrow('…worth right now', '<span class="gold">+$' +
+        ((G.cache.monBonusRate || 0)).toFixed(2) + '/min</span>');
+      rows += row('Rent points', monumentRP(d.era || 1) +
+        ' <span class="gold-dim">— the largest single source in this age</span>');
+      rows += '<div class="insp-row insp-note"><span>The dividend scales with your economy, so it is ' +
+        'worth more the more you build. It pays only while this stands finished and connected.</span></div>';
+    }
+
     if (d.out && d.out.grain) {
       const bon = [];
       if (b.fertile) bon.push('fertile +' + Math.round(b.fertile * TUNE.FERTILE_BONUS * 100) + '%');
@@ -1518,6 +1531,10 @@ const UI = {
       ((C.duesRate || 0) > 0.005
         ? '<tr><td class="gold-dim">…of which temple head money</td><td class="gold-dim">+' +
           $(C.duesRate) + '/min</td></tr>' : '') +
+      ((C.monBonusRate || 0) > 0.005
+        ? '<tr><td class="gold">…of which the monument dividend (+' +
+          Math.round((C.monBoost || 0) * 100) + '%)</td><td class="gold">+' +
+          $(C.monBonusRate) + '/min</td></tr>' : '') +
       '<tr><td>Upkeep</td><td class="bad">−' + $(C.upkeepRate) + '/min</td></tr>' +
       '<tr><td class="gold-dim">…of which carting premium</td><td class="gold-dim">−' +
         $(C.premiumRate) + '/min</td></tr>' +

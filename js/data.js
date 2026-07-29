@@ -136,6 +136,8 @@ const TUNE = {
   OX:     { radius: 14, fodder: 0.4, bonus: 0.20 },
   SHRINE_RADIUS: 8,
 
+  MONUMENT_BOOST: 0.20,
+
   RANK_PRICE_BONUS: 0.20,
 };
 
@@ -743,8 +745,11 @@ for (let e = 1; e <= MAX_ERA; e++) {
     cost: Math.round(m.cost * 0.1), upkeep: +(m.cost * 0.000004).toFixed(3),
     icon: m.icon, color: '#d8c9a0', monument: true, unique: true,
     needsWater: e <= 11,
-    trickle: +(2 * Math.pow(2.6, e - 1)).toFixed(2),
-    desc: m.desc + ' Produces in-game income AND is the largest single contributor to real rent for this era.',
+
+    trickle: +(5 * Math.pow(2.6, e - 1)).toFixed(2),
+    desc: m.desc + ' Once finished it pays $' + Math.round(5 * Math.pow(2.6, e - 1) * TUNE.TEMPO) +
+      '/min, lifts your city\'s ENTIRE income by ' + Math.round(TUNE.MONUMENT_BOOST * 100) +
+      '%, and is by far the largest contributor to real rent in this age. It earns nothing until it is topped out.',
   };
 }
 

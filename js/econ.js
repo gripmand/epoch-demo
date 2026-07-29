@@ -99,7 +99,7 @@ const Econ = {
 
     C.tallyTick = {};
 
-    C.tickExport = 0; C.tickDole = 0; C.tickDues = 0;
+    C.tickExport = 0; C.tickDole = 0; C.tickDues = 0; C.monBoost = 0; C.tickMonBonus = 0;
     C.grainDraw = { mill: 0, brewery: 0, oxen: 0, dole: 0 };
 
     const byPlaced = s.buildings.slice()
@@ -205,8 +205,11 @@ const Econ = {
         if (!b.complete) { b.rate = 0; continue; }
         b.block = Econ.blockOf(b);
         b.status = b.block || 'ok';
-        if (b.status === 'ok') { income += d.trickle * Econ.M; b.rate = d.trickle; }
-        else b.rate = 0;
+        if (b.status === 'ok') {
+          income += d.trickle * Econ.M; b.rate = d.trickle;
+
+          C.monBoost = (C.monBoost || 0) + TUNE.MONUMENT_BOOST;
+        } else b.rate = 0;
       } else if (b.type === 'templeGranary' && !b.mothballed) {
 
         if (b.block) b.status = b.block;
@@ -499,6 +502,11 @@ const Econ = {
     const monDrawn = Econ.buildMonuments(s, offline);
 
     income += C.tickExport;
+
+    if (C.monBoost) {
+      C.tickMonBonus = income * C.monBoost;
+      income += C.tickMonBonus;
+    }
     s.money += income - upkeep;
     s.cum.earned += Math.max(0, income - upkeep);
     const flow = income - upkeep - monDrawn;
@@ -1171,6 +1179,7 @@ const Econ = {
     C.exportRate = (C.exportRate || 0) + ((C.tickExport || 0) * perMin - (C.exportRate || 0)) * a;
     C.monSpendRate = (C.monSpendRate || 0) + ((C.tickMonSpend || 0) * perMin - (C.monSpendRate || 0)) * a;
     C.doleRate = (C.doleRate || 0) + ((C.tickDole || 0) * perMin - (C.doleRate || 0)) * a;
+    C.monBonusRate = (C.monBonusRate || 0) + ((C.tickMonBonus || 0) * perMin - (C.monBonusRate || 0)) * a;
     C.duesRate = (C.duesRate || 0) + ((C.tickDues || 0) * perMin - (C.duesRate || 0)) * a;
     if (!C.grainDrawAvg) C.grainDrawAvg = { mill: 0, brewery: 0, oxen: 0, dole: 0 };
     for (const k in C.grainDrawAvg) {
