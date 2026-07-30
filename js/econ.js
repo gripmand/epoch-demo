@@ -348,8 +348,9 @@ const Econ = {
         b.rate = made;
         b.status = left <= 0 ? 'stand_spent' : (staffEff < 1 ? 'understaffed' : 'ok');
         continue;
+
       } else if (d.out.water || d.out.cacao || d.out.honey ||
-                 d.out.game || d.out.flint || d.out.bone || d.out.ochre) {
+                 d.out.game || d.out.bone || d.out.ochre) {
 
         const kind = Object.keys(d.out)[0];
         if (!Econ.sourceRunning(d)) {
@@ -359,17 +360,24 @@ const Econ = {
         const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b);
         made = d.out[kind] * staffEff * mult * Econ.M * (1 + C.beerBonus);
         Econ.addStock(s, kind, made);
-      } else if (d.out.stone) {
+      } else if (d.out.stone || d.out.flint) {
 
+        const good = d.out.stone ? 'stone' : 'flint';
         const left = Econ.quarryStoneLeft(b);
         b.stoneLeft = left;
-        const mult = (0.5 + 0.5 * (b.rockFrac || 0)) * (1 + (b.adjBoost || 0)) * rankOutMult(b);
-        made = left > 0 ? d.out.stone * staffEff * mult * Econ.M * (1 + C.beerBonus) : 0;
+
+        const rf = d.out.stone ? (0.5 + 0.5 * (b.rockFrac || 0)) : 1;
+        const mult = rf * (1 + (b.adjBoost || 0)) * rankOutMult(b);
+        made = left > 0 ? d.out[good] * staffEff * mult * Econ.M * (1 + C.beerBonus) : 0;
         if (made > 0) {
           Econ.spendQuarry(s, b, made);
-          Econ.addStock(s, 'stone', made);
-          s.cum.stone += made;
+          Econ.addStock(s, good, made);
+          if (good === 'stone') s.cum.stone += made;
         }
+        b.rate = made;
+
+        b.status = left <= 0 ? 'stand_spent' : (staffEff < 1 ? 'understaffed' : 'ok');
+        continue;
       }
       b.rate = made;
       b.status = staffEff < 1 ? 'understaffed' : 'ok';

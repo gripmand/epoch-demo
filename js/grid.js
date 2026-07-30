@@ -867,7 +867,8 @@ const Grid = {
         const kind = Object.keys(d.out)[0];
         b.adjBoost = processors.some(o => DEF(o.type).procIn === kind && Grid.adjacent(b, o))
           ? TUNE.ADJ_BONUS : 0;
-        if (b.type === 'quarry') b.rockFrac = Grid.rockFrac(b);
+
+        if (DEF(b.type).onRock) b.rockFrac = Grid.rockFrac(b);
       } else if (d.procIn) {
 
         b.adjBoost = producers.some(o => {
