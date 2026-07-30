@@ -2034,6 +2034,9 @@ const Rend = {
     }
     return g;
   },
+
+  HERD_TURN: 1.5,
+
   syncHerds(s, time) {
     if (!Rend._herdObjs) Rend._herdObjs = new Map();
     const live = new Set();
@@ -2064,22 +2067,27 @@ const Rend = {
         const dx = tx - o.position.x, dz = tz - o.position.z;
         const dist = Math.hypot(dx, dz);
         let moving = false;
-        if (dist > 3) { o.position.x = tx; o.position.z = tz; }
-        else if (dist > 0.005) {
-          const step = Math.min(dist, sp * dt * (dist > 0.4 ? 1.6 : 1.05));
-          o.position.x += dx / dist * step;
-          o.position.z += dz / dist * step;
-          moving = step > sp * dt * 0.3;
-        }
-        o.position.y = Math.max(0, Rend.groundY ? Rend.groundY(o.position.x, o.position.z) : 0);
+        if (dist > 3) {
 
-        if (moving && dist > 0.05) {
+          o.position.x = tx; o.position.z = tz;
+          o.rotation.y = Math.atan2(dx, dz);
+        } else if (dist > 0.01) {
+
           const want = Math.atan2(dx, dz);
           let dr = want - o.rotation.y;
           while (dr > Math.PI) dr -= Math.PI * 2;
           while (dr < -Math.PI) dr += Math.PI * 2;
-          o.rotation.y += dr * Math.min(1, dt * 5);
+          const maxTurn = Rend.HERD_TURN * dt;
+          o.rotation.y += Math.max(-maxTurn, Math.min(maxTurn, dr));
+
+          const err = Math.abs(dr);
+          const gate = err > 1.4 ? 0.12 : (err > 0.6 ? 0.55 : 1);
+          const step = Math.min(dist, sp * dt * gate * (dist > 0.4 ? 1.6 : 1.05));
+          o.position.x += Math.sin(o.rotation.y) * step;
+          o.position.z += Math.cos(o.rotation.y) * step;
+          moving = step > sp * dt * 0.25;
         }
+        o.position.y = Math.max(0, Rend.groundY ? Rend.groundY(o.position.x, o.position.z) : 0);
 
         const a = o.children[0];
         if (!a) continue;

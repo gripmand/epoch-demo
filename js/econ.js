@@ -1479,13 +1479,17 @@ const Econ = {
 
     const rnd = Util.mulberry32((s.seed ^ s.tick) >>> 0);
     for (const h of s.herds) {
-      h.heading += (rnd() - 0.5) * 0.25;
+
+      h.turn = (h.turn || 0) * 0.92 + (rnd() - 0.5) * 0.016;
+      if (h.turn > 0.05) h.turn = 0.05; else if (h.turn < -0.05) h.turn = -0.05;
+      h.heading += h.turn;
       const sp = TUNE.HERDS.speed[h.kind] || 0.1;
       const nx = h.x + Math.cos(h.heading) * sp, ny = h.y + Math.sin(h.heading) * sp;
       if (Math.hypot(nx - C, ny - C) < TUNE.HERDS.standoff ||
           nx < 12 || ny < 14 || nx > W - 12 || ny > W - 12 ||
           G.cache.terrain[Grid.key(Math.round(nx), Math.round(ny))] === TERRAIN.MOUNTAIN) {
         h.heading += Math.PI * (0.6 + rnd() * 0.8);
+        h.turn = 0;
         continue;
       }
       h.x = nx; h.y = ny;
