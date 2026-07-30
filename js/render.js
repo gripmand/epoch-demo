@@ -2096,7 +2096,8 @@ const Rend = {
         const stepped = Math.hypot(o.position.x - (o._px === undefined ? o.position.x : o._px),
                                    o.position.z - (o._pz === undefined ? o.position.z : o._pz));
         o._px = o.position.x; o._pz = o.position.z;
-        o._gait = (o._gait || 0) + stepped * 4.6;
+
+        o._gait = (o._gait || 0) + stepped * 35;
         const legs = a.userData && a.userData.legs;
         if (legs) {
 

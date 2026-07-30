@@ -1952,23 +1952,30 @@ const Shapes = {
           j.position.set(sx * span * 0.5, 0, (i / 3 - 0.5) * len * 0.74);
           g.add(j);
         }
-      const roof = Shapes.vault(span, h, len, 'hide', 9);
-      roof.position.y = sill;
+
+      const wallH = 0.30, roofH = 0.52;
+      const body = Shapes.box(span, wallH, len, 'hide');
+      body.position.y = sill;
+      g.add(body);
+      const roof = Shapes.gable(span, roofH, len, 'hide', 0.06);
+      roof.position.y = sill + wallH;
       g.add(roof);
 
-      for (let i = 0; i < 3; i++) {
-        const rib = Shapes.vault(span * 1.05, h * 1.04, 0.1, 'boneDim', 9);
-        rib.position.set(0, sill, (i / 2 - 0.5) * len * 0.66);
-        g.add(rib);
+      const W = span / 2 + 0.06, slope = Math.atan2(roofH, W), runL = Math.hypot(W, roofH);
+      for (let r = 0; r < 3; r++) {
+        const z = (r / 2 - 0.5) * len * 0.66;
+        for (const sx of [-1, 1]) {
+          const rib = Shapes.box(runL, 0.05, 0.12, 'boneDim');
+          rib.geometry.translate(0, -0.025, 0);
+          rib.position.set(sx * W / 2, sill + wallH + roofH / 2, z);
+          rib.rotation.z = -sx * slope;
+          g.add(rib);
+        }
       }
 
-      for (const sz of [-1, 1]) {
-        const wall = new THREE.Mesh(new THREE.CircleGeometry(span / 2, 12, 0, Math.PI),
-                                    Shapes.m(sz > 0 ? 'hideDark' : 'hide', { side: THREE.DoubleSide }));
-        wall.scale.set(1, h / (span / 2), 1);
-        wall.position.set(0, sill, sz * len * 0.5);
-        g.add(wall);
-      }
+      const ridge = Shapes.box(0.09, 0.06, len * 0.96, 'bone');
+      ridge.position.set(0, sill + wallH + roofH - 0.03, 0);
+      g.add(ridge);
 
       for (const sx of [-1, 1]) {
         const tusk = Shapes.cyl(0.036, 0.52, 'bone', 6, 0.45);
