@@ -1557,6 +1557,8 @@ const Rend = {
 
     let rad = 0, ringCol = 0x5aaae6;
     if (d.waterRadius) { rad = d.waterRadius; ringCol = 0x5aaae6; }
+
+    else if (d.woodRadius) { rad = d.woodRadius; ringCol = 0x8a9c6a; }
     else if (d.powerRadius) { rad = d.powerRadius; ringCol = 0xf0d250; }
     else if (d.soilRadius) { rad = d.soilRadius; ringCol = 0x9c7b52; }
     else if (d.capRadius) { rad = d.capRadius; ringCol = 0x8cd98c; }

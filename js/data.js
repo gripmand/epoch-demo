@@ -520,10 +520,11 @@ const BUILDINGS = {
 
   deadwoodcutter: {
     name: 'Deadwood Cutter', tier: 'food', era: 1, w: 2, h: 2, cost: 110, upkeep: 0.15,
-    icon: '\u{1FA93}', color: '#8a7355', workers: 2, onWood: true,
+
+    icon: '\u{1FA93}', color: '#8a7355', workers: 2, woodRadius: 6,
     out: { deadwood: 1.6 },
-    desc: 'Fells and splits 1.6 deadwood a minute from a standing dead stand. Must sit ON the trees ' +
-      '(≥2), it eats 500 from every tile it stands on, and when a tile is spent it is ASH forever. ' +
+    desc: 'Fells and splits 1.6 deadwood a minute from the dead stands within 6 tiles. Put it anywhere ' +
+      'near standing timber. It eats 500 from every tile it works, and a spent tile is ASH forever. ' +
       'Four tiles is 125 minutes of work. Plan where the next one goes before you build this one.',
   },
   reindeerdrive: {
@@ -660,10 +661,11 @@ const BUILDINGS = {
   },
   bonelodge: {
     name: 'Mammoth-Bone Lodge', tier: 'housing', era: 1, w: 2, h: 2, cost: 300, upkeep: 0.10,
-    icon: '\u{1F3D5}\u{FE0F}', color: '#d8cdb5', cap: 10, needsRoad: true, needsWater: true, needsWarm: true, warm: 0.13,
-    desc: 'Tusks arched into a dome, jaws stacked into walls, hides lashed over the whole thing. ' +
-      'Homes 10 on ONE fire — a third less fuel a head than tents. The building this age is actually ' +
-      'remembered for.',
+
+    icon: '\u{1F3D5}\u{FE0F}', color: '#d8cdb5', cap: 16, needsRoad: true, needsWater: true, needsWarm: true, warm: 0.13,
+    desc: 'A ridge of arched tusks and mammoth rib, walled in stacked jaws and lashed over with hide: ' +
+      'the longhouse of the age. Homes 16 on ONE fire — under half a tent\'s fuel a head. The building ' +
+      'this age is actually remembered for.',
   },
 
   danceground: {

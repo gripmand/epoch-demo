@@ -842,22 +842,38 @@ const Econ = {
     return left;
   },
 
+  woodTiles(s, b) {
+    const d = DEF(b.type), R = d.woodRadius;
+    const out = [];
+    if (!R) { Grid.tilesOf(b, (tx, ty) => { if (Grid.inB(tx, ty)) out.push([tx, ty]); }); return out; }
+    const dm = Grid.dimsOf(b);
+    const cx = b.x + (dm.w - 1) / 2, cy = b.y + (dm.h - 1) / 2;
+    for (let ty = Math.floor(cy - R); ty <= Math.ceil(cy + R); ty++)
+      for (let tx = Math.floor(cx - R); tx <= Math.ceil(cx + R); tx++) {
+        if (!Grid.inB(tx, ty)) continue;
+        const dx = tx - cx, dy = ty - cy;
+        if (dx * dx + dy * dy <= R * R) out.push([tx, ty]);
+      }
+
+    out.sort((p, q) => ((p[0]-cx)**2 + (p[1]-cy)**2) - ((q[0]-cx)**2 + (q[1]-cy)**2));
+    return out;
+  },
   cutterWoodLeft(b) {
     let left = 0;
-    Grid.tilesOf(b, (tx, ty) => {
-      if (Grid.inB(tx, ty)) left += Grid.woodAt(G.s, tx, ty);
-    });
+    for (const [tx, ty] of Econ.woodTiles(G.s, b)) left += Grid.woodAt(G.s, tx, ty);
     return left;
   },
   spendCutter(s, b, amt) {
-    const tiles = [];
-    Grid.tilesOf(b, (tx, ty) => {
-      if (Grid.inB(tx, ty) && Grid.woodAt(s, tx, ty) > 0) tiles.push([tx, ty]);
-    });
+
+    const tiles = Econ.woodTiles(s, b).filter(([tx, ty]) => Grid.woodAt(s, tx, ty) > 0);
     if (!tiles.length) return;
-    const each = amt / tiles.length;
-    let burned = false;
-    for (const [tx, ty] of tiles) if (Grid.spendWood(s, tx, ty, each)) burned = true;
+    let burned = false, rest = amt;
+    for (const [tx, ty] of tiles) {
+      if (rest <= 0) break;
+      const take = Math.min(rest, Grid.woodAt(s, tx, ty));
+      rest -= take;
+      if (Grid.spendWood(s, tx, ty, take)) burned = true;
+    }
     if (burned) {
       G.cache.dirty = true;
       if (window.Rend && Rend.invalidateTerrain) Rend.invalidateTerrain();

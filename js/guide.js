@@ -77,7 +77,7 @@ const ERA_GUIDES = {
     ],
     firstSteps: [
       'Place the GREAT HEARTH first, and place it where you want the middle of your camp. Its 18-tile circle is big enough to hold the whole age, so you only ever need one — everything that houses or employs people goes inside it. Outside it, nothing warm-blooded runs.',
-      'A DEADWOOD CUTTER second — before any tent. You arrive with NO fuel, and a home inside the circle starts drawing the moment someone moves in. The Cutter must sit ON a dead stand (≥2 tree tiles under it); it eats 500 per tile and the tile becomes ash forever. Plan its replacement before you build it.',
+      'A DEADWOOD CUTTER second — before any tent. THIS IS WHERE FUEL COMES FROM: it fells the dead stands within 6 tiles and turns them into deadwood, which is what your fires burn. Put it anywhere with standing timber inside its green ring. It eats 500 from each tile it works and a spent tile is ASH forever, so the forest retreats — plan the next Cutter before this one runs dry.',
       'A MELT PIT for water. It goes anywhere — no river needed — and covers 5 tiles, so drop one wherever a workshop cluster grows. Later the Longfire upgrade gives warmth and water from the same object.',
       'A road from the Hearth, then Hide Tents inside the circle, then TWO OR THREE Reindeer Drives anywhere on the open steppe and a Drying Rack. Pemmican is bread here.',
       'The Charcoal Clamp is how fire becomes money: 2 wood in, 1 charcoal out — 50% more warmth from the same tree, or $6.80 a bag at the Fuel Stack. Every bag you sell is warmth you no longer have. That choice never stops being asked.',

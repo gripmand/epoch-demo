@@ -694,7 +694,7 @@ const UI = {
       no_power: ['NO POWER', 'bad'],
 
       no_warmth: [G.cache.dark ? 'THE FIRES ARE DARK — no fuel' : 'OUTSIDE every hearth circle', 'bad'],
-      stand_spent: ['STAND SPENT — the ground is ash. Demolish and move on', 'warn'],
+      stand_spent: ['NO TIMBER IN REACH — every stand within 6 tiles is ash. Move it', 'warn'],
       no_staff: ['NO WORKERS available', 'bad'], understaffed: ['UNDERSTAFFED', 'warn'],
       no_input: ['NO INPUT in stock', 'bad'], no_customers: ['NOT ENOUGH CUSTOMERS', 'bad'],
       hungry: ['RESIDENTS HUNGRY', 'bad'],

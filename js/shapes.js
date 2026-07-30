@@ -1944,33 +1944,54 @@ const Shapes = {
 
     boneLodge(d) {
       const g = new THREE.Group();
-      const w = d.w * 0.66, dp = d.h * 0.66;
+      const span = 1.16, len = 1.56, h = 0.80, sill = 0.16;
 
-      const dome = new THREE.Mesh(new THREE.SphereGeometry(0.52, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2),
-                                  Shapes.m('hide'));
-      dome.scale.set(1, 1.25, 0.92);
-      g.add(dome);
+      for (const sx of [-1, 1])
+        for (let i = 0; i < 4; i++) {
+          const j = Shapes.box(0.11, sill, len / 4 * 0.86, i % 2 ? 'bone' : 'boneDim');
+          j.position.set(sx * span * 0.5, 0, (i / 3 - 0.5) * len * 0.74);
+          g.add(j);
+        }
+      const roof = Shapes.vault(span, h, len, 'hide', 9);
+      roof.position.y = sill;
+      g.add(roof);
 
-      for (let i = 0; i < 10; i++) {
-        const a = i / 10 * Math.PI * 2;
-        const j = Shapes.box(0.12, 0.16, 0.08, i % 2 ? 'bone' : 'boneDim');
-        j.position.set(Math.cos(a) * 0.5, 0, Math.sin(a) * 0.46);
-        j.rotation.y = -a;
-        g.add(j);
+      for (let i = 0; i < 3; i++) {
+        const rib = Shapes.vault(span * 1.05, h * 1.04, 0.1, 'boneDim', 9);
+        rib.position.set(0, sill, (i / 2 - 0.5) * len * 0.66);
+        g.add(rib);
+      }
+
+      for (const sz of [-1, 1]) {
+        const wall = new THREE.Mesh(new THREE.CircleGeometry(span / 2, 12, 0, Math.PI),
+                                    Shapes.m(sz > 0 ? 'hideDark' : 'hide', { side: THREE.DoubleSide }));
+        wall.scale.set(1, h / (span / 2), 1);
+        wall.position.set(0, sill, sz * len * 0.5);
+        g.add(wall);
       }
 
       for (const sx of [-1, 1]) {
-        const tusk = Shapes.cyl(0.035, 0.5, 'bone', 6, 0.5);
-        tusk.position.set(sx * 0.2, 0, dp * 0.6);
-        tusk.rotation.z = sx * 0.6;
+        const tusk = Shapes.cyl(0.036, 0.52, 'bone', 6, 0.45);
+        tusk.position.set(sx * 0.21, 0, len * 0.5 + 0.03);
+        tusk.rotation.z = sx * 0.5;
         g.add(tusk);
       }
-      const lintel = Shapes.barX(0.03, 0.3, 'boneDim', 6);
-      lintel.position.set(0, 0.44, dp * 0.6);
+      const lintel = Shapes.barX(0.032, 0.34, 'bone', 6);
+      lintel.position.set(0, 0.47, len * 0.5 + 0.03);
       g.add(lintel);
-      const smoke = Shapes.cyl(0.07, 0.1, 'charcoal', 6);
-      smoke.position.y = 0.63;
-      g.add(smoke);
+      const mouth = Shapes.box(0.26, 0.4, 0.04, 'charcoal');
+      mouth.position.set(0, 0, len * 0.5 - 0.01);
+      g.add(mouth);
+      const skull = Shapes.box(0.2, 0.16, 0.14, 'boneDim');
+      skull.position.set(0, 0.5, len * 0.42);
+      g.add(skull);
+
+      const vent = Shapes.cyl(0.07, 0.09, 'charcoal', 6);
+      vent.position.set(0, sill + h - 0.02, -len * 0.12);
+      g.add(vent);
+      const wisp = Shapes.cone(0.06, 0.16, 'snow', 5);
+      wisp.position.set(0, sill + h + 0.05, -len * 0.12);
+      g.add(wisp);
       return g;
     },
 
@@ -2345,21 +2366,33 @@ const Shapes = {
     return row[Math.max(0, Math.min(row.length - 1, (level || 1) - 1))];
   },
 
+  eraSkin(type, rung) {
+    const keys = Object.keys(Shapes.ERA_SKINS).map(Number).sort((a, b) => a - b);
+    for (let i = keys.length - 1; i >= 0; i--) {
+      if (keys[i] > rung) continue;
+      const s = Shapes.ERA_SKINS[keys[i]][type];
+      if (s && Shapes.RECIPES[s]) return s;
+    }
+    return null;
+  },
+
   skinFor(type, era, level) {
 
     const e = rungOf(era || (G.s && G.s.era) || 1);
     const d = BUILDINGS[type];
-    if (d && d.cap) {
-      const s = Shapes.houseSkin(e, level);
-      if (s && Shapes.RECIPES[s]) return s;
-    }
-    const keys = Object.keys(Shapes.ERA_SKINS).map(Number).sort((a, b) => a - b);
+    const own = Shapes.eraSkin(type, e);
 
-    for (let i = keys.length - 1; i >= 0; i--) {
-      if (keys[i] > e) continue;
-      const s = Shapes.ERA_SKINS[keys[i]][type];
-      if (s && Shapes.RECIPES[s]) return s;
+    if (d && d.cap) {
+      const hk = Object.keys(Shapes.HOUSE_SKINS).map(Number).sort((a, b) => a - b);
+      let pick = hk[0];
+      for (const k of hk) if (k <= e) pick = k;
+      const ladder = Shapes.HOUSE_SKINS[pick];
+      if (!own || (ladder && own === ladder[0])) {
+        const s = Shapes.houseSkin(e, level);
+        if (s && Shapes.RECIPES[s]) return s;
+      }
     }
+    if (own) return own;
     return Shapes.RECIPES[type] ? type : '_default';
   },
 
