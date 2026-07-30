@@ -42,7 +42,8 @@ const Game = {
       owned: [],
       firsts: {},
       prompted: {},
-      era1Call: 0,
+
+      era1Call: ERA1_CALL,
       terraEdits: {},
       soilEdits: {},
       rockSpent: {},
