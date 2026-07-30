@@ -103,7 +103,12 @@ const Game = {
 
   startStock(granted) {
     const st = Object.assign({}, TUNE.START_STOCK);
-    if (!granted) for (const k in st) st[k] = 0;
+    if (granted) return st;
+    for (const k in st) st[k] = 0;
+    if (rungOf(START_ERA) === 1) {
+      st.deadwood = TUNE.START_STOCK.deadwood;
+      st.pemmican = TUNE.START_STOCK.pemmican;
+    }
     return st;
   },
 

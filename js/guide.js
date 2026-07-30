@@ -57,28 +57,29 @@ function anchorFor(era) {
 const ERA_GUIDES = {
   1: {
     headline: 'Keep the fire alive. Everything else is detail.',
-    mechanic: 'Warmth is a utility you MAKE: a Great Hearth lights a 5-tile circle, and everything ' +
-      'inside it — homes, workshops, counters — draws fuel every minute from your stock (wood ×1, ' +
-      'bone ×1, charcoal ×3). If the fuel cannot cover the draw, EVERY fire goes dark at once and the ' +
-      'whole warm core stops. Your camps outside the circle — Cutters, Drives, Weirs, Quarries — keep ' +
+    mechanic: 'Warmth is a utility you MAKE. ONE Great Hearth warms an 18-tile circle — the whole ' +
+      'camp — so place it centrally, build outward, and forget about it. What matters is the BILL: ' +
+      'everything inside that circle — homes, workshops, counters — draws fuel every minute from your ' +
+      'stock (wood ×1, bone ×1, charcoal ×3). If the fuel cannot cover the draw, EVERY fire goes dark ' +
+      'at once and the whole camp stops. Your outdoor camps — Cutters, Drives, Weirs, Quarries — keep ' +
       'working through it. And the fuel is the map: every tree tile holds 500 deadwood, and a spent ' +
       'tile is ASH forever. The forest does not grow back. Watch the \u{1F525} chip: it shows your ' +
       'warmth and the seconds of fire left at the current draw.',
     chain: [
-      'Great Hearth + Ice Hole  ·  the circle and the water. Nothing runs without both',
+      'Great Hearth + Melt Pit  ·  the warmth and the water. Nothing warm-blooded runs without both',
       'Reindeer Drive ×3 → Drying Rack → Meat Stall  ·  ~$31/min. The food chain — three Drives feed one Rack exactly',
       'Deadwood Cutter → Charcoal Clamp → Fuel Stack  ·  ~$48/min — and every bag sold is 3 warmth your hearths do not get',
       'Reindeer Drive ×2 → Hide Frames → Fur Hall  ·  ~$78/min, the top of the age — and it eats the carcasses dinner wanted',
       'Flint Quarry → Knapping Floor → Blade Trader  ·  ~$58/min on the moraine ridge, far from everything',
       'Mammoth Boneyard → Carver\'s Lodge  ·  ~$52/min — or burn the bone as fuel. The fork is the point',
       'Ice Weir  ·  fish, eaten at 75%. Needs no fire, no herd, no wood — the food nothing can take from you',
-      'Ochre Bank  ·  nearly worthless to sell. The Painted Cave wants 9,000 of it',
+      'Ochre Bank  ·  nearly worthless to sell. The Painted Cave wants 900 of it',
     ],
     firstSteps: [
-      'Place the GREAT HEARTH first, then lay everything that houses or employs people inside its 5-tile circle. Outside it, nothing warm-blooded runs.',
-      'A DEADWOOD CUTTER second — before any tent. You arrive with NO fuel, and a home inside a circle starts drawing the moment someone moves in. The Cutter must sit ON a dead stand (≥2 tree tiles under it); it eats 500 per tile and the tile becomes ash forever. Plan its replacement before you build it.',
-      'Ice Hole on the river bank (within 2 tiles of the ice) for water — or upgrade the Hearth to a Longfire later, which melts snow for 0.10 fuel a minute. In this age, water costs firewood.',
-      'A road from the Long Hearth, then Hide Tents inside the circle, then TWO OR THREE Reindeer Drives at the river and a Drying Rack. Pemmican is bread here.',
+      'Place the GREAT HEARTH first, and place it where you want the middle of your camp. Its 18-tile circle is big enough to hold the whole age, so you only ever need one — everything that houses or employs people goes inside it. Outside it, nothing warm-blooded runs.',
+      'A DEADWOOD CUTTER second — before any tent. You arrive with NO fuel, and a home inside the circle starts drawing the moment someone moves in. The Cutter must sit ON a dead stand (≥2 tree tiles under it); it eats 500 per tile and the tile becomes ash forever. Plan its replacement before you build it.',
+      'A MELT PIT for water. It goes anywhere — no river needed — and covers 5 tiles, so drop one wherever a workshop cluster grows. Later the Longfire upgrade gives warmth and water from the same object.',
+      'A road from the Hearth, then Hide Tents inside the circle, then TWO OR THREE Reindeer Drives anywhere on the open steppe and a Drying Rack. Pemmican is bread here.',
       'The Charcoal Clamp is how fire becomes money: 2 wood in, 1 charcoal out — 50% more warmth from the same tree, or $6.80 a bag at the Fuel Stack. Every bag you sell is warmth you no longer have. That choice never stops being asked.',
       'Watch the steppe. Mammoth herds drift past — a HUNTERS\' CAMP can send 6 hunters after the nearest one. A good hunt is meat, hide, bone and ivory; a bad one buries people. The odds are on the button.',
       'The Boneyard (on the white bonebeds by the river) gives you the era\'s question in one good: burn the bone, or carve it at the Lodge for $13. Carving wins by 15% — and the Cave will want 100 carvings.',

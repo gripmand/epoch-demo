@@ -22,6 +22,25 @@ const Shapes = {
     ware:      0xd1880e,
 
     dung:      0x4e3a22,
+
+    snow:      0xe4ecf0,
+    ice:       0xa7c6d6,
+    hide:      0xb5875a,
+    hidePale:  0xd8b98a,
+    hideDark:  0x7a5636,
+    bone:      0xdcd2b8,
+    boneDim:   0xb0a487,
+    fur:       0x6f5240,
+    spruce:    0x55634f,
+    timberCold:0x6b5747,
+    charcoal:  0x3d3a36,
+    ember:     0xff8a3d,
+
+    emberDim:  0xc4521f,
+    rockCold:  0x8d949b,
+    rockDark:  0x5f666d,
+    flint:     0x4e565f,
+    ochreRaw:  0xb5502f,
   },
 
   m(role, opts) { return Gfx.mat(Shapes.SURF[role] !== undefined ? Shapes.SURF[role] : role, opts); },
@@ -35,6 +54,12 @@ const Shapes = {
   cyl(r, h, role, seg, taper) {
     const g = new THREE.CylinderGeometry(r * (taper === undefined ? 1 : taper), r, h, seg || 10);
     g.translate(0, h / 2, 0);
+    return new THREE.Mesh(g, Shapes.m(role));
+  },
+
+  barX(r, len, role, seg) {
+    const g = new THREE.CylinderGeometry(r, r, len, seg || 6);
+    g.rotateZ(Math.PI / 2);
     return new THREE.Mesh(g, Shapes.m(role));
   },
 
@@ -1255,6 +1280,790 @@ const Shapes = {
       g.add(band);
       return g;
     },
+
+    glacialHearth(d) {
+      const g = new THREE.Group();
+      const ring = 0.52;
+      for (let i = 0; i < 11; i++) {
+        const a = i / 11 * Math.PI * 2;
+        const r = Shapes.rock(i * 7 + 3, 0.13, 0.7);
+        r.position.set(Math.cos(a) * ring, 0, Math.sin(a) * ring);
+        g.add(r);
+      }
+      const bed = Shapes.cyl(ring * 0.82, 0.05, 'charcoal', 11);
+      g.add(bed);
+      const coals = Shapes.cyl(ring * 0.6, 0.07, 'emberDim', 11);
+      coals.position.y = 0.05;
+      g.add(coals);
+
+      for (const rot of [0.6, -0.75]) {
+        const log = Shapes.barX(0.055, 0.78, 'timberCold', 6);
+        log.rotation.y = rot;
+        log.position.set(0, 0.14, 0);
+        g.add(log);
+      }
+      const flame = Shapes.cone(0.2, 0.46, 'ember', 6);
+      flame.position.y = 0.18;
+      g.add(flame);
+      const tip = Shapes.cone(0.1, 0.22, 'ember', 5);
+      tip.position.y = 0.56;
+      g.add(tip);
+
+      for (const sx of [-1, 1]) {
+        const p = Shapes.cyl(0.035, 0.82, 'timberCold', 5);
+        p.position.set(sx * 0.62, 0, -0.66); p.rotation.x = -0.16;
+        g.add(p);
+      }
+      const screen = Shapes.box(1.3, 0.6, 0.05, 'hide');
+      screen.position.set(0, 0.16, -0.7); screen.rotation.x = -0.16;
+      g.add(screen);
+      return g;
+    },
+
+    longFire(d) {
+      const g = new THREE.Group();
+      const L = d.h * 0.82;
+      const trench = Shapes.box(0.42, 0.06, L, 'charcoal');
+      g.add(trench);
+      for (const kz of [-0.3, 0, 0.3]) {
+        const coals = Shapes.box(0.3, 0.07, L * 0.26, 'emberDim');
+        coals.position.set(0, 0.06, kz * L);
+        g.add(coals);
+        const f = Shapes.cone(0.15, 0.38, 'ember', 6);
+        f.position.set(0, 0.1, kz * L);
+        g.add(f);
+      }
+
+      for (const sx of [-1, 1])
+        for (let i = 0; i < 5; i++) {
+          const r = Shapes.rock(i * 5 + (sx > 0 ? 40 : 0), 0.1, 0.7);
+          r.position.set(sx * 0.3, 0, (i / 4 - 0.5) * L);
+          g.add(r);
+        }
+
+      for (const kz of [-0.32, 0.32]) {
+        for (let i = 0; i < 3; i++) {
+          const a = i / 3 * Math.PI * 2;
+          const leg = Shapes.cyl(0.025, 0.5, 'timberCold', 4);
+          leg.position.set(0.5 + Math.cos(a) * 0.1, 0, kz * L + Math.sin(a) * 0.1);
+          leg.rotation.x = Math.sin(a) * 0.2; leg.rotation.z = -Math.cos(a) * 0.2;
+          g.add(leg);
+        }
+        const pot = Shapes.cyl(0.13, 0.16, 'rockDark', 8, 0.8);
+        pot.position.set(0.5, 0.44, kz * L);
+        g.add(pot);
+        const melt = new THREE.Mesh(new THREE.CircleGeometry(0.1, 8), Shapes.m('ice'));
+        melt.rotation.x = -Math.PI / 2; melt.position.set(0.5, 0.605, kz * L);
+        g.add(melt);
+      }
+      return g;
+    },
+
+    meltPit(d) {
+      const g = new THREE.Group();
+      const kerb = Shapes.cyl(0.28, 0.2, 'rockCold', 9);
+      g.add(kerb);
+      const water = new THREE.Mesh(new THREE.CircleGeometry(0.2, 9), Shapes.m('ice'));
+      water.rotation.x = -Math.PI / 2; water.position.y = 0.185;
+      g.add(water);
+      const fire = Shapes.cone(0.075, 0.17, 'ember', 5);
+      fire.position.set(0.24, 0.02, 0.2);
+      g.add(fire);
+      const ash = Shapes.cyl(0.1, 0.03, 'charcoal', 7);
+      ash.position.set(0.24, 0, 0.2);
+      g.add(ash);
+
+      const bed = Shapes.box(0.26, 0.04, 0.16, 'timberCold');
+      bed.position.set(-0.28, 0.06, -0.22);
+      g.add(bed);
+      for (const sz of [-1, 1]) {
+        const run = Shapes.box(0.3, 0.05, 0.03, 'hideDark');
+        run.position.set(-0.28, 0, -0.22 + sz * 0.06);
+        g.add(run);
+      }
+      return g;
+    },
+
+    frozenCache(d) {
+      const g = new THREE.Group();
+      const collar = Shapes.cyl(0.3, 0.12, 'rockDark', 8);
+      g.add(collar);
+      const lid = Shapes.box(0.46, 0.07, 0.4, 'rockCold');
+      lid.position.y = 0.12; lid.rotation.y = 0.2;
+      g.add(lid);
+      const cap = Shapes.box(0.18, 0.05, 0.16, 'snow');
+      cap.position.y = 0.19; cap.rotation.y = 0.2;
+      g.add(cap);
+      for (const [x, z] of [[-0.3, 0.26], [0.32, -0.2]]) {
+        const r = Shapes.rock(x * 40 + 9, 0.09, 0.6);
+        r.position.set(x, 0, z);
+        g.add(r);
+      }
+      return g;
+    },
+
+    permafrostStore(d) {
+      const g = new THREE.Group();
+      const w = d.w * 0.8, dp = d.h * 0.8;
+      const cut = Shapes.box(w, 0.16, dp, 'rockDark');
+      g.add(cut);
+      const roof = Shapes.gable(w, 0.38, dp * 0.78, 'timberCold', 0.06);
+      roof.position.y = 0.16;
+      g.add(roof);
+      const snowcap = Shapes.gable(w * 0.9, 0.12, dp * 0.7, 'snow', 0.02);
+      snowcap.position.y = 0.44;
+      g.add(snowcap);
+
+      for (let i = 0; i < 3; i++) {
+        const b = Shapes.box(0.17, 0.13, 0.3, i % 2 ? 'hide' : 'hideDark');
+        b.position.set((i - 1) * 0.2, 0.16, dp * 0.42);
+        g.add(b);
+      }
+      const stair = Shapes.box(w * 0.3, 0.05, 0.16, 'rockCold');
+      stair.position.set(0, 0.1, dp * 0.5 - 0.02);
+      g.add(stair);
+      return g;
+    },
+
+    sledDogPost(d) {
+      const g = new THREE.Group();
+      for (const sx of [-1, 1]) {
+        const p = Shapes.cyl(0.03, 0.4, 'timberCold', 5);
+        p.position.set(sx * 0.34, 0, -0.2);
+        g.add(p);
+      }
+      const rope = Shapes.box(0.68, 0.02, 0.02, 'hideDark');
+      rope.position.set(0, 0.38, -0.2);
+      g.add(rope);
+
+      for (let i = 0; i < 3; i++) {
+        const x = (i - 1) * 0.24;
+        const body = Shapes.box(0.15, 0.1, 0.09, 'fur');
+        body.position.set(x, 0.05, -0.06);
+        g.add(body);
+        const head = Shapes.box(0.07, 0.07, 0.07, 'fur');
+        head.position.set(x + 0.08, 0.11, -0.06);
+        g.add(head);
+      }
+      const bed = Shapes.box(0.34, 0.04, 0.16, 'timberCold');
+      bed.position.set(0, 0.05, 0.28);
+      g.add(bed);
+      for (const sz of [-1, 1]) {
+        const run = Shapes.box(0.4, 0.05, 0.03, 'hideDark');
+        run.position.set(0, 0, 0.28 + sz * 0.06);
+        g.add(run);
+      }
+      return g;
+    },
+
+    deadwoodCutter(d) {
+      const g = new THREE.Group();
+      const w = d.w * 0.78, dp = d.h * 0.78;
+      const floor = Shapes.box(w, 0.04, dp, 'charcoal');
+      g.add(floor);
+      for (const [x, z, h] of [[-0.3, -0.28, 0.2], [0.26, -0.3, 0.14], [0.3, 0.3, 0.24]]) {
+        const st = Shapes.cyl(0.1, h, 'timberCold', 7);
+        st.position.set(x, 0.04, z);
+        g.add(st);
+        const top = Shapes.cyl(0.1, 0.02, 'hidePale', 7);
+        top.position.set(x, 0.04 + h, z);
+        g.add(top);
+      }
+
+      for (let r = 0; r < 2; r++)
+        for (let i = 0; i < 4; i++) {
+          const lg = Shapes.barX(0.055, 0.5, 'timberCold', 6);
+          lg.position.set(-0.34, 0.06 + r * 0.11, 0.1 + i * 0.12 - 0.18);
+          g.add(lg);
+        }
+      const block = Shapes.cyl(0.11, 0.16, 'timberCold', 8);
+      block.position.set(0.02, 0.04, -0.02);
+      g.add(block);
+      const axe = Shapes.box(0.03, 0.2, 0.05, 'flint');
+      axe.position.set(0.02, 0.18, -0.02); axe.rotation.x = 0.5;
+      g.add(axe);
+      return g;
+    },
+
+    reindeerDrive(d) {
+      const g = new THREE.Group();
+      const w = d.w * 0.78, dp = d.h * 0.78;
+      const track = Shapes.box(w * 0.5, 0.03, dp, 'snow');
+      g.add(track);
+      for (const sx of [-1, 1])
+        for (let i = 0; i < 4; i++) {
+          const t = i / 3;
+          const x = sx * (0.12 + t * 0.36), z = (t - 0.5) * dp;
+          const c = Shapes.cone(0.1 - t * 0.02, 0.24 + t * 0.1, 'rockCold', 6);
+          c.position.set(x, 0, z);
+          g.add(c);
+          const cap = Shapes.cone(0.05, 0.07, 'snow', 6);
+          cap.position.set(x, 0.24 + t * 0.1, z);
+          g.add(cap);
+        }
+
+      const pole = Shapes.cyl(0.03, 0.44, 'timberCold', 5);
+      pole.position.set(0, 0, -dp * 0.44);
+      g.add(pole);
+      for (const sx of [-1, 1]) {
+        const ant = Shapes.box(0.02, 0.16, 0.02, 'boneDim');
+        ant.position.set(sx * 0.06, 0.36, -dp * 0.44); ant.rotation.z = sx * 0.5;
+        g.add(ant);
+      }
+      return g;
+    },
+
+    iceWeir(d) {
+      const g = new THREE.Group();
+      const L = d.h * 0.86;
+      const cut = Shapes.box(0.3, 0.03, L, 'ice');
+      g.add(cut);
+      const open = new THREE.Mesh(new THREE.PlaneGeometry(0.16, L * 0.8), Shapes.m('rockDark'));
+      open.rotation.x = -Math.PI / 2; open.position.y = 0.035;
+      g.add(open);
+      for (let i = 0; i < 7; i++) {
+        const z = (i / 6 - 0.5) * L;
+        for (const sx of [-1, 1]) {
+          const st = Shapes.cyl(0.022, 0.3 + (i % 2) * 0.06, 'timberCold', 4);
+          st.position.set(sx * 0.13, 0, z);
+          g.add(st);
+        }
+        if (i < 6) {
+          const net = Shapes.box(0.005, 0.16, L / 6 * 0.9, 'hideDark');
+          net.position.set(-0.13, 0.1, z + L / 12);
+          g.add(net);
+        }
+      }
+      const basket = Shapes.cyl(0.11, 0.14, 'hideDark', 7, 0.7);
+      basket.position.set(0, 0.03, L * 0.42);
+      g.add(basket);
+      const fish = Shapes.box(0.13, 0.04, 0.05, 'hidePale');
+      fish.position.set(0, 0.17, L * 0.42);
+      g.add(fish);
+      return g;
+    },
+
+    flintQuarry(d) {
+      const g = new THREE.Group();
+      const w = d.w * 0.78, dp = d.h * 0.78;
+      const pad = Shapes.box(w, 0.04, dp, 'rockDark');
+      g.add(pad);
+      for (let i = 0; i < 3; i++) {
+        const b = Shapes.box(w - i * 0.22, 0.12, dp * 0.5 - i * 0.1, 'rockCold');
+        b.position.set(0, 0.04 + i * 0.12, -dp * 0.2 - i * 0.04);
+        g.add(b);
+      }
+      for (let i = 0; i < 5; i++) {
+        const n = Shapes.rock(i * 11 + 2, 0.07, 0.8);
+        n.position.set((i % 3 - 1) * 0.24, 0.04, dp * 0.26 + (i % 2) * 0.1);
+        g.add(n);
+      }
+      const heap = Shapes.cone(0.2, 0.2, 'flint', 6);
+      heap.position.set(w * 0.3, 0.04, dp * 0.26);
+      g.add(heap);
+      return g;
+    },
+
+    boneYard(d) {
+      const g = new THREE.Group();
+      const w = d.w * 0.78, dp = d.h * 0.78;
+      const bed = Shapes.box(w, 0.04, dp, 'snow');
+      g.add(bed);
+
+      for (let i = 0; i < 5; i++) {
+        const z = (i / 4 - 0.5) * dp * 0.7;
+        const s = 1 - Math.abs(i - 2) * 0.12;
+        for (const sx of [-1, 1]) {
+          const rib = Shapes.cyl(0.022, 0.44 * s, 'bone', 5);
+          rib.position.set(sx * 0.2, 0.04, z);
+          rib.rotation.z = sx * 0.55;
+          g.add(rib);
+          const tipr = Shapes.cyl(0.018, 0.18 * s, 'bone', 5);
+          tipr.position.set(sx * (0.2 - 0.22 * s), 0.04 + 0.38 * s, z);
+          tipr.rotation.z = sx * 1.1;
+          g.add(tipr);
+        }
+      }
+
+      const skull = Shapes.box(0.28, 0.22, 0.26, 'boneDim');
+      skull.position.set(0, 0.04, -dp * 0.4);
+      g.add(skull);
+      for (const sx of [-1, 1]) {
+        const tusk = Shapes.cyl(0.03, 0.36, 'bone', 5, 0.5);
+        tusk.position.set(sx * 0.1, 0.1, -dp * 0.44);
+        tusk.rotation.x = 1.25; tusk.rotation.z = sx * 0.3;
+        g.add(tusk);
+      }
+      return g;
+    },
+
+    ochreBank(d) {
+      const g = new THREE.Group();
+      const w = d.w * 0.78, dp = d.h * 0.78;
+      const pad = Shapes.box(w, 0.05, dp, 'ochreRaw');
+      g.add(pad);
+      for (let i = 0; i < 3; i++) {
+        const face = Shapes.box(w - i * 0.16, 0.14, 0.2, 'ochreRaw');
+        face.position.set(0, 0.05 + i * 0.13, -dp * 0.3 + i * 0.07);
+        g.add(face);
+      }
+      const overburden = Shapes.box(w * 0.9, 0.06, 0.24, 'snow');
+      overburden.position.set(0, 0.44, -dp * 0.2);
+      g.add(overburden);
+      for (let i = 0; i < 3; i++) {
+        const bskt = Shapes.cyl(0.1, 0.13, 'hideDark', 7, 0.72);
+        bskt.position.set((i - 1) * 0.26, 0.05, dp * 0.3);
+        g.add(bskt);
+        const heap = Shapes.cone(0.085, 0.08, 'ochreRaw', 7);
+        heap.position.set((i - 1) * 0.26, 0.17, dp * 0.3);
+        g.add(heap);
+      }
+      return g;
+    },
+
+    charcoalClamp(d) {
+      const g = new THREE.Group();
+      const w = d.w * 0.78, dp = d.h * 0.78;
+      const ring = Shapes.cyl(0.52, 0.06, 'charcoal', 12);
+      g.add(ring);
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(0.46, 12, 7, 0, Math.PI * 2, 0, Math.PI / 2),
+                                  Shapes.m('hideDark'));
+      dome.position.y = 0.06; dome.scale.y = 0.78;
+      g.add(dome);
+      const vent = Shapes.cyl(0.06, 0.12, 'charcoal', 6);
+      vent.position.y = 0.06 + 0.46 * 0.78 - 0.02;
+      g.add(vent);
+      const smoke = Shapes.cone(0.09, 0.22, 'snow', 6);
+      smoke.position.y = 0.06 + 0.46 * 0.78 + 0.08;
+      g.add(smoke);
+
+      for (let i = 0; i < 3; i++) {
+        const sack = Shapes.box(0.15, 0.13, 0.13, 'charcoal');
+        sack.position.set((i - 1) * 0.2, 0, dp * 0.44);
+        g.add(sack);
+      }
+      const spade = Shapes.cyl(0.02, 0.34, 'timberCold', 4);
+      spade.position.set(-w * 0.44, 0, -dp * 0.2); spade.rotation.z = 0.3;
+      g.add(spade);
+      return g;
+    },
+
+    dryingRack(d) {
+      const g = new THREE.Group();
+      const w = d.w * 0.78, dp = d.h * 0.78;
+      for (const sz of [-1, 1])
+        for (const sx of [-1, 1]) {
+          const p = Shapes.cyl(0.03, 0.68, 'timberCold', 5);
+          p.position.set(sx * w * 0.42, 0, sz * dp * 0.3);
+          g.add(p);
+        }
+      for (const sz of [-1, 1]) {
+        const bar = Shapes.barX(0.025, w * 0.9, 'timberCold', 5);
+        bar.position.set(0, 0.66, sz * dp * 0.3);
+        g.add(bar);
+        for (let i = 0; i < 5; i++) {
+          const strip = Shapes.box(0.055, 0.3 - (i % 2) * 0.06, 0.02, 'ochreRaw');
+          strip.position.set((i / 4 - 0.5) * w * 0.78, 0.32 + (i % 2) * 0.06, sz * dp * 0.3);
+          g.add(strip);
+        }
+      }
+      const fire = Shapes.cyl(0.14, 0.05, 'emberDim', 8);
+      g.add(fire);
+      const sm = Shapes.cone(0.1, 0.24, 'snow', 6);
+      sm.position.y = 0.05;
+      g.add(sm);
+      return g;
+    },
+
+    hideFrames(d) {
+      const g = new THREE.Group();
+      const w = d.w * 0.78, dp = d.h * 0.78;
+      const floor = Shapes.box(w, 0.03, dp, 'hideDark');
+      g.add(floor);
+      for (let i = 0; i < 3; i++) {
+        const x = (i - 1) * w * 0.34, lean = (i - 1) * 0.06;
+        for (const sz of [-1, 1]) {
+          const p = Shapes.cyl(0.026, 0.72, 'timberCold', 4);
+          p.position.set(x + sz * 0.16, 0.03, 0); p.rotation.x = lean;
+          g.add(p);
+        }
+        const top = Shapes.barX(0.022, 0.34, 'timberCold', 4);
+        top.position.set(x, 0.72, -lean * 0.6);
+        g.add(top);
+        const skin = Shapes.box(0.28, 0.5, 0.02, i === 1 ? 'hidePale' : 'hide');
+        skin.position.set(x, 0.16, -lean * 0.3); skin.rotation.x = lean;
+        g.add(skin);
+      }
+      const scraper = Shapes.box(0.14, 0.03, 0.1, 'flint');
+      scraper.position.set(w * 0.34, 0.03, dp * 0.38);
+      g.add(scraper);
+      return g;
+    },
+
+    knappingFloor(d) {
+      const g = new THREE.Group();
+      const w = d.w * 0.82, dp = d.h * 0.82;
+      const floor = Shapes.box(w, 0.05, dp, 'rockDark');
+      g.add(floor);
+      for (const [x, z] of [[-0.26, -0.2], [0.26, -0.18], [0, 0.26]]) {
+        const anvil = Shapes.rock(x * 60 + z * 13 + 5, 0.16, 0.55);
+        anvil.position.set(x, 0.05, z);
+        g.add(anvil);
+        const core = Shapes.rock(x * 31 + 17, 0.07, 0.9);
+        core.position.set(x + 0.1, 0.16, z + 0.06);
+        g.add(core);
+      }
+      for (let i = 0; i < 9; i++) {
+        const f = Shapes.box(0.05, 0.012, 0.035, 'flint');
+        f.position.set(((i * 7) % 9 / 8 - 0.5) * w * 0.9, 0.05, ((i * 5) % 7 / 6 - 0.5) * dp * 0.9);
+        f.rotation.y = i * 0.7;
+        g.add(f);
+      }
+      const rack = Shapes.box(0.36, 0.04, 0.1, 'timberCold');
+      rack.position.set(0, 0.26, -dp * 0.4);
+      g.add(rack);
+      for (const sx of [-1, 1]) {
+        const leg = Shapes.cyl(0.02, 0.26, 'timberCold', 4);
+        leg.position.set(sx * 0.15, 0.05, -dp * 0.4);
+        g.add(leg);
+      }
+      for (let i = 0; i < 3; i++) {
+        const bl = Shapes.box(0.03, 0.11, 0.02, 'flint');
+        bl.position.set((i - 1) * 0.11, 0.3, -dp * 0.4);
+        g.add(bl);
+      }
+      return g;
+    },
+
+    meatStall(d) {
+      const g = new THREE.Group();
+      const w = d.w * 0.78, dp = d.h * 0.78;
+      const counter = Shapes.box(w * 0.9, 0.3, 0.24, 'timberCold');
+      counter.position.set(0, 0, dp * 0.26);
+      g.add(counter);
+      for (const sx of [-1, 1]) {
+        const p = Shapes.cyl(0.03, 0.76, 'timberCold', 5);
+        p.position.set(sx * w * 0.42, 0, dp * 0.3);
+        g.add(p);
+        const b = Shapes.cyl(0.03, 0.62, 'timberCold', 5);
+        b.position.set(sx * w * 0.42, 0, -dp * 0.34);
+        g.add(b);
+      }
+      const awn = Shapes.box(w * 0.94, 0.03, dp * 0.72, 'hide');
+      awn.position.set(0, 0.68, -0.02); awn.rotation.x = 0.18;
+      g.add(awn);
+      const bar = Shapes.barX(0.02, w * 0.8, 'timberCold', 4);
+      bar.position.set(0, 0.58, -dp * 0.34);
+      g.add(bar);
+      for (let i = 0; i < 4; i++) {
+        const cut = Shapes.box(0.09, 0.24, 0.06, 'ochreRaw');
+        cut.position.set((i / 3 - 0.5) * w * 0.66, 0.32, -dp * 0.34);
+        g.add(cut);
+      }
+      return g;
+    },
+
+    fuelStack(d) {
+      const g = new THREE.Group();
+      const w = d.w * 0.78, dp = d.h * 0.78;
+      const pad = Shapes.box(w, 0.04, dp, 'charcoal');
+      g.add(pad);
+
+      for (const sx of [-1, 1])
+        for (let r = 0; r < 4; r++)
+          for (let i = 0; i < 3; i++) {
+            const lg = Shapes.barX(0.06, 0.42, 'timberCold', 6);
+            lg.position.set(sx * 0.34, 0.1 + r * 0.13, -dp * 0.22 + i * 0.14);
+            g.add(lg);
+          }
+      for (let i = 0; i < 4; i++) {
+        const sack = Shapes.box(0.16, 0.14, 0.14, 'charcoal');
+        sack.position.set((i % 2 - 0.5) * 0.36, (i > 1 ? 0.14 : 0) + 0.04, dp * 0.36);
+        g.add(sack);
+      }
+      const roof = Shapes.box(w * 0.7, 0.03, dp * 0.5, 'hideDark');
+      roof.position.set(0, 0.64, -dp * 0.08);
+      g.add(roof);
+      return g;
+    },
+
+    bladeTrader(d) {
+      const g = new THREE.Group();
+      const w = d.w * 0.78, dp = d.h * 0.78;
+      const counter = Shapes.box(w * 0.86, 0.32, 0.2, 'rockCold');
+      counter.position.set(0, 0, dp * 0.28);
+      g.add(counter);
+      const board = Shapes.box(w * 0.8, 0.5, 0.04, 'timberCold');
+      board.position.set(0, 0.06, -dp * 0.34);
+      g.add(board);
+      for (let i = 0; i < 6; i++) {
+        const bl = Shapes.cone(0.032, 0.2 + (i % 3) * 0.04, 'flint', 4);
+        bl.position.set((i / 5 - 0.5) * w * 0.66, 0.16, -dp * 0.34 + 0.03);
+        bl.rotation.x = Math.PI;
+        bl.position.y = 0.5;
+        g.add(bl);
+      }
+      for (const sx of [-1, 1]) {
+        const p = Shapes.cyl(0.028, 0.62, 'timberCold', 5);
+        p.position.set(sx * w * 0.4, 0, -dp * 0.34);
+        g.add(p);
+      }
+      const spear = Shapes.cyl(0.02, 0.8, 'timberCold', 4);
+      spear.position.set(w * 0.42, 0, dp * 0.3); spear.rotation.z = -0.12;
+      g.add(spear);
+      return g;
+    },
+
+    carverLodge(d) {
+      const g = new THREE.Group();
+      const w = d.w * 0.72, dp = d.h * 0.72;
+      const body = Shapes.box(w, 0.42, dp * 0.8, 'hide');
+      g.add(body);
+      const roof = Shapes.gable(w * 1.05, 0.3, dp * 0.86, 'hideDark', 0.05);
+      roof.position.y = 0.42;
+      g.add(roof);
+
+      const bench = Shapes.box(w * 0.8, 0.04, 0.14, 'timberCold');
+      bench.position.set(0, 0.3, dp * 0.44);
+      g.add(bench);
+      for (let i = 0; i < 4; i++) {
+        const pc = Shapes.cyl(0.028, 0.13 + (i % 2) * 0.05, 'bone', 6, 0.6);
+        pc.position.set((i / 3 - 0.5) * w * 0.6, 0.34, dp * 0.44);
+        g.add(pc);
+      }
+
+      const sign = Shapes.barX(0.028, 0.34, 'bone', 6);
+      sign.position.set(0, 0.56, dp * 0.4);
+      sign.rotation.x = 0.3;
+      g.add(sign);
+      return g;
+    },
+
+    furHall(d) {
+      const g = new THREE.Group();
+      const w = d.w * 0.78, dp = d.h * 0.78;
+      const body = Shapes.box(w * 0.9, 0.5, dp * 0.62, 'hideDark');
+      body.position.z = -dp * 0.14;
+      g.add(body);
+      const roof = Shapes.hip(w * 0.98, 0.34, 'fur', 4);
+      roof.position.set(0, 0.5, -dp * 0.14);
+      g.add(roof);
+
+      for (const sx of [-1, 1]) {
+        const p = Shapes.cyl(0.03, 0.66, 'timberCold', 5);
+        p.position.set(sx * w * 0.44, 0, dp * 0.36);
+        g.add(p);
+      }
+      const rail = Shapes.barX(0.022, w * 0.88, 'timberCold', 4);
+      rail.position.set(0, 0.64, dp * 0.36);
+      g.add(rail);
+      const tones = ['fur', 'hide', 'hidePale', 'hideDark'];
+      for (let i = 0; i < 4; i++) {
+        const pelt = Shapes.box(0.15, 0.36 - (i % 2) * 0.05, 0.03, tones[i]);
+        pelt.position.set((i / 3 - 0.5) * w * 0.66, 0.26, dp * 0.36);
+        g.add(pelt);
+      }
+      return g;
+    },
+
+    tradePost(d) {
+      const g = new THREE.Group();
+      const dp = d.h * 0.8;
+      const base = Shapes.cyl(0.2, 0.14, 'rockCold', 8);
+      base.position.z = -dp * 0.18;
+      g.add(base);
+      const mast = Shapes.cyl(0.035, 0.92, 'timberCold', 6);
+      mast.position.set(0, 0.14, -dp * 0.18);
+      g.add(mast);
+      const arm = Shapes.barX(0.02, 0.36, 'timberCold', 4);
+      arm.position.set(0.16, 0.94, -dp * 0.18);
+      g.add(arm);
+      const flag = Shapes.box(0.3, 0.22, 0.02, 'ochreRaw');
+      flag.position.set(0.02, 0.7, -dp * 0.18);
+      g.add(flag);
+      const crate = Shapes.box(0.3, 0.18, 0.24, 'hideDark');
+      crate.position.set(0, 0, dp * 0.3);
+      g.add(crate);
+      const bundle = Shapes.cyl(0.09, 0.24, 'hide', 7);
+      bundle.rotation.x = Math.PI / 2;
+      bundle.position.set(-0.14, 0.27, dp * 0.3);
+      g.add(bundle);
+      return g;
+    },
+
+    huntersCamp(d) {
+      const g = new THREE.Group();
+      const w = d.w * 0.78, dp = d.h * 0.78;
+      for (let i = 0; i < 4; i++) {
+        const a = i / 4 * Math.PI * 2 + 0.4;
+        const sp = Shapes.cyl(0.022, 0.86, 'timberCold', 4);
+        sp.position.set(-w * 0.26 + Math.cos(a) * 0.1, 0, -dp * 0.2 + Math.sin(a) * 0.1);
+        sp.rotation.x = -Math.sin(a) * 0.26; sp.rotation.z = Math.cos(a) * 0.26;
+        g.add(sp);
+        const head = Shapes.cone(0.028, 0.13, 'flint', 4);
+        head.position.set(-w * 0.26 + Math.cos(a) * 0.02, 0.84, -dp * 0.2 + Math.sin(a) * 0.02);
+        g.add(head);
+      }
+      const tent = Shapes.cone(0.32, 0.62, 'hide', 7);
+      tent.position.set(w * 0.28, 0, -dp * 0.16);
+      g.add(tent);
+      const fire = Shapes.cyl(0.13, 0.05, 'emberDim', 8);
+      fire.position.set(0, 0, dp * 0.32);
+      g.add(fire);
+      const fl = Shapes.cone(0.1, 0.24, 'ember', 6);
+      fl.position.set(0, 0.05, dp * 0.32);
+      g.add(fl);
+      for (const sx of [-1, 1]) {
+        const st = Shapes.cyl(0.018, 0.3, 'timberCold', 4);
+        st.position.set(sx * 0.2, 0, dp * 0.32); st.rotation.z = -sx * 0.4;
+        g.add(st);
+      }
+      return g;
+    },
+
+    hideTent(d) {
+      const g = new THREE.Group();
+      const cone = Shapes.cone(0.36, 0.86, 'hide', 8);
+      g.add(cone);
+      const smokeflap = Shapes.cone(0.14, 0.2, 'hideDark', 6);
+      smokeflap.position.y = 0.8;
+      g.add(smokeflap);
+
+      for (let i = 0; i < 3; i++) {
+        const a = i / 3 * Math.PI * 2;
+        const p = Shapes.cyl(0.016, 1.06, 'timberCold', 4);
+        p.position.set(Math.cos(a) * 0.06, 0, Math.sin(a) * 0.06);
+        p.rotation.x = -Math.sin(a) * 0.16; p.rotation.z = Math.cos(a) * 0.16;
+        g.add(p);
+      }
+      const door = Shapes.box(0.16, 0.28, 0.02, 'hideDark');
+      door.position.set(0, 0, 0.33);
+      g.add(door);
+      return g;
+    },
+
+    boneLodge(d) {
+      const g = new THREE.Group();
+      const w = d.w * 0.66, dp = d.h * 0.66;
+
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(0.52, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2),
+                                  Shapes.m('hide'));
+      dome.scale.set(1, 1.25, 0.92);
+      g.add(dome);
+
+      for (let i = 0; i < 10; i++) {
+        const a = i / 10 * Math.PI * 2;
+        const j = Shapes.box(0.12, 0.16, 0.08, i % 2 ? 'bone' : 'boneDim');
+        j.position.set(Math.cos(a) * 0.5, 0, Math.sin(a) * 0.46);
+        j.rotation.y = -a;
+        g.add(j);
+      }
+
+      for (const sx of [-1, 1]) {
+        const tusk = Shapes.cyl(0.035, 0.5, 'bone', 6, 0.5);
+        tusk.position.set(sx * 0.2, 0, dp * 0.6);
+        tusk.rotation.z = sx * 0.6;
+        g.add(tusk);
+      }
+      const lintel = Shapes.barX(0.03, 0.3, 'boneDim', 6);
+      lintel.position.set(0, 0.44, dp * 0.6);
+      g.add(lintel);
+      const smoke = Shapes.cyl(0.07, 0.1, 'charcoal', 6);
+      smoke.position.y = 0.63;
+      g.add(smoke);
+      return g;
+    },
+
+    danceGround(d) {
+      const g = new THREE.Group();
+      const w = d.w * 0.82;
+      const ring = new THREE.Mesh(new THREE.CircleGeometry(w * 0.5, 14), Shapes.m('charcoal'));
+      ring.rotation.x = -Math.PI / 2; ring.position.y = 0.02;
+      g.add(ring);
+      const inner = new THREE.Mesh(new THREE.CircleGeometry(w * 0.3, 12), Shapes.m('ochreRaw'));
+      inner.rotation.x = -Math.PI / 2; inner.position.y = 0.03;
+      g.add(inner);
+      for (let i = 0; i < 8; i++) {
+        const a = i / 8 * Math.PI * 2;
+        const h = 0.36 + (i % 3) * 0.14;
+        const post = Shapes.cyl(0.045, h, 'timberCold', 6);
+        post.position.set(Math.cos(a) * w * 0.44, 0, Math.sin(a) * w * 0.44);
+        g.add(post);
+        const skull = Shapes.box(0.1, 0.09, 0.09, 'boneDim');
+        skull.position.set(Math.cos(a) * w * 0.44, h, Math.sin(a) * w * 0.44);
+        g.add(skull);
+      }
+      return g;
+    },
+
+    shamanTent(d) {
+      const g = new THREE.Group();
+      const cone = Shapes.cone(0.3, 0.6, 'hideDark', 7);
+      g.add(cone);
+
+      const band = Shapes.cyl(0.24, 0.09, 'ochreRaw', 7, 1);
+      band.position.y = 0.16;
+      g.add(band);
+      const pole = Shapes.cyl(0.02, 0.98, 'timberCold', 4);
+      g.add(pole);
+
+      for (const sx of [-1, 1]) {
+        const a1 = Shapes.cyl(0.014, 0.2, 'bone', 4);
+        a1.position.set(sx * 0.04, 0.9, 0); a1.rotation.z = sx * 0.6;
+        g.add(a1);
+        const a2 = Shapes.cyl(0.011, 0.13, 'bone', 4);
+        a2.position.set(sx * 0.14, 1.02, 0); a2.rotation.z = sx * 0.15;
+        g.add(a2);
+      }
+      return g;
+    },
+
+    firekeeperLodge(d) {
+      const g = new THREE.Group();
+      const w = d.w * 0.74, dp = d.h * 0.74;
+      const body = Shapes.box(w, 0.5, dp * 0.72, 'hideDark');
+      body.position.z = -dp * 0.08;
+      g.add(body);
+      const roof = Shapes.vault(w * 1.02, 0.4, dp * 0.8, 'fur', 7);
+      roof.position.set(0, 0.5, -dp * 0.08);
+      g.add(roof);
+
+      const ring = Shapes.cyl(0.2, 0.06, 'rockCold', 9);
+      ring.position.set(0, 0, dp * 0.4);
+      g.add(ring);
+      const coals = Shapes.cyl(0.15, 0.05, 'emberDim', 9);
+      coals.position.set(0, 0.06, dp * 0.4);
+      g.add(coals);
+      const fl = Shapes.cone(0.14, 0.36, 'ember', 6);
+      fl.position.set(0, 0.09, dp * 0.4);
+      g.add(fl);
+
+      for (let r = 0; r < 3; r++)
+        for (let i = 0; i < 3; i++) {
+          const lg = Shapes.cyl(0.05, 0.3, 'timberCold', 6);
+          lg.rotation.x = Math.PI / 2;
+          lg.position.set(-w * 0.42 + i * 0.11, 0.05 + r * 0.11, -dp * 0.34);
+          g.add(lg);
+        }
+      return g;
+    },
+
+    handprintPanel(d) {
+      const g = new THREE.Group();
+      const slab = Shapes.rock(21, 0.34, 0.55);
+      slab.scale.set(1, 1.5, 0.55);
+      g.add(slab);
+
+      for (let i = 0; i < 4; i++) {
+        const h = Shapes.box(0.075, 0.09, 0.012, 'ochreRaw');
+        h.position.set((i % 2 - 0.5) * 0.2, 0.16 + Math.floor(i / 2) * 0.16, 0.19);
+        h.rotation.z = (i % 2 ? 1 : -1) * 0.12;
+        g.add(h);
+      }
+      const base = Shapes.cyl(0.24, 0.05, 'snow', 8);
+      g.add(base);
+      return g;
+    },
   },
 
   plaza(g, d, tiers) {
@@ -1494,6 +2303,18 @@ const Shapes = {
   },
 
   ERA_SKINS: {
+
+    1: { hearth: 'glacialHearth', longfire: 'longFire', icehole: 'meltPit',
+         cache: 'frozenCache', storepit: 'permafrostStore', sleddogpost: 'sledDogPost',
+         deadwoodcutter: 'deadwoodCutter', reindeerdrive: 'reindeerDrive',
+         iceweir: 'iceWeir', flintquarry: 'flintQuarry', boneyard: 'boneYard',
+         ochrepit: 'ochreBank', charclamp: 'charcoalClamp', dryrack: 'dryingRack',
+         tannery: 'hideFrames', knapfloor: 'knappingFloor',
+         meatstall: 'meatStall', fuelstack: 'fuelStack', bladestall: 'bladeTrader',
+         carverlodge: 'carverLodge', furhall: 'furHall', tradepost: 'tradePost',
+         hunterscamp: 'huntersCamp', hidetent: 'hideTent', bonelodge: 'boneLodge',
+         danceground: 'danceGround', shaman: 'shamanTent',
+         firekeeper: 'firekeeperLodge', handprint: 'handprintPanel' },
     4: { townhall: 'templeHousehold', house: 'reedHouse', well: 'well', farm: 'farmPlot',
          mill: 'millHouse', market: 'marketStalls', park: 'publicSquare',
          templeGranary: 'templeGranary', estate: 'farmPlot', midden: 'midden',
@@ -1509,6 +2330,8 @@ const Shapes = {
   },
 
   HOUSE_SKINS: {
+
+    1: ['hideTent', 'boneLodge'],
     4: ['reedHouse', 'mudbrickHouse', 'courtyardHouse'],
     5: ['egyptHouse', 'egyptHouse', 'nomarchEstate'],
     14: ['mayaHouse', 'mayaHouse', 'councilHouse'],

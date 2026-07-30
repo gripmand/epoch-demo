@@ -1038,7 +1038,7 @@ const Rend = {
 
   ERA_SCATTER: {
 
-    1:  { tree: ['deadTree'], scrub: ['bush'], scrubDensity: 0.06, marsh: ['reed'],
+    1:  { tree: ['deadTree'], scrub: [], scrubDensity: 0, marsh: ['reed'],
           rock: ['boulder'], crag: ['crag'] },
     4:  { tree: ['palm', 'poplar'], scrub: ['tamarisk'], scrubDensity: 0.055, marsh: ['reed'],
           rock: ['boulder'], crag: ['crag'] },

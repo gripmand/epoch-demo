@@ -26,7 +26,7 @@ const TUNE = {
                  sesame: 0, oil: 0, dyedcloth: 0, mudbrick: 0,
                  water: 0, cacao: 0, chocolate: 0, honey: 0,
 
-                 deadwood: 25, charcoal: 0, game: 0, pemmican: 12,
+                 deadwood: 70, charcoal: 0, game: 0, pemmican: 24,
                  hide: 0, parka: 0, flint: 0, blades: 0,
                  bone: 0, ochre: 0, carvings: 0, ivory: 0 },
 
@@ -477,23 +477,26 @@ const BUILDINGS = {
 
   hearth: {
     name: 'Great Hearth', tier: 'infra', era: 1, w: 2, h: 2, cost: 60, upkeep: 0.10,
-    icon: '\u{1F525}', color: '#d97f4a', warmRadius: 5,
-    desc: 'A banked fire in a stone ring, with a screen against the wind. Everything within 5 tiles ' +
-      'works; everything outside it does not. It burns whatever you have — wood, charcoal, bone — ' +
-      'and when the fuel runs out it goes dark and takes the district with it.',
+    icon: '\u{1F525}', color: '#d97f4a', warmRadius: 18,
+    desc: 'A banked fire in a stone ring, with a screen against the wind. Its warmth reaches 18 tiles — ' +
+      'far enough that ONE hearth carries a whole camp, so site it centrally and build outward. It ' +
+      'burns whatever you have — wood, charcoal, bone — and when the fuel runs out every fire in the ' +
+      'camp goes dark at once.',
   },
   longfire: {
     name: 'Longfire & Melt Row', tier: 'infra', era: 1, w: 2, h: 3, cost: 220, upkeep: 0.20,
-    icon: '\u{1F3D5}\u{FE0F}', color: '#c9743f', warmRadius: 8, waterRadius: 8, warm: 0.10,
-    desc: 'A trench fire with melt-cauldrons standing along it. Warmth AND water from one object, ' +
-      'out to 8 tiles — and it burns 0.10 fuel a minute of its own to melt the snow. In this age, ' +
-      'water costs firewood.',
+    icon: '\u{1F3D5}\u{FE0F}', color: '#c9743f', warmRadius: 26, waterRadius: 14, warm: 0.10,
+    desc: 'A trench fire with melt-cauldrons standing along it. Warmth out to 26 tiles AND water out ' +
+      'to 14, from one object — and it burns 0.10 fuel a minute of its own to melt the snow. In this ' +
+      'age, water costs firewood.',
   },
+
   icehole: {
-    name: 'Ice Hole & Water Sled', tier: 'infra', era: 1, w: 1, h: 1, cost: 60, upkeep: 0.10,
-    icon: '\u{1F573}\u{FE0F}', color: '#7fb4c9', waterRadius: 5, warm: 0.04, nearWater: 2,
-    desc: 'A hole kept open through the river ice and a sled to haul from it. Must sit within 2 tiles ' +
-      'of the water. Cheaper than melting snow, and it stops working the day you move away from the river.',
+    name: 'Melt Pit', tier: 'infra', era: 1, w: 1, h: 1, cost: 60, upkeep: 0.10,
+    icon: '\u{1F573}\u{FE0F}', color: '#7fb4c9', waterRadius: 5, warm: 0.04,
+    desc: 'A lined pit with a fire under it, kept thawed and hauled from by sled. Supplies water in a ' +
+      '5-tile radius and can stand anywhere — snow is the one thing this age is never short of. ' +
+      'Buildings without water shut down.',
   },
   cache: {
     name: 'Frozen Cache', tier: 'infra', era: 1, w: 1, h: 1, cost: 80, upkeep: 0.04,
@@ -525,10 +528,11 @@ const BUILDINGS = {
   },
   reindeerdrive: {
     name: 'Reindeer Drive', tier: 'food', era: 1, w: 2, h: 2, cost: 100, upkeep: 0.15,
-    icon: '\u{1F98C}', color: '#a89070', workers: 2, nearWater: 3,
+
+    icon: '\u{1F98C}', color: '#a89070', workers: 2,
     out: { game: 1.0 },
-    desc: 'A drive lane of stone cairns funnelling the herd to the crossing: 1 game a minute. Must sit ' +
-      'within 3 tiles of water, because that is where you take them. +25% when it touches a Drying Rack.',
+    desc: 'A drive lane of stone cairns funnelling the herd between them: 1 game a minute, anywhere on ' +
+      'the open steppe. +25% when it touches a Drying Rack.',
   },
   iceweir: {
     name: 'Ice Weir', tier: 'food', era: 1, w: 1, h: 3, cost: 160, upkeep: 0.15,
@@ -553,10 +557,11 @@ const BUILDINGS = {
   },
   ochrepit: {
     name: 'Ochre Bank', tier: 'food', era: 1, w: 2, h: 2, cost: 100, upkeep: 0.10,
-    icon: '\u{1F7E5}', color: '#b5502f', workers: 2, nearWater: 2,
+
+    icon: '\u{1F7E5}', color: '#b5502f', workers: 2, nearWater: 5,
     out: { ochre: 1.2 },
-    desc: 'Red iron oxide cut open by the river: 1.2 ochre a minute. Nearly worthless to sell. ' +
-      'The Painted Cave will want 9,000 of it.',
+    desc: 'Red iron oxide cut open by the river: 1.2 ochre a minute, from a bank within 5 tiles of the ' +
+      'ice. Nearly worthless to sell. The Painted Cave will want 900 of it.',
   },
 
   charclamp: {
