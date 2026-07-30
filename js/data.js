@@ -661,7 +661,7 @@ const BUILDINGS = {
   hidetent: {
     name: 'Hide Tent', tier: 'housing', era: 1, w: 1, h: 1, cost: 120, upkeep: 0.05,
     icon: '\u{26FA}', color: '#c9a682', cap: 4, needsRoad: true, needsWater: true, needsWarm: true, warm: 0.08,
-    desc: 'Hides over a bent-pole frame, banked with snow. Homes 4. Needs a fire within reach — a tent ' +
+    desc: 'Hides over a bent-pole frame, banked with snow. Homes 2 when it goes up, rising to 14 as it earns its rungs. Needs a fire within reach — a tent ' +
       'outside the hearth circle is a tent full of dead people.',
   },
   bonelodge: {
@@ -670,7 +670,7 @@ const BUILDINGS = {
 
     icon: '\u{1F3D5}\u{FE0F}', color: '#d8cdb5', cap: 16, needsRoad: true, needsWater: true, needsWarm: true, warm: 0.13,
     desc: 'A ridge of arched tusks and mammoth rib, walled in stacked jaws and lashed over with hide: ' +
-      'the longhouse of the age. Homes 16 on ONE fire — under half a tent\'s fuel a head. The building ' +
+      'the longhouse of the age. Homes 8 when it goes up and 16 once it has earned a rung, on ONE fire — under half a tent\'s fuel a head. The building ' +
       'this age is actually remembered for.',
   },
 
@@ -731,7 +731,7 @@ const BUILDINGS = {
   house: {
     name: 'House', tier: 'housing', era: 4, w: 1, h: 1, cost: 120, upkeep: 0.05,
     icon: '\u{1F3E0}', color: '#d8a37a', cap: 4, needsWater: true,
-    desc: 'Homes 4 residents. Residents work buildings and eat flour. +1 capacity near a Park or Temple, −1 next to industry.',
+    desc: 'Homes 2 residents when it goes up, rising to 14 as it earns its rungs. Residents work buildings and eat flour. +1 capacity near a Park or Temple, −1 next to industry.',
   },
   market: {
     name: 'Market', tier: 'commerce', era: 4, w: 2, h: 2, cost: 250, upkeep: 0.30,

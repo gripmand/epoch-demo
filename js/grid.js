@@ -917,6 +917,14 @@ const Grid = {
   customerSurvey(s, b) {
     const d = Grid.dimsOf(b);
     let n = 0, sum = 0;
+
+    const hall = s.buildings.find(x => x.type === 'townhall');
+    const crew = Game.crewSize(s);
+    if (hall && crew > 0) {
+      const hd = Grid.dimsOf(hall);
+      n += crew;
+      sum += Util.rectDist(b.x, b.y, d.w, d.h, hall.x, hall.y, hd.w, hd.h) * crew;
+    }
     for (const h of s.buildings) {
       if (!DEF(h.type).cap || !h.residents) continue;
       const hd = Grid.dimsOf(h);
