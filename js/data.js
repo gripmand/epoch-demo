@@ -145,6 +145,8 @@ const TUNE = {
     distPenalty: 0.003,
     catOdds: 0.12,
 
+    bonusChance: 0.35,
+    bonus: { bison: 10, rhino: 25, mammoth: 50, sabertooth: 100 },
     rest: 45,
     autoMinOdds: 0.50,
     autoSpare: 4,
@@ -657,10 +659,34 @@ const BUILDINGS = {
   hunterscamp: {
     name: "Hunters' Camp", tier: 'food', era: 1, w: 2, h: 2, cost: 200, upkeep: 0.20,
     icon: '\u{1F3F9}', color: '#7d6b52', huntBase: true,
-    desc: 'Spears, sledges, and the people who walk toward the mammoth on purpose. From here you send ' +
-      'a HUNT at the nearest herd you can see on the steppe: six hunters leave the labour pool, and ' +
-      'what comes back is meat, hide, bone and ivory — or fewer hunters. The panel shows the odds ' +
-      'before you commit.',
+    huntKinds: ['bison'],
+    desc: 'Spears, sledges, and the people who walk toward the herd on purpose. Six hunters leave the ' +
+      'labour pool and come back with meat, hide and bone — or fewer hunters. It knows the STEPPE ' +
+      'BISON and nothing else yet; every upgrade teaches it a bigger animal.',
+  },
+  spearlodge: {
+    name: 'Spear Lodge', tier: 'food', era: 1, w: 2, h: 2, cost: 320, upkeep: 0.26,
+    icon: '\u{1F3F9}', color: '#8a7355', huntBase: true,
+    huntKinds: ['bison', 'rhino'], huntOddsBonus: 0.05,
+    desc: 'Long spears, weighted and straightened, and people who have used them before. Adds the ' +
+      'WOOLLY RHINOCEROS — half again the meat of a bison, and ivory with it. Every hunt runs at ' +
+      '+5% odds.',
+  },
+  mammothblind: {
+    name: 'Mammoth Blind', tier: 'food', era: 1, w: 2, h: 2, cost: 480, upkeep: 0.32,
+    icon: '\u{1F9A3}', color: '#96795a', huntBase: true,
+    huntKinds: ['bison', 'rhino', 'mammoth'], huntOddsBonus: 0.10,
+    desc: 'A hide screen at the crossing, and the patience to wait behind it. Adds the WOOLLY ' +
+      'MAMMOTH: 90 game, 60 bone and 8 ivory in one animal — the largest haul in the age. Every ' +
+      'hunt runs at +10% odds.',
+  },
+  catlodge: {
+    name: 'Sabretooth Lodge', tier: 'food', era: 1, w: 2, h: 2, cost: 700, upkeep: 0.40,
+    icon: '\u{1F405}', color: '#a5804f', huntBase: true,
+    huntKinds: ['bison', 'rhino', 'mammoth', 'sabertooth'], huntOddsBonus: 0.15,
+    desc: 'The people who hunt the thing that hunts them. Adds the SABERTOOTH — almost no meat, but ' +
+      'the pelt and the fangs are the richest thing this age can sell, and a good one pays $100 on ' +
+      'top of the haul. Every hunt runs at +15% odds, which is what makes it survivable.',
   },
 
   hidetent: {
@@ -1692,6 +1718,10 @@ const UPGRADES = {
 
   hearth:   { to: 'longfire',  cost: 160, era: 1, label: 'Longfire & Melt Row' },
   hidetent: { to: 'bonelodge', cost: 220, era: 1, label: 'Mammoth-Bone Lodge' },
+
+  hunterscamp:   { to: 'spearlodge',   cost: 260, era: 1, label: 'Spear Lodge' },
+  spearlodge:    { to: 'mammothblind', cost: 400, era: 1, label: 'Mammoth Blind' },
+  mammothblind:  { to: 'catlodge',     cost: 620, era: 1, label: 'Sabretooth Lodge' },
 };
 
 const TERRA_TOOLS = [

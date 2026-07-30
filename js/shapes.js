@@ -1921,6 +1921,70 @@ const Shapes = {
       return g;
     },
 
+    spearLodge(d) {
+      const g = Shapes.RECIPES.huntersCamp(d);
+      const w = d.w * 0.78, dp = d.h * 0.78;
+
+      for (let i = 0; i < 5; i++) {
+        const sp = Shapes.cyl(0.02, 0.9 + (i % 2) * 0.08, 'timberCold', 4);
+        sp.position.set(-w * 0.44 + i * 0.1, 0, dp * 0.42);
+        sp.rotation.x = -0.12;
+        g.add(sp);
+        const hd = Shapes.cone(0.026, 0.12, 'flint', 4);
+        hd.position.set(-w * 0.44 + i * 0.1, 0.9 + (i % 2) * 0.08, dp * 0.42);
+        g.add(hd);
+      }
+      return g;
+    },
+
+    mammothBlind(d) {
+      const g = Shapes.RECIPES.spearLodge(d);
+      const w = d.w * 0.78, dp = d.h * 0.78;
+
+      for (const sx of [-1, 1]) {
+        const p = Shapes.cyl(0.03, 0.78, 'timberCold', 5);
+        p.position.set(sx * w * 0.42, 0, -dp * 0.46);
+        g.add(p);
+      }
+      const screen = Shapes.box(w * 0.9, 0.62, 0.05, 'hide');
+      screen.position.set(0, 0.12, -dp * 0.46);
+      g.add(screen);
+      const skull = Shapes.box(0.24, 0.2, 0.2, 'boneDim');
+      skull.position.set(w * 0.2, 0.74, -dp * 0.46);
+      g.add(skull);
+      for (const sx of [-1, 1]) {
+        const tusk = Shapes.cyl(0.028, 0.34, 'bone', 6, 0.5);
+        tusk.position.set(w * 0.2 + sx * 0.08, 0.74, -dp * 0.42);
+        tusk.rotation.z = sx * 0.7;
+        g.add(tusk);
+      }
+      return g;
+    },
+
+    catLodge(d) {
+      const g = Shapes.RECIPES.mammothBlind(d);
+      const w = d.w * 0.78, dp = d.h * 0.78;
+
+      for (const sx of [-1, 1]) {
+        const p = Shapes.cyl(0.026, 0.66, 'timberCold', 4);
+        p.position.set(sx * w * 0.24, 0, dp * 0.06);
+        g.add(p);
+      }
+      const bar = Shapes.barX(0.02, w * 0.5, 'timberCold', 4);
+      bar.position.set(0, 0.64, dp * 0.06);
+      g.add(bar);
+      const pelt = Shapes.box(0.34, 0.4, 0.03, 'sabertoothPelt' in Shapes.SURF ? 'sabertoothPelt' : 'ember');
+      pelt.position.set(0, 0.22, dp * 0.06);
+      g.add(pelt);
+      for (const sx of [-1, 1]) {
+        const fang = Shapes.cyl(0.026, 0.24, 'bone', 5, 0.4);
+        fang.position.set(sx * 0.09, 0.64, dp * 0.02);
+        fang.rotation.x = 3.05;
+        g.add(fang);
+      }
+      return g;
+    },
+
     hideTent(d) {
       const g = new THREE.Group();
       const cone = Shapes.cone(0.36, 0.86, 'hide', 8);
@@ -2341,7 +2405,8 @@ const Shapes = {
          tannery: 'hideFrames', knapfloor: 'knappingFloor',
          meatstall: 'meatStall', fuelstack: 'fuelStack', bladestall: 'bladeTrader',
          carverlodge: 'carverLodge', furhall: 'furHall', tradepost: 'tradePost',
-         hunterscamp: 'huntersCamp', hidetent: 'hideTent', bonelodge: 'boneLodge',
+         hunterscamp: 'huntersCamp', spearlodge: 'spearLodge',
+         mammothblind: 'mammothBlind', catlodge: 'catLodge', hidetent: 'hideTent', bonelodge: 'boneLodge',
          danceground: 'danceGround', shaman: 'shamanTent',
          firekeeper: 'firekeeperLodge', handprint: 'handprintPanel' },
     4: { townhall: 'templeHousehold', house: 'reedHouse', well: 'well', farm: 'farmPlot',

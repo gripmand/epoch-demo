@@ -1532,13 +1532,14 @@ const Econ = {
     } else {
 
       for (const b of s.buildings) {
-        if (b.type !== 'hunterscamp' || b.done === false || b.mothballed) continue;
+
+        if (!DEF(b.type).huntBase || b.done === false || b.mothballed) continue;
         if (b.autoHunt === false) continue;
         if (b.huntRest > 0) { b.huntRest--; continue; }
         const t = Econ.nearestHerd(s, b);
         if (!t) continue;
-        if (TUNE.HUNT.autoSkipCat && t.herd.kind === 'sabertooth') continue;
-        if (Econ.huntOdds(s, t.herd, t.dist) < TUNE.HUNT.autoMinOdds) continue;
+
+        if (Econ.huntOdds(s, t.herd, t.dist, b) < TUNE.HUNT.autoMinOdds) continue;
         if (Econ.launchHunt(s, b) === null) { b.huntRest = TUNE.HUNT.rest; break; }
       }
     }
@@ -1548,18 +1549,23 @@ const Econ = {
     if (!s.herds) return null;
     const d = Grid.dimsOf(b);
     const cx = b.x + d.w / 2, cy = b.y + d.h / 2;
+
+    const kinds = DEF(b.type).huntKinds || null;
     let best = null, bd = Infinity;
     for (const h of s.herds) {
+      if (kinds && kinds.indexOf(h.kind) === -1) continue;
       const dist = Math.hypot(h.x - cx, h.y - cy);
       if (dist < bd) { bd = dist; best = h; }
     }
     return best && bd <= TUNE.HUNT.range ? { herd: best, dist: bd } : null;
   },
 
-  huntOdds(s, herd, dist) {
+  huntOdds(s, herd, dist, camp) {
     const H = TUNE.HUNT;
     let p = H.odds[herd.kind] || 0.5;
     p -= dist * H.distPenalty;
+
+    if (camp) p += (DEF(camp.type).huntOddsBonus || 0);
     return Util.clamp(p, 0.05, 0.95);
   },
   sabertoothNear(s, herd) {
@@ -1582,7 +1588,8 @@ const Econ = {
     s.hunt = {
       herdId: t.herd.id, kind: t.herd.kind, party,
       left: TUNE.HUNT.ticks, dist: Math.round(t.dist),
-      odds: Econ.huntOdds(s, t.herd, t.dist),
+      odds: Econ.huntOdds(s, t.herd, t.dist, camp),
+      camp: camp.type,
       cat: Econ.sabertoothNear(s, t.herd),
       seed: (s.seed ^ s.tick ^ 0xBEEF) >>> 0,
     };
@@ -1616,6 +1623,13 @@ const Econ = {
       const haul = TUNE.HUNT.haul[hunt.kind] || {};
       const got = [];
       for (const k in haul) { Econ.addStock(s, k, haul[k]); got.push(haul[k] + ' ' + k); }
+
+      const cash = (TUNE.HUNT.bonus || {})[hunt.kind] || 0;
+      let paid = 0;
+      if (cash > 0 && rnd() < (TUNE.HUNT.bonusChance || 0)) {
+        paid = cash; s.money += paid;
+        got.push('and $' + paid + ' traded on');
+      }
 
       s.herds = (s.herds || []).filter(h => h.id !== hunt.herdId);
       Econ.log(s, '\u{1F3F9}', 'THE HUNT CAME HOME: the ' + Econ.HERD_NAMES[hunt.kind] +
