@@ -1529,6 +1529,18 @@ const Econ = {
     if (s.hunt) {
       s.hunt.left -= 1;
       if (s.hunt.left <= 0) Econ.resolveHunt(s);
+    } else {
+
+      for (const b of s.buildings) {
+        if (b.type !== 'hunterscamp' || b.done === false || b.mothballed) continue;
+        if (b.autoHunt === false) continue;
+        if (b.huntRest > 0) { b.huntRest--; continue; }
+        const t = Econ.nearestHerd(s, b);
+        if (!t) continue;
+        if (TUNE.HUNT.autoSkipCat && t.herd.kind === 'sabertooth') continue;
+        if (Econ.huntOdds(s, t.herd, t.dist) < TUNE.HUNT.autoMinOdds) continue;
+        if (Econ.launchHunt(s, b) === null) { b.huntRest = TUNE.HUNT.rest; break; }
+      }
     }
   },
 
@@ -1561,7 +1573,9 @@ const Econ = {
     const t = Econ.nearestHerd(s, camp);
     if (!t) return 'no herd within reach — watch the steppe';
     const party = TUNE.HUNT.party;
-    if (Game.totalResidents(s) <= party + 4) return 'the camp cannot spare ' + party + ' hunters';
+
+    if (Game.housedResidents(s) <= party + TUNE.HUNT.autoSpare)
+      return 'the camp cannot spare ' + party + ' hunters';
 
     const houses = s.buildings.filter(b => DEF(b.type).cap);
     for (let i = 0; i < party; i++) Econ.removeResident(s, houses);

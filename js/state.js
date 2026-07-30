@@ -275,6 +275,8 @@ const Game = {
 
         resting: !!b.resting,
 
+        autoHunt: b.autoHunt === false ? false : undefined,
+
         halted: !!b.halted,
 
         rank: b.rank || 1,
@@ -467,6 +469,7 @@ const Game = {
           evolve: +b.evolve || 0,
           job: b.job || null, done: b.done !== false,
           resting: !!b.resting,
+          autoHunt: b.autoHunt === false ? false : undefined,
           halted: !!b.halted,
           mothballed: !!b.mothballed,
           rankPrice: Math.max(0, Math.round(+b.rankPrice || 0)),

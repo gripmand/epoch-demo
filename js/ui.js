@@ -1254,6 +1254,14 @@ const UI = {
     }
 
     if (DEF(b.type).huntBase) {
+
+      const autoOn = b.autoHunt !== false;
+      buttons += '<button id="insp-autohunt" class="' + (autoOn ? 'btn-gold' : '') + '" title="' +
+        (autoOn ? 'The camp sends its own hunts: only at odds of ' +
+           Math.round(TUNE.HUNT.autoMinOdds * 100) + '% or better, never at a sabertooth, never if it would ' +
+           'leave fewer than ' + TUNE.HUNT.autoSpare + ' workers at home, and it rests between.'
+                : 'The camp hunts only when you send it.') + '">' +
+        (autoOn ? '\u{1F504} Hunting on its own' : '\u{270B} Hunts only when sent') + '</button>';
       if (s.hunt) {
         buttons += '<button class="btn-primary" disabled>\u{1F3F9} The hunt is out — ' +
           Math.max(0, s.hunt.left) + 's · ' + s.hunt.party + ' hunters after the ' +
@@ -1420,6 +1428,14 @@ const UI = {
     if (hu) hu.onclick = () => {
       if (!Econ.startHall(s)) return;
       UI.toast('\u{1F3DB}️ Town Hall is now chapter ' + s.hallLevel + ' — income floor and rent both raised.', 9000);
+      UI.showInspector(b);
+    };
+    const autoBtn = document.getElementById('insp-autohunt');
+    if (autoBtn) autoBtn.onclick = () => {
+      b.autoHunt = b.autoHunt === false ? undefined : false;
+      UI.toast(b.autoHunt === false
+        ? '\u{270B} ' + d.name + ' will now hunt only when you send it.'
+        : '\u{1F504} ' + d.name + ' will hunt on its own again.', 7000);
       UI.showInspector(b);
     };
     const huntBtn = document.getElementById('insp-hunt');

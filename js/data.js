@@ -145,6 +145,11 @@ const TUNE = {
     distPenalty: 0.003,
     catOdds: 0.12,
 
+    rest: 45,
+    autoMinOdds: 0.50,
+    autoSpare: 4,
+    autoSkipCat: true,
+
     haul: {
       mammoth:    { game: 90, hide: 30, bone: 60, ivory: 8 },
       bison:      { game: 45, hide: 18, bone: 15 },
