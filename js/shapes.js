@@ -1944,7 +1944,8 @@ const Shapes = {
 
     boneLodge(d) {
       const g = new THREE.Group();
-      const span = 1.16, len = 1.56, h = 0.80, sill = 0.16;
+
+      const span = d.w * 0.58, len = d.h * 0.78, h = d.w * 0.40, sill = d.w * 0.08;
 
       for (const sx of [-1, 1])
         for (let i = 0; i < 4; i++) {

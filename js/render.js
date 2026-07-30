@@ -1557,6 +1557,10 @@ const Rend = {
 
     let rad = 0, ringCol = 0x5aaae6;
     if (d.waterRadius) { rad = d.waterRadius; ringCol = 0x5aaae6; }
+    else if (d.keepsTally && TUNE.SCRIBE) { rad = TUNE.SCRIBE.radius; ringCol = 0xd8c9a0; }
+    else if (d.fuelKeeper && TUNE.FIREKEEPER) { rad = TUNE.FIREKEEPER.radius; ringCol = 0xff8a3d; }
+    else if (type === 'woolbureau' && TUNE.WOOL) { rad = TUNE.WOOL.radius; ringCol = 0xd8d8e0; }
+    else if (type === 'temple') { rad = 2; ringCol = 0x8cd98c; }
 
     else if (d.woodRadius) { rad = d.woodRadius; ringCol = 0x8a9c6a; }
     else if (d.powerRadius) { rad = d.powerRadius; ringCol = 0xf0d250; }

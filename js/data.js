@@ -488,7 +488,8 @@ const BUILDINGS = {
       'camp goes dark at once.',
   },
   longfire: {
-    name: 'Longfire & Melt Row', tier: 'infra', era: 1, w: 2, h: 3, cost: 220, upkeep: 0.20,
+
+    name: 'Longfire & Melt Row', tier: 'infra', era: 1, w: 2, h: 2, cost: 220, upkeep: 0.20,
     icon: '\u{1F3D5}\u{FE0F}', color: '#c9743f', warmRadius: 26, waterRadius: 14, warm: 0.10,
     desc: 'A trench fire with melt-cauldrons standing along it. Warmth out to 26 tiles AND water out ' +
       'to 14, from one object — and it burns 0.10 fuel a minute of its own to melt the snow. In this ' +
@@ -664,7 +665,8 @@ const BUILDINGS = {
       'outside the hearth circle is a tent full of dead people.',
   },
   bonelodge: {
-    name: 'Mammoth-Bone Lodge', tier: 'housing', era: 1, w: 2, h: 2, cost: 300, upkeep: 0.10,
+
+    name: 'Mammoth-Bone Lodge', tier: 'housing', era: 1, w: 1, h: 1, cost: 300, upkeep: 0.10,
 
     icon: '\u{1F3D5}\u{FE0F}', color: '#d8cdb5', cap: 16, needsRoad: true, needsWater: true, needsWarm: true, warm: 0.13,
     desc: 'A ridge of arched tusks and mammoth rib, walled in stacked jaws and lashed over with hide: ' +
