@@ -126,8 +126,14 @@ const Econ = {
       };
       byPlaced.sort((a, b) => foodFirst(a) - foodFirst(b) || a.placed - b.placed);
     }
-    let pool = Game.totalResidents(s);
-    C.workersTotal = pool;
+
+    let pool = Game.housedResidents(s);
+    let crew = Game.crewSize(s);
+    const starter = starterFor(s.era);
+    if (s.founded || !starter) { pool += crew; crew = 0; }
+    C.crewHeld = crew;
+    C.starter = starter;
+    C.workersTotal = pool + crew;
     for (const b of byPlaced) {
       const d = DEF(b.type);
       b.staff = 0;
@@ -143,10 +149,18 @@ const Econ = {
       }
       b.block = Econ.blockOf(b);
       if (b.block) continue;
-      b.staff = Math.min(d.workers, pool);
-      pool -= b.staff;
+
+      let want = d.workers;
+      let take = 0;
+      if (crew > 0 && b.type === starter) { take = Math.min(want, crew); crew -= take; want -= take; }
+      const fromPool = Math.min(want, pool);
+      pool -= fromPool;
+      b.staff = take + fromPool;
+
+      if (!s.founded && starter && b.type === starter && b.staff >= d.workers) s.founded = true;
     }
-    C.workersUsed = C.workersTotal - pool;
+    C.workersUsed = C.workersTotal - pool - crew;
+    C.crewHeld = crew;
 
     C.fedByres = new Set();
     for (const b of byPlaced) {
@@ -1202,7 +1216,8 @@ const Econ = {
     const r = eraReq(s.era + 1);
 
     const base = s.eraBase || {};
-    return Game.totalResidents(s) >= r.pop && s.money >= r.money &&
+
+    return Game.housedResidents(s) >= r.pop && s.money >= r.money &&
            (s.cum.flour - (base.flour || 0)) >= r.food &&
            (s.cum.stone - (base.stone || 0)) >= r.stone &&
            Econ.monumentDone(s, s.era);

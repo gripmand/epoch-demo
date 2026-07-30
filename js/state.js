@@ -44,6 +44,8 @@ const Game = {
       prompted: {},
 
       era1Call: ERA1_CALL,
+
+      founded: false,
       terraEdits: {},
       soilEdits: {},
       rockSpent: {},
@@ -191,10 +193,16 @@ const Game = {
     };
   },
 
-  totalResidents(s) {
+  housedResidents(s) {
     let n = 0;
     for (const b of s.buildings) if (b.residents) n += b.residents;
     return n;
+  },
+
+  crewSize(s) { return TUNE.FOUNDING_CREW | 0; },
+
+  totalResidents(s) {
+    return Game.housedResidents(s) + Game.crewSize(s);
   },
 
   totalCapacity(s) {
@@ -213,6 +221,7 @@ const Game = {
       world: TUNE.WORLD,
       stock: s.stock, cum: s.cum, hunger: s.hunger, prompted: s.prompted,
       era1Call: s.era1Call | 0,
+      founded: !!s.founded,
       terraEdits: s.terraEdits, cleared: s.cleared, planted: s.planted,
       soilEdits: s.soilEdits, rockSpent: s.rockSpent,
       lastSeenMs: Date.now(), cp: s.cp, cpFrac: s.cpFrac, hallJob: s.hallJob, subTier: s.subTier,
@@ -398,6 +407,7 @@ const Game = {
       nextId: d.nextId | 0 || 1, placeCounter: d.placeCounter | 0 || 0,
       owned: d.owned.slice(), firsts: d.firsts || {}, prompted: d.prompted || {},
       era1Call: d.era1Call | 0,
+      founded: !!d.founded,
       terraEdits: d.terraEdits || {}, cleared: d.cleared || {}, planted: d.planted || {},
       soilEdits: d.soilEdits || {}, rockSpent: d.rockSpent || {},
       lastSeenMs: +d.lastSeenMs || Date.now(),

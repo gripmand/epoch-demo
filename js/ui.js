@@ -966,7 +966,24 @@ const UI = {
           Math.round(Util.clamp(-b.evolve, 0, 1) * 100) + '% — its neighbours are gone</span></div>';
       }
     } else if (b.type === 'townhall') {
-      rows += '<div class="insp-row insp-note"><span>' + anchorFor(s.era).note + '</span></div>';
+
+      const crew = Game.crewSize(s);
+      if (crew > 0) {
+
+        const cc = G.cache || {};
+        const st = cc.starter && BUILDINGS[cc.starter] ? DEF(cc.starter) : null;
+        rows += '<div class="insp-row"><span>The founding band</span><span class="gold">' +
+          crew + ' — no home needed</span></div>';
+        if ((cc.crewHeld | 0) > 0 && st) {
+          rows += '<div class="insp-row insp-note"><span>\u{1F525} ' + cc.crewHeld +
+            ' of them wait by the fire. They will work nothing until a <b>' + st.name +
+            '</b> stands — without it there is no fuel, and without fuel nothing here is warm ' +
+            'enough to live in. Build that first; everything else can wait.</span></div>';
+        } else if (st) {
+          rows += '<div class="insp-row insp-note"><span>The band is at work. They can be put to ' +
+            'anything now — the camp is founded.</span></div>';
+        }
+      }
       rows += '<div class="insp-row"><span>Chapter</span><span class="gold">' + s.hallLevel + ' / ' + MAX_ERA + '</span></div>';
       rows += '<div class="insp-row"><span>Income floor</span><span class="good">+$' +
         (HALLS[s.hallLevel].trickle * TUNE.TEMPO).toFixed(1) + '/min</span></div>';

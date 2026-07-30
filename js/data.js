@@ -26,9 +26,13 @@ const TUNE = {
                  sesame: 0, oil: 0, dyedcloth: 0, mudbrick: 0,
                  water: 0, cacao: 0, chocolate: 0, honey: 0,
 
-                 deadwood: 70, charcoal: 0, game: 0, pemmican: 24,
+                 deadwood: 45, charcoal: 0, game: 0, pemmican: 24,
                  hide: 0, parka: 0, flint: 0, blades: 0,
                  bone: 0, ochre: 0, carvings: 0, ivory: 0 },
+
+  FOUNDING_CREW: 10,
+
+  ERA_STARTER: { 1: 'deadwoodcutter', 4: 'farm', 5: 'farm', 14: 'milpa' },
 
   MIGRATION: {
     perMinute: 8,
@@ -1516,6 +1520,11 @@ const ERA_ROAD = {
               'dead straight, and visible from a long way off. With no carts and no draft animals, ' +
               'the road IS the logistics. $10 a tile, nothing to keep.' },
 };
+
+function starterFor(era) {
+  return TUNE.ERA_STARTER[rungOf(era)] || null;
+}
+
 function roadFor(era) {
   const rung = rungOf(era);
   const keys = Object.keys(ERA_ROAD).map(Number).sort((a, b) => a - b);
