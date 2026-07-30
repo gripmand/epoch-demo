@@ -2190,6 +2190,37 @@ const UI = {
     setTimeout(() => { t.classList.add('fade'); setTimeout(() => t.remove(), 600); }, ms || 6000);
   },
 
+  recallNotice(was) {
+    const t = document.createElement('div');
+    t.className = 'toast recall';
+    const line = document.createElement('div');
+    line.textContent = '❄️ A new age has been added to EPOCH, and this playtest starts ' +
+      'everyone in it. You are in The Ice Age, era 1. Your ' + was.buildings +
+      '-building city has been filed away, not deleted.';
+    t.appendChild(line);
+    const row = document.createElement('div');
+    row.className = 'recall-actions';
+    const back = document.createElement('button');
+    back.textContent = 'Restore my old city';
+    back.onclick = () => {
+      if (Game.restoreArchive()) {
+        Grid.rebuild(G.s);
+        if (window.Rend) { Rend.invalidateTerrain && Rend.invalidateTerrain(); Rend.applyEra && Rend.applyEra(G.s.era); }
+        UI.refreshPalette(); UI.updateHUD(G.s);
+        t.remove();
+        UI.toast('Your city is back. Reload if anything looks off.', 8000);
+      } else UI.toast('Could not restore — the archive is gone.', 8000);
+    };
+    const ok = document.createElement('button');
+    ok.textContent = 'Play the Ice Age';
+    ok.className = 'primary';
+    ok.onclick = () => t.remove();
+    row.appendChild(ok); row.appendChild(back);
+    t.appendChild(row);
+    UI.els.toasts.appendChild(t);
+    if (window.Sfx) Sfx.play('toast');
+  },
+
   firstToast(key, msg) {
     if (!G.s.firsts[key]) { G.s.firsts[key] = 1; UI.toast(msg, 9000); }
   },

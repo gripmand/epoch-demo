@@ -2,6 +2,9 @@
 
 const SAVE_KEY = 'epoch_save_v7';
 
+const ERA1_CALL = 1;
+const ARCHIVE_KEY = 'epoch_archive_v7';
+
 const LEGACY_KEYS = ['epoch_save_v6', 'epoch_save_v5'];
 
 const G = {
@@ -39,6 +42,7 @@ const Game = {
       owned: [],
       firsts: {},
       prompted: {},
+      era1Call: 0,
       terraEdits: {},
       soilEdits: {},
       rockSpent: {},
@@ -202,6 +206,7 @@ const Game = {
 
       world: TUNE.WORLD,
       stock: s.stock, cum: s.cum, hunger: s.hunger, prompted: s.prompted,
+      era1Call: s.era1Call | 0,
       terraEdits: s.terraEdits, cleared: s.cleared, planted: s.planted,
       soilEdits: s.soilEdits, rockSpent: s.rockSpent,
       lastSeenMs: Date.now(), cp: s.cp, cpFrac: s.cpFrac, hallJob: s.hallJob, subTier: s.subTier,
@@ -386,6 +391,7 @@ const Game = {
       hunger: +d.hunger || 0,
       nextId: d.nextId | 0 || 1, placeCounter: d.placeCounter | 0 || 0,
       owned: d.owned.slice(), firsts: d.firsts || {}, prompted: d.prompted || {},
+      era1Call: d.era1Call | 0,
       terraEdits: d.terraEdits || {}, cleared: d.cleared || {}, planted: d.planted || {},
       soilEdits: d.soilEdits || {}, rockSpent: d.rockSpent || {},
       lastSeenMs: +d.lastSeenMs || Date.now(),
@@ -466,6 +472,43 @@ const Game = {
     Grid.genTerrain(s);
     Grid.rebuild(s);
     if (window.Rend && Rend.invalidateTerrain) Rend.invalidateTerrain();
+    return true;
+  },
+
+  archiveAndRestart() {
+    let ok = false;
+    try {
+      const blob = Game.serialize(G.s);
+      localStorage.setItem(ARCHIVE_KEY, blob);
+      ok = localStorage.getItem(ARCHIVE_KEY) === blob;
+    } catch (e) { ok = false; }
+    if (!ok) return false;
+    try {
+      localStorage.removeItem(SAVE_KEY);
+      for (const k of LEGACY_KEYS) localStorage.removeItem(k);
+    } catch (e) {}
+    Game.migratedFrom = null;
+    Game.newGame();
+    G.s.era1Call = ERA1_CALL;
+    Game.save();
+    return true;
+  },
+
+  hasArchive() {
+    try { return !!localStorage.getItem(ARCHIVE_KEY); } catch (e) { return false; }
+  },
+
+  restoreArchive() {
+    let blob = null;
+    try { blob = localStorage.getItem(ARCHIVE_KEY); } catch (e) {}
+    if (!blob) return false;
+    try {
+      localStorage.setItem(SAVE_KEY, blob);
+      if (!Game.load()) return false;
+      G.s.era1Call = ERA1_CALL;
+      Game.save();
+      localStorage.removeItem(ARCHIVE_KEY);
+    } catch (e) { return false; }
     return true;
   },
 

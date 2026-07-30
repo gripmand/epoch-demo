@@ -436,6 +436,25 @@ table.tally tr + tr td { border-top: 1px solid rgba(255, 255, 255, .045); }
   animation: toast-in 0.25s ease-out;
 }
 .toast.fade { opacity: 0; transition: opacity 0.6s; }
+/* ★ the era-1 recall: wider, ice-blue, and it does NOT fade — it waits to be
+   answered, because it is telling the player their city moved. */
+.toast.recall {
+  border-left-color: #8fc6e6;
+  max-width: 330px;
+  padding: 12px 14px;
+}
+.recall-actions { display: flex; gap: 8px; margin-top: 10px; }
+.recall-actions button {
+  flex: 1; padding: 6px 8px; font-size: 11px; border-radius: 6px; cursor: pointer;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #e8eaee;
+}
+.recall-actions button:hover { background: rgba(255, 255, 255, 0.16); }
+.recall-actions button.primary {
+  background: #8fc6e6; border-color: #8fc6e6; color: #10151c; font-weight: 600;
+}
+.recall-actions button.primary:hover { background: #a6d4ee; }
 @keyframes toast-in { from { transform: translateX(-12px); opacity: 0; } to { transform: none; opacity: 1; } }
 
 /* ---- clean modern game UI: quiet dark glass, thin edges, crisp type ---- */

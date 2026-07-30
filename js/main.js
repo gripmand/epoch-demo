@@ -46,8 +46,14 @@ const Main = {
     if (wantsFresh && window.history && history.replaceState) {
       history.replaceState(null, '', location.pathname);
     }
-    const loaded = fresh ? false : Game.load();
+    let loaded = fresh ? false : Game.load();
     if (!loaded) Game.newGame();
+
+    let recalled = false;
+    if (loaded && ERA1_CALL > 0 && (G.s.era1Call | 0) !== ERA1_CALL) {
+      const was = { era: G.s.era, buildings: G.s.buildings.length };
+      if (Game.archiveAndRestart()) { recalled = was; loaded = false; }
+    }
 
     Rend.init(canvas);
     UI.init();
@@ -66,6 +72,9 @@ const Main = {
       G.s.lastSeenMs = Date.now();
     }
 
+    if (recalled) {
+      setTimeout(() => UI.recallNotice(recalled), 600);
+    }
     if (away) {
       if (away.hours >= 0.5) setTimeout(() => UI.showAway(away), 500);
       else UI.toast('Welcome back — ' + away.hours + 'h away, ' +
