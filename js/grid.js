@@ -1,6 +1,6 @@
 'use strict';
 
-const TERRAIN = { GRASS: 0, FERTILE: 1, ROCK: 2, WATER: 3, MOUNTAIN: 4, SALT: 5 };
+const TERRAIN = { GRASS: 0, FERTILE: 1, ROCK: 2, WATER: 3, MOUNTAIN: 4, SALT: 5, ASH: 6 };
 
 const Grid = {
   W: TUNE.WORLD,
@@ -15,11 +15,41 @@ const Grid = {
     return Math.floor(x / c) + ',' + Math.floor(y / c);
   },
 
+  TERRAIN_PROFILE: {
+
+    1: { trunkW: 3.0, trunkW2: 2.8, branch: 2, secondW: 1.8, wander: 0.5,
+         fertileTo: -9, dryFrom: 3, edgeJitter: 2,
+         beyond: 'GRASS', saltAt: 0.99, rockAt: 0.80, peakR: 3,
+         iceWall: 8, bonebeds: true },
+
+    4: { trunkW: 3.4, trunkW2: 3.2, branch: 2, secondW: 2.2, wander: 0.42,
+         fertileTo: 5, dryFrom: 16, edgeJitter: 5,
+         beyond: 'SALT', saltAt: 0.54, rockAt: 0.80 },
+
+    5: { trunkW: 6.0, trunkW2: 5.6, branch: 0, secondW: 0, wander: 0.22,
+         fertileTo: 3, dryFrom: 4, edgeJitter: 1.2,
+         beyond: 'SALT', saltAt: 0.10, rockAt: 0.92 },
+
+    14: { noTrunk: true, cenoteEvery: 34, cenoteR: 1.7, peakR: 6,
+          trunkW: 0, trunkW2: 0, branch: 0, secondW: 0, wander: 0.30,
+          fertileTo: 2, dryFrom: 5, edgeJitter: 2.0,
+          beyond: 'GRASS', saltAt: 0.99, rockAt: 0.58 },
+  },
+
+  terrainProfile(era) {
+    const rung = rungOf(era != null ? era : ((G.s && G.s.era) || 1));
+    const keys = Object.keys(Grid.TERRAIN_PROFILE).map(Number).sort((a, b) => a - b);
+    let pick = keys[0];
+    for (const k of keys) if (k <= rung) pick = k;
+    return Grid.TERRAIN_PROFILE[pick];
+  },
+
   genTerrain(s) {
     const W = TUNE.WORLD, t = G.cache.terrain;
     t.fill(TERRAIN.GRASS);
     const rnd = Util.mulberry32(s.seed);
     const c = W / 2;
+    const P = Grid.terrainProfile(s.era);
 
     const stamp = (cx, cy, r) => {
       const ir = Math.ceil(r);
@@ -39,7 +69,7 @@ const Grid = {
         const taper = width * (1 - 0.45 * (i / life));
         stamp(x, y, Math.max(0.9, taper));
         const desired = Math.atan2(ty - y, tx - x);
-        ang = ang * 0.90 + desired * 0.10 + (rnd() - 0.5) * 0.42;
+        ang = ang * 0.90 + desired * 0.10 + (rnd() - 0.5) * P.wander;
         x += Math.cos(ang); y += Math.sin(ang);
 
         if (depth > 0 && i > life * 0.15 && rnd() < 0.020)
@@ -52,15 +82,27 @@ const Grid = {
       }
     };
 
-    const side = Math.floor(rnd() * 2);
-    const bendX = c + (rnd() < 0.5 ? -1 : 1) * (11 + rnd() * 5);
-    const bendZ = c + (rnd() < 0.5 ? -1 : 1) * (11 + rnd() * 5);
-    const start = side ? [0, 40 + rnd() * (W - 80)] : [40 + rnd() * (W - 80), 0];
-    const end = side ? [W - 1, 40 + rnd() * (W - 80)] : [40 + rnd() * (W - 80), W - 1];
-    carve(start[0], start[1], bendX, bendZ, 3.4, W * 0.75, 2);
-    carve(bendX, bendZ, end[0], end[1], 3.2, W * 0.75, 2);
+    if (!P.noTrunk) {
+      const side = Math.floor(rnd() * 2);
+      const bendX = c + (rnd() < 0.5 ? -1 : 1) * (11 + rnd() * 5);
+      const bendZ = c + (rnd() < 0.5 ? -1 : 1) * (11 + rnd() * 5);
+      const start = side ? [0, 40 + rnd() * (W - 80)] : [40 + rnd() * (W - 80), 0];
+      const end = side ? [W - 1, 40 + rnd() * (W - 80)] : [40 + rnd() * (W - 80), W - 1];
+      carve(start[0], start[1], bendX, bendZ, P.trunkW, W * 0.75, P.branch);
+      carve(bendX, bendZ, end[0], end[1], P.trunkW2, W * 0.75, P.branch);
 
-    carve(rnd() * W, 0, rnd() * W, W - 1, 2.2, W * 0.9, 1);
+      if (P.secondW > 0) carve(rnd() * W, 0, rnd() * W, W - 1, P.secondW, W * 0.9, Math.max(0, P.branch - 1));
+    }
+
+    if (P.cenoteEvery > 0) {
+      const step = P.cenoteEvery;
+      for (let gy = 0; gy < W; gy += step)
+        for (let gx = 0; gx < W; gx += step) {
+          const px = gx + 4 + rnd() * (step - 8);
+          const py = gy + 4 + rnd() * (step - 8);
+          stamp(px, py, P.cenoteR * (0.75 + rnd() * 0.7));
+        }
+    }
 
     const dist = new Int16Array(W * W).fill(-1);
     let queue = [];
@@ -99,13 +141,13 @@ const Grid = {
         const k = Grid.key(x, y);
         if (t[k] === TERRAIN.WATER) continue;
         const d = dist[k];
-        const jitter = nz(x, y, 14) * 5;
-        if (d >= 0 && d <= 5 + jitter) t[k] = TERRAIN.FERTILE;
-        else if (d < 0 || d > 16 + jitter * 2) {
+        const jitter = nz(x, y, 14) * P.edgeJitter;
+        if (d >= 0 && d <= P.fertileTo + jitter) t[k] = TERRAIN.FERTILE;
+        else if (d < 0 || d > P.dryFrom + jitter * 2) {
 
           const r = nz(x, y, 21);
-          if (r > 0.80) t[k] = TERRAIN.ROCK;
-          else if (nz(x, y, 17) > 0.54) t[k] = TERRAIN.SALT;
+          if (r > P.rockAt) t[k] = TERRAIN.ROCK;
+          else if (nz(x, y, 17) > P.saltAt) t[k] = TERRAIN[P.beyond];
           else t[k] = TERRAIN.GRASS;
         } else t[k] = TERRAIN.GRASS;
       }
@@ -126,14 +168,15 @@ const Grid = {
         if (phase < 0.85) t[k] = TERRAIN.GRASS;
       }
 
+    const pr = P.peakR || 2;
     const isRock = (x, y) => Grid.inB(x, y) && t[Grid.key(x, y)] === TERRAIN.ROCK;
     const peaks = [];
-    for (let y = 2; y < W - 2; y++)
-      for (let x = 2; x < W - 2; x++) {
+    for (let y = pr; y < W - pr; y++)
+      for (let x = pr; x < W - pr; x++) {
         if (!isRock(x, y)) continue;
         let solid = true;
-        for (let dy = -2; dy <= 2 && solid; dy++)
-          for (let dx = -2; dx <= 2; dx++)
+        for (let dy = -pr; dy <= pr && solid; dy++)
+          for (let dx = -pr; dx <= pr; dx++)
             if (!isRock(x + dx, y + dy)) { solid = false; break; }
         if (solid) peaks.push(Grid.key(x, y));
       }
@@ -155,23 +198,108 @@ const Grid = {
         t[k] = TERRAIN.GRASS;
       }
 
-    for (let y = c + 2; y <= c + 4; y++) for (let x = c - 4; x <= c - 1; x++)
-      if (t[Grid.key(x, y)] !== TERRAIN.WATER) t[Grid.key(x, y)] = TERRAIN.FERTILE;
-    for (let y = c - 4; y <= c - 2; y++) for (let x = c + 4; x <= c + 6; x++)
-      if (t[Grid.key(x, y)] !== TERRAIN.WATER) t[Grid.key(x, y)] = TERRAIN.FERTILE;
+    if (P.fertileTo >= 0) {
+      for (let y = c + 2; y <= c + 4; y++) for (let x = c - 4; x <= c - 1; x++)
+        if (t[Grid.key(x, y)] !== TERRAIN.WATER) t[Grid.key(x, y)] = TERRAIN.FERTILE;
+      for (let y = c - 4; y <= c - 2; y++) for (let x = c + 4; x <= c + 6; x++)
+        if (t[Grid.key(x, y)] !== TERRAIN.WATER) t[Grid.key(x, y)] = TERRAIN.FERTILE;
+    }
+
+    if (P.cenoteEvery > 0) {
+      for (let y = c + 4; y <= c + 6; y++)
+        for (let x = c + 4; x <= c + 6; x++)
+          if (Grid.inB(x, y)) t[Grid.key(x, y)] = TERRAIN.WATER;
+    }
+
+    if (P.iceWall) {
+      const depth = P.iceWall;
+      for (let y = 0; y < depth + 3; y++)
+        for (let x = 0; x < W; x++) {
+
+          const edge = depth + Math.round(nz(x, 7, 13) * 6) - 3;
+          if (y <= edge) t[Grid.key(x, y)] = TERRAIN.MOUNTAIN;
+        }
+    }
+
+    if (P.bonebeds) {
+      let placed = 0;
+      const target = Math.round(W * W * 0.015);
+      for (let attempt = 0; attempt < 4000 && placed < target; attempt++) {
+        const x = 4 + Math.floor(rnd() * (W - 8)), y = 4 + Math.floor(rnd() * (W - 8));
+        const k = Grid.key(x, y);
+        if (t[k] !== TERRAIN.GRASS) continue;
+
+        let nearWater = false;
+        for (let dy = -2; dy <= 2 && !nearWater; dy++)
+          for (let dx = -2; dx <= 2; dx++)
+            if (Grid.inB(x + dx, y + dy) && t[Grid.key(x + dx, y + dy)] === TERRAIN.WATER) { nearWater = true; break; }
+        if (!nearWater) continue;
+
+        const n = 4 + Math.floor(rnd() * 7);
+        let cx = x, cy = y;
+        for (let i = 0; i < n; i++) {
+          const ck = Grid.key(cx, cy);
+          if (Grid.inB(cx, cy) && t[ck] === TERRAIN.GRASS) { t[ck] = TERRAIN.SALT; placed++; }
+          cx += Math.floor(rnd() * 3) - 1; cy += Math.floor(rnd() * 3) - 1;
+        }
+      }
+    }
 
     for (const k in (s.terraEdits || {})) t[k] = s.terraEdits[k];
 
     G.cache.ownedSet = new Set(s.owned);
   },
 
-  TREE_DENSITY: { 1: 0.030, 2: 0.045, 3: 0.240, 4: 0.110, 5: 0.070, 6: 0.080,
-                  7: 0.170, 8: 0.070, 9: 0.020, 10: 0.045, 11: 0.040,
-                  12: 0.0, 13: 0.0, 14: 0.025 },
+  TREE_DENSITY: {
+    0: 0.320,
+
+    1: 0.180,
+    2: 0.090,
+    3: 0.140,
+    4: 0.030,
+    5: 0.045,
+    6: 0.055,
+    7: 0.090,
+    8: 0.170,
+    9: 0.260,
+    10: 0.070,
+    11: 0.100,
+    12: 0.075,
+    13: 0.080,
+    14: 0.240,
+    15: 0.110,
+    16: 0.100,
+    17: 0.290,
+    18: 0.070,
+    19: 0.230,
+    20: 0.170,
+    21: 0.090,
+    22: 0.150,
+    23: 0.020,
+    24: 0.035,
+    25: 0.095,
+    26: 0.120,
+    27: 0.200,
+    28: 0.100,
+    29: 0.130,
+    30: 0.020,
+    31: 0.030,
+    32: 0.040,
+    33: 0.045,
+    34: 0.040,
+    35: 0.0,
+    36: 0.0,
+    37: 0.025,
+  },
 
   treeDensity(era) {
-    const d = Grid.TREE_DENSITY[era || (G.s && G.s.era) || 1];
-    return d === undefined ? 0.13 : d;
+
+    const e = Math.max(0, rungOf(era != null ? era : ((G.s && G.s.era) || 1)));
+    for (let i = e; i >= 0; i--) {
+      const d = Grid.TREE_DENSITY[i];
+      if (d !== undefined) return d;
+    }
+    return 0.13;
   },
 
   treeAt(s, x, y) {
@@ -218,9 +346,14 @@ const Grid = {
   terraform(s, kind, x, y) {
     if (!Grid.inB(x, y)) return false;
     if (!Grid.owned(x, y)) return 'unowned';
+
+    if (terraLocked(kind, s.era)) return 'locked';
+
+    if (G.cache.terrain[Grid.key(x, y)] === TERRAIN.ASH) return 'ash';
     const k = Grid.key(x, y);
     if (G.cache.occ[k] >= 0) return 'occupied';
-    const cost = TUNE.TERRA[kind];
+
+    const cost = terraCost(kind, s.era);
     if (s.money < cost) return 'money';
 
     if (kind === 'tree') {
@@ -285,6 +418,26 @@ const Grid = {
     if (s.rockSpent[k] >= TUNE.ROCK_YIELD && G.cache.terrain[k] === TERRAIN.ROCK) {
       G.cache.terrain[k] = TERRAIN.GRASS;
       s.terraEdits[k] = TERRAIN.GRASS;
+      return true;
+    }
+    return false;
+  },
+
+  woodAt(s, x, y) {
+    if (!Grid.treeAt(s, x, y)) return 0;
+
+    if (s.planted && s.planted[Grid.key(x, y)]) return 0;
+    return Math.max(0, TUNE.DEADWOOD_YIELD - ((s.woodSpent || {})[Grid.key(x, y)] || 0));
+  },
+  spendWood(s, x, y, amt) {
+    const k = Grid.key(x, y);
+    if (!s.woodSpent) s.woodSpent = {};
+    s.woodSpent[k] = Math.min(TUNE.DEADWOOD_YIELD, (s.woodSpent[k] || 0) + amt);
+    if (s.woodSpent[k] >= TUNE.DEADWOOD_YIELD && Grid.treeAt(s, x, y)) {
+
+      s.cleared[k] = 1;
+      G.cache.terrain[k] = TERRAIN.ASH;
+      s.terraEdits[k] = TERRAIN.ASH;
       return true;
     }
     return false;
@@ -394,19 +547,39 @@ const Grid = {
       if (type === 'road' || d.onRock) { if (t === TERRAIN.WATER) ok = false; }
 
       else if (d.onWater) { if (t !== TERRAIN.WATER) ok = false; }
-      else if (t !== TERRAIN.GRASS && t !== TERRAIN.FERTILE && t !== TERRAIN.SALT) ok = false;
+      else if (t !== TERRAIN.GRASS && t !== TERRAIN.FERTILE && t !== TERRAIN.SALT && t !== TERRAIN.ASH) ok = false;
 
-      if (ok && Grid.treeAt(s, tx, ty)) ok = false;
+      if (ok && !d.onWood && Grid.treeAt(s, tx, ty)) ok = false;
     }, rot);
 
     if (ok && d.onRock && rock < 2) ok = false;
+
+    if (ok && d.onWood) {
+      let wood = 0;
+      Grid.footTiles(type, x, y, (tx, ty) => { if (Grid.inB(tx, ty) && Grid.treeAt(s, tx, ty)) wood++; }, rot);
+      if (wood < 2) ok = false;
+    }
 
     if (ok && d.onSalt && salt < 2) ok = false;
 
     const sz = Grid.dims(type, rot);
     if (ok && d.nearWater && !Grid.waterWithin(x, y, sz, d.nearWater)) ok = false;
     if (ok && d.dryLand && !Grid.isDryLand(x, y, sz)) ok = false;
+
+    if (ok && d.nearTrees && Grid.treesWithin(s, x, y, sz, 3) < d.nearTrees) ok = false;
     return ok;
+  },
+
+  treesWithin(s, x, y, d, r) {
+    let n = 0;
+    for (let dy = -r; dy < d.h + r; dy++)
+      for (let dx = -r; dx < d.w + r; dx++) {
+        const nx = x + dx, ny = y + dy;
+        if (!Grid.inB(nx, ny)) continue;
+        if (nx >= x && nx < x + d.w && ny >= y && ny < y + d.h) continue;
+        if (Grid.treeAt(s, nx, ny)) n++;
+      }
+    return n;
   },
 
   whyBlocked(s, type, x, y, rot) {
@@ -430,7 +603,7 @@ const Grid = {
 
     if (unowned) return 'you do not own that land yet — buy the parcel first';
     if (occupied) return 'something is already standing there';
-    if (tree) return 'wild trees in the way — clear them with Demolish ($' + TUNE.CLEAR_TREE + ' each)';
+    if (tree && !d.onWood) return 'wild trees in the way — clear them with Demolish ($' + TUNE.CLEAR_TREE + ' each)';
     if (mountain) return 'you cannot build on mountain';
     if (d.onWater && dry) return 'a ' + d.name + ' stands IN the water — every tile of it must sit on a channel';
     if (!d.onWater && water) return 'that is in the water';
@@ -441,6 +614,17 @@ const Grid = {
     }
     if (d.nearWater && !Grid.waterWithin(x, y, sz, d.nearWater)) {
       return 'a ' + d.name + ' must be within ' + d.nearWater + ' tiles of water — move it to the bank';
+    }
+    if (d.nearTrees && Grid.treesWithin(s, x, y, sz, 3) < d.nearTrees) {
+      return 'a ' + d.name + ' needs ' + d.nearTrees + ' STANDING TREE tiles within 3 — ' +
+        'it belongs in the woods, not on cleared ground. Move it into the forest, or plant trees ' +
+        'from the Terraform tab ($' + TUNE.TERRA.tree + ' each)';
+    }
+    if (d.onWood) {
+      let wood = 0;
+      Grid.footTiles(type, x, y, (tx, ty) => { if (Grid.inB(tx, ty) && Grid.treeAt(s, tx, ty)) wood++; }, rot);
+      if (wood < 2) return 'a ' + d.name + ' must stand ON a dead stand — at least 2 tree tiles under ' +
+        'its footprint. The trees are its stock: it eats them, and the ground becomes ash';
     }
 
     if (d.dryLand && !Grid.isDryLand(x, y, sz)) {
@@ -518,6 +702,7 @@ const Grid = {
     }
 
     C.depots = null;
+    C.warmGeoClean = false;
     Grid.recomputeConnectivity(s);
     Grid.recomputeWater(s);
     Econ.stampMidden(s);
@@ -645,9 +830,11 @@ const Grid = {
 
     const producers = s.buildings.filter(b => DEF(b.type).out || DEF(b.type).procOut);
     const processors = s.buildings.filter(b => DEF(b.type).procIn);
-    const mills = s.buildings.filter(b => b.type === 'mill');
+
+    const mills = s.buildings.filter(b => DEF(b.type).grainMill);
     const floors = s.buildings.filter(b => DEF(b.type).threshing);
-    const parks = s.buildings.filter(b => b.type === 'park');
+
+    const parks = s.buildings.filter(b => DEF(b.type).capRadius);
     const shrines = s.buildings.filter(b => DEF(b.type).amenityRadius);
     const temples = s.buildings.filter(b => b.type === 'temple');
     const industry = s.buildings.filter(b => DEF(b.type).industry);

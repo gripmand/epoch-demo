@@ -1494,24 +1494,24 @@ const Shapes = {
   },
 
   ERA_SKINS: {
-    1: { townhall: 'templeHousehold', house: 'reedHouse', well: 'well', farm: 'farmPlot',
+    4: { townhall: 'templeHousehold', house: 'reedHouse', well: 'well', farm: 'farmPlot',
          mill: 'millHouse', market: 'marketStalls', park: 'publicSquare',
          templeGranary: 'templeGranary', estate: 'farmPlot', midden: 'midden',
          claypit: 'clayPit', kiln: 'kiln', potterystall: 'potteryStall',
          sheepfold: 'sheepfold', weaver: 'weaverShed', clothhall: 'clothHall',
          brewery: 'brewery', tavern: 'tavern', scribe: 'scribeHouse',
          cistern: 'cistern', threshing: 'threshingFloor' },
-    2: { townhall: 'nomarchEstate', house: 'egyptHouse', villa: 'egyptHouse',
+    5: { townhall: 'nomarchEstate', house: 'egyptHouse', villa: 'egyptHouse',
          granary: 'granaryEgypt', canalwell: 'well', estate: 'farmPlot', bazaar: 'marketStalls' },
-    3: { townhall: 'councilHouse', house: 'mayaHouse', villa: 'mayaHouse', stonehouse: 'mayaHouse',
+    14: { townhall: 'councilHouse', house: 'mayaHouse', villa: 'mayaHouse', stonehouse: 'mayaHouse',
          aqueduct: 'well', stoneyard: 'marketStalls' },
-    9: { coal: 'coalPlant' },
+    30: { coal: 'coalPlant' },
   },
 
   HOUSE_SKINS: {
-    1: ['reedHouse', 'mudbrickHouse', 'courtyardHouse'],
-    2: ['egyptHouse', 'egyptHouse', 'nomarchEstate'],
-    3: ['mayaHouse', 'mayaHouse', 'councilHouse'],
+    4: ['reedHouse', 'mudbrickHouse', 'courtyardHouse'],
+    5: ['egyptHouse', 'egyptHouse', 'nomarchEstate'],
+    14: ['mayaHouse', 'mayaHouse', 'councilHouse'],
   },
 
   houseSkin(era, level) {
@@ -1523,7 +1523,8 @@ const Shapes = {
   },
 
   skinFor(type, era, level) {
-    const e = era || (G.s && G.s.era) || 1;
+
+    const e = rungOf(era || (G.s && G.s.era) || 1);
     const d = BUILDINGS[type];
     if (d && d.cap) {
       const s = Shapes.houseSkin(e, level);

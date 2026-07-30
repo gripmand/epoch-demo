@@ -1,8 +1,8 @@
 'use strict';
 
-const SAVE_KEY = 'epoch_save_v6';
+const SAVE_KEY = 'epoch_save_v7';
 
-const LEGACY_KEYS = ['epoch_save_v5'];
+const LEGACY_KEYS = ['epoch_save_v6', 'epoch_save_v5'];
 
 const G = {
   s: null,
@@ -18,9 +18,12 @@ const Game = {
       seed: seed !== undefined ? seed : (Math.floor(Math.random() * 2 ** 31)),
       tick: 0,
       money: TUNE.START_MONEY,
-      era: 1,
-      hallLevel: 1,
+
+      era: START_ERA,
+      hallLevel: START_ERA,
       realRent: 0,
+      eraBase: { flour: 0, stone: 0 },
+      giftHousing: 0,
 
       stock: Game.startStock(granted),
       cum: { flour: 0, stone: 0, earned: 0 },
@@ -49,14 +52,25 @@ const Game = {
       hallJob: null,
 
       cityName: '',
+
       policyFeedFirst: true,
-      policyRationLaw: false,
+      policyRationLaw: true,
       policyBeerRation: false,
+      policyCorvee: false,
+      policyRation: false,
+      season: null,
+
+      chill: 0,
+      woodSpent: {},
+      herds: null,
+      hunt: null,
       granaryPolicy: 'lean',
       holdAtCap: {},
       festival: null,
       chronicle: [],
       records: {},
+
+      relics: [],
     };
 
     const cc = TUNE.WORLD / TUNE.CHUNK / 2 - 1;
@@ -182,7 +196,11 @@ const Game = {
   serialize(s) {
     return JSON.stringify({
       version: s.version, seed: s.seed, tick: s.tick, money: s.money,
-      era: s.era, hallLevel: s.hallLevel, realRent: s.realRent,
+      era: s.era, hallLevel: s.hallLevel, realRent: s.realRent, eraBase: s.eraBase,
+
+      rungs: 1,
+
+      world: TUNE.WORLD,
       stock: s.stock, cum: s.cum, hunger: s.hunger, prompted: s.prompted,
       terraEdits: s.terraEdits, cleared: s.cleared, planted: s.planted,
       soilEdits: s.soilEdits, rockSpent: s.rockSpent,
@@ -195,6 +213,7 @@ const Game = {
       policyFeedFirst: s.policyFeedFirst !== false,
       policyRationLaw: !!s.policyRationLaw,
       policyBeerRation: !!s.policyBeerRation,
+      policyCorvee: !!s.policyCorvee,
       granaryPolicy: s.granaryPolicy || 'lean',
       holdAtCap: s.holdAtCap || {},
       festival: s.festival || null,
@@ -203,6 +222,20 @@ const Game = {
 
       freeRank: s.freeRank ? 1 : 0,
       pendingGift: s.pendingGift ? 1 : 0,
+
+      giftHousing: s.giftHousing | 0,
+
+      nile: s.nile ? { phase: s.nile.phase | 0, left: Math.round(s.nile.left) } : null,
+
+      season: s.season ? { phase: s.season.phase | 0, left: Math.round(s.season.left) } : null,
+      policyRation: !!s.policyRation,
+
+      chill: +s.chill || 0,
+      woodSpent: s.woodSpent || {},
+      herds: s.herds || null,
+      hunt: s.hunt || null,
+
+      relics: (s.relics || []).map(r => ({ type: r.type, era: r.era | 0, name: r.name || '' })),
       nextId: s.nextId, placeCounter: s.placeCounter, owned: s.owned, firsts: s.firsts,
       buildings: s.buildings.map(b => ({
         id: b.id, type: b.type, x: b.x, y: b.y, placed: b.placed,
@@ -228,6 +261,9 @@ const Game = {
 
         delivered: DEF(b.type).monument ? (b.delivered || {}) : undefined,
         complete: DEF(b.type).monument ? !!b.complete : undefined,
+
+        relic: b.relic ? 1 : undefined,
+        relicEra: b.relic ? (b.relicEra | 0) : undefined,
       })),
     });
   },
@@ -249,6 +285,66 @@ const Game = {
     return null;
   },
 
+  reworld(d) {
+    const to = TUNE.WORLD;
+    let from = +d.world || 0;
+    if (!from) {
+
+      let max = 0;
+      for (const b of d.buildings) max = Math.max(max, b.x | 0, b.y | 0);
+      if (Array.isArray(d.owned)) {
+        for (const k of d.owned) {
+          const p = String(k).split(',').map(Number);
+          max = Math.max(max, (p[0] + 1) * TUNE.CHUNK - 1, (p[1] + 1) * TUNE.CHUNK - 1);
+        }
+      }
+      from = max >= to ? 512 : to;
+    }
+    if (from === to) return null;
+    const dt = (from - to) / 2;
+    const dp = dt / TUNE.CHUNK;
+    const inB = (x, y) => x >= 0 && y >= 0 && x < to && y < to;
+    const rep = { from, to, shifted: dt, droppedBuildings: 0, droppedParcels: 0, droppedTiles: 0, keptBuildings: 0 };
+
+    d.buildings = d.buildings.filter(b => {
+      const x = b.x - dt, y = b.y - dt;
+      const w = DEF(b.type) ? DEF(b.type).w || 1 : 1, h = DEF(b.type) ? DEF(b.type).h || 1 : 1;
+
+      if (!inB(x, y) || !inB(x + w - 1, y + h - 1)) { rep.droppedBuildings++; return false; }
+      b.x = x; b.y = y; rep.keptBuildings++; return true;
+    });
+
+    if (Array.isArray(d.owned)) {
+      const side = to / TUNE.CHUNK;
+      d.owned = d.owned.filter(k => {
+        const p = String(k).split(',').map(Number);
+        const cx = p[0] - dp, cy = p[1] - dp;
+        if (cx < 0 || cy < 0 || cx >= side || cy >= side) { rep.droppedParcels++; return false; }
+        return true;
+      }).map(k => {
+        const p = String(k).split(',').map(Number);
+        return (p[0] - dp) + ',' + (p[1] - dp);
+      });
+    }
+
+    for (const field of ['cleared', 'planted', 'terraEdits', 'soilEdits']) {
+      const src = d[field];
+      if (!src || typeof src !== 'object' || Array.isArray(src)) continue;
+      const out = {};
+      for (const k in src) {
+        const n = +k;
+        if (!isFinite(n)) continue;
+        const x = (n % from) - dt, y = Math.floor(n / from) - dt;
+        if (!inB(x, y)) { rep.droppedTiles++; continue; }
+        out[y * to + x] = src[k];
+      }
+      d[field] = out;
+    }
+
+    Game.reworldReport = rep;
+    return rep;
+  },
+
   load() {
     const raw = Game.rawSave();
     if (!raw) return false;
@@ -257,11 +353,29 @@ const Game = {
     if (!d || d.version !== 1 || !Array.isArray(d.buildings)) return false;
     if (!d.buildings.some(b => b.type === 'townhall')) return false;
 
+    Game.reworldReport = null;
+    Game.reworld(d);
+    if (!d.buildings.some(b => b.type === 'townhall')) return false;
+
+    if (!d.rungs) {
+      d.era = MIGRATE_RUNG[d.era | 0] || d.era | 0 || START_ERA;
+      d.hallLevel = MIGRATE_RUNG[d.hallLevel | 0] || d.hallLevel | 0 || 1;
+      if (Array.isArray(d.relics)) {
+        for (const r of d.relics) if (r) r.era = MIGRATE_RUNG[r.era | 0] || r.era | 0;
+      }
+      d.prompted = {};
+      d.rungs = 1;
+    }
+
     const s = {
       version: 1, seed: d.seed >>> 0, tick: d.tick | 0, money: +d.money || 0,
       era: Util.clamp(d.era | 0 || 1, 1, MAX_ERA),
       hallLevel: Util.clamp(d.hallLevel | 0 || 1, 1, MAX_ERA),
       realRent: +d.realRent || 0,
+
+      eraBase: (d.eraBase && typeof d.eraBase === 'object')
+        ? { flour: +d.eraBase.flour || 0, stone: +d.eraBase.stone || 0 }
+        : { flour: 0, stone: 0 },
 
       stock: (() => {
         const st = {};
@@ -280,9 +394,11 @@ const Game = {
       settlerAcc: +d.settlerAcc || 0,
 
       cityName: d.cityName || '',
-      policyFeedFirst: d.policyFeedFirst !== false,
-      policyRationLaw: !!d.policyRationLaw,
+
+      policyFeedFirst: true,
+      policyRationLaw: true,
       policyBeerRation: !!d.policyBeerRation,
+      policyCorvee: !!d.policyCorvee,
       granaryPolicy: TUNE.RESERVE_POLICY[d.granaryPolicy] ? d.granaryPolicy : 'lean',
       holdAtCap: d.holdAtCap || {},
       festival: d.festival && d.festival.left > 0 ? { left: Math.round(d.festival.left) } : null,
@@ -290,6 +406,28 @@ const Game = {
       records: d.records || {},
       freeRank: d.freeRank ? 1 : 0,
       pendingGift: d.pendingGift ? 1 : 0,
+      giftHousing: d.giftHousing | 0,
+      nile: (d.nile && typeof d.nile === 'object')
+        ? { phase: Util.clamp(d.nile.phase | 0, 0, 2), left: Math.max(1, d.nile.left | 0) }
+        : null,
+
+      season: (d.season && typeof d.season === 'object')
+        ? { phase: Util.clamp(d.season.phase | 0, 0, 1), left: Math.max(1, d.season.left | 0) }
+        : null,
+      policyRation: !!d.policyRation,
+      chill: Util.clamp(+d.chill || 0, 0, 1),
+      woodSpent: d.woodSpent || {},
+      herds: Array.isArray(d.herds) ? d.herds.filter(h => h && h.kind && TUNE.HERDS.counts[h.kind] !== undefined)
+        .map(h => ({ id: h.id | 0, kind: h.kind, x: +h.x || 0, y: +h.y || 0, heading: +h.heading || 0 })) : null,
+      hunt: (d.hunt && typeof d.hunt === 'object' && d.hunt.kind)
+        ? { herdId: d.hunt.herdId | 0, kind: d.hunt.kind, party: d.hunt.party | 0,
+            left: Math.max(1, d.hunt.left | 0), dist: d.hunt.dist | 0,
+            odds: +d.hunt.odds || 0.5, cat: !!d.hunt.cat, seed: d.hunt.seed >>> 0 }
+        : null,
+      relics: Array.isArray(d.relics)
+        ? d.relics.filter(r => r && BUILDINGS[r.type])
+            .map(r => ({ type: r.type, era: r.era | 0, name: r.name || (DEF(r.type) || {}).name || '' }))
+        : [],
 
       literate: TUNE.TALLY_FROM_START ? 1 : (d.literate === undefined ? 1 : (d.literate ? 1 : 0)),
 
@@ -318,6 +456,9 @@ const Game = {
 
           delivered: b.delivered || {},
           complete: BUILDINGS[b.type].monument ? (b.delivered === undefined ? true : !!b.complete) : false,
+
+          relic: !!b.relic,
+          relicEra: b.relicEra | 0 || undefined,
         })),
     };
     G.s = s;

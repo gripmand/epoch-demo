@@ -55,8 +55,11 @@ const Main = {
     if (window.Sfx) Sfx.init();
 
     let away = null;
+    let healed = null;
     if (loaded) {
-      away = Econ.catchUp(G.s);
+
+      healed = Econ.migrateStalePrestige(G.s);
+      away = healed ? null : Econ.catchUp(G.s);
       Econ.realTime(G.s);
       Grid.rebuild(G.s);
     } else {
@@ -67,6 +70,14 @@ const Main = {
       if (away.hours >= 0.5) setTimeout(() => UI.showAway(away), 500);
       else UI.toast('Welcome back — ' + away.hours + 'h away, ' +
         (away.money ? Util.fmtMoney(away.money) + ' earned.' : 'nothing earned. Check for stalled buildings.'), 9000);
+    }
+
+    if (healed) {
+      setTimeout(() => UI.toast('\u{1F30D} This city turned the age before the ground did. Its ' +
+        healed.before.stale + ' buildings from the previous era have been left behind, ' +
+        healed.relics + ' monument' + (healed.relics === 1 ? '' : 's') +
+        ' came with you, and you have been re-founded on new ground with ' +
+        Util.fmtMoney(G.s.money) + '. This happens once.', 15000), 600);
     }
 
     if (!loaded) {

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>EPOCH — Era 1 Prototype</title>
-<link rel="stylesheet" href="css/style.css?v=254a53dd">
+<link rel="stylesheet" href="css/style.css?v=328f4aa9">
 </head>
 <body>
 <canvas id="game"></canvas>
@@ -35,6 +35,9 @@
   <div class="res"><span class="res-ico">🍞</span><span id="hud-flour">0</span></div>
   <div class="res hidden" id="chip-stone"><span class="res-ico">🪨</span><span id="hud-stone">0</span></div>
   <div class="res hidden" id="chip-blocks"><span class="res-ico">🧱</span><span id="hud-blocks">0</span></div>
+  <div class="res hidden" id="chip-water" title="The city's water tank. Everything that needs water goes dark the moment this reaches zero."><span class="res-ico">💧</span><span id="hud-water">0</span></div>
+  <div class="res hidden" id="chip-season" title="The year: the rains fill your tanks, the dry season empties them."><span class="res-ico">🌦️</span><span id="hud-season">—</span></div>
+  <div class="res hidden" id="chip-fuel" title="The city's fuel, in delivered warmth: wood ×1, bone ×1, charcoal ×3. When it cannot cover the fires' draw, every hearth goes dark at once."><span class="res-ico">🔥</span><span id="hud-fuel">0</span></div>
 </div>
 
 <div id="controls">
@@ -54,20 +57,20 @@
 <div id="toasts"></div>
 
 
-<script src="js/vendor/three.min.js?v=254a53dd"></script>
-<script src="js/util.js?v=254a53dd"></script>
-<script src="js/data.js?v=254a53dd"></script>
-<script src="js/grid.js?v=254a53dd"></script>
-<script src="js/state.js?v=254a53dd"></script>
-<script src="js/econ.js?v=254a53dd"></script>
-<script src="js/guide.js?v=254a53dd"></script>
+<script src="js/vendor/three.min.js?v=328f4aa9"></script>
+<script src="js/util.js?v=328f4aa9"></script>
+<script src="js/data.js?v=328f4aa9"></script>
+<script src="js/grid.js?v=328f4aa9"></script>
+<script src="js/state.js?v=328f4aa9"></script>
+<script src="js/econ.js?v=328f4aa9"></script>
+<script src="js/guide.js?v=328f4aa9"></script>
 
-<script src="js/gfx.js?v=254a53dd"></script>
-<script src="js/shapes.js?v=254a53dd"></script>
-<script src="js/render.js?v=254a53dd"></script>
-<script src="js/audio.js?v=254a53dd"></script>
-<script src="js/ui.js?v=254a53dd"></script>
-<script src="js/input.js?v=254a53dd"></script>
-<script src="js/main.js?v=254a53dd"></script>
+<script src="js/gfx.js?v=328f4aa9"></script>
+<script src="js/shapes.js?v=328f4aa9"></script>
+<script src="js/render.js?v=328f4aa9"></script>
+<script src="js/audio.js?v=328f4aa9"></script>
+<script src="js/ui.js?v=328f4aa9"></script>
+<script src="js/input.js?v=328f4aa9"></script>
+<script src="js/main.js?v=328f4aa9"></script>
 </body>
 </html>

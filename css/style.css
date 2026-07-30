@@ -467,6 +467,16 @@ table.tally tr + tr td { border-top: 1px solid rgba(255, 255, 255, .045); }
 .res { display: flex; align-items: center; gap: 5px; padding: 0 8px; font-size: 12px; font-weight: 600; color: #dfe5ec; }
 .res + .res { border-left: 1px solid rgba(255, 255, 255, 0.08); }
 .res-ico { font-size: 12px; opacity: 0.85; }
+/* ★ THE CHIP ALERT COLOURS (2026-07-30). UI.updateHUD has toggled `bad` on the
+   flour chip since the depth wave and it never once showed: `.bad` is declared at
+   the top of this file and `.res` at the bottom, both single-class selectors, so
+   equal specificity meant the LATER rule won and the chip stayed grey. Every
+   runway warning in the HUD was silently invisible. These two rules are what make
+   `bad`/`warn` on a chip actually mean something — used by flour, and by era 3's
+   water tank, where a chip that fails to go red is the difference between seeing a
+   brown-out coming and being surprised by it. */
+.res.bad { color: #ff8a8a; }
+.res.warn { color: #f0c060; }
 
 .panel { padding: 22px; color: #e4e9ef; }
 .panel h2 { color: #f0f3f7; font-weight: 650; }

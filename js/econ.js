@@ -93,6 +93,16 @@ const Econ = {
 
     Econ.stampPower(s);
 
+    Econ.stampWarmth(s, offline);
+
+    Econ.herdTick(s, offline);
+
+    Econ.seasonTick(s, offline);
+
+    Econ.stampWater(s);
+
+    Econ.nileTick(s, offline);
+
     Econ.soilTick(s, offline);
 
     let income = 0, upkeep = 0, flourMade = 0, premium = 0;
@@ -106,11 +116,12 @@ const Econ = {
       .filter(b => b.done !== false)
       .sort((a, b) => a.placed - b.placed);
 
-    if (s.policyRationLaw && s.hunger >= TUNE.HUNGER_WARN) {
+    if (s.hunger >= TUNE.HUNGER_WARN) {
       const foodFirst = b => {
         const d = DEF(b.type);
-        return (d.out && (d.out.grain || d.out.dates || d.out.fish)) ||
+        return (d.out && (d.out.grain || d.out.dates || d.out.fish || d.out.game)) ||
           d.procOut === 'flour' || d.sells === 'flour' ||
+          d.procOut === 'pemmican' || d.sells === 'pemmican' ||
           b.type === 'breadoven' || b.type === 'templeGranary' ? 0 : 1;
       };
       byPlaced.sort((a, b) => foodFirst(a) - foodFirst(b) || a.placed - b.placed);
@@ -151,13 +162,30 @@ const Econ = {
     }
 
     C.beerBonus = 0;
-    if (s.policyBeerRation) {
+    if (s.policyBeerRation && rungOf(s.era) === 4) {
       const need = TUNE.BEER_RATION.perResident * Game.totalResidents(s) * Econ.M;
       if (need > 0 && s.stock.beer >= need) {
         s.stock.beer -= need;
         Econ.note('beer', 0, need);
         C.beerBonus = TUNE.BEER_RATION.bonus;
       }
+    }
+
+    C.corvee = false;
+    if (s.policyCorvee && C.nilePhase === 'akhet') {
+      const need = TUNE.CORVEE.perResident * Game.totalResidents(s) * Econ.M;
+      if (need > 0 && s.stock.flour >= need) {
+        s.stock.flour -= need;
+        Econ.note('flour', 0, need);
+        C.beerBonus = TUNE.CORVEE.bonus;
+        C.corvee = true;
+      }
+    }
+
+    C.ration = false;
+    if (s.policyRation && Econ.tankActive(s)) {
+      C.beerBonus = -TUNE.RATION.slow;
+      C.ration = true;
     }
 
     for (const b of byPlaced) {
@@ -248,6 +276,14 @@ const Econ = {
         b.status = 'resting'; b.rate = 0; b.lastStaffEff = 0; continue;
       }
       if (b.block) { b.status = b.block; b.rate = 0; b.lastStaffEff = 0; continue; }
+
+      if (C.nilePhase === 'akhet' && d.out && d.out.grain && Econ.nileFloods(b)) {
+        b.soil = Grid.soilUnder(b);
+        b.flooded = true;
+        b.status = 'flooded'; b.rate = 0; b.lastStaffEff = 0;
+        continue;
+      }
+      b.flooded = false;
       const staffEff = b.staff / d.workers;
       b.lastStaffEff = staffEff;
       if (b.staff === 0) { b.status = 'no_staff'; b.rate = 0; continue; }
@@ -261,7 +297,8 @@ const Econ = {
         const oxen = (b.oxNear || []).some(id => C.fedByres.has(id)) ? TUNE.OX.bonus : 0;
         const mult = (1 + TUNE.FERTILE_BONUS * (b.fertile || 0)) *
                      (1 + (b.adjBoost || 0)) * (1 + oxen) * soilMult * rankOutMult(b);
-        made = d.out.grain * staffEff * mult * Econ.M * (1 + C.beerBonus);
+
+        made = d.out.grain * staffEff * mult * Econ.M * (1 + C.beerBonus) * (C.nileMult || 1);
         Econ.addStock(s, 'grain', made);
       } else if (d.out.clay || d.out.wool) {
 
@@ -284,6 +321,30 @@ const Econ = {
         }
         made = d.out[kind] * staffEff * mult * Econ.M * (1 + C.beerBonus);
         Econ.addStock(s, kind, made);
+      } else if (d.out.deadwood) {
+
+        const left = Econ.cutterWoodLeft(b);
+        b.woodLeft = left;
+        const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b);
+        made = left > 0 ? Math.min(left, d.out.deadwood * staffEff * mult * Econ.M * (1 + C.beerBonus)) : 0;
+        if (made > 0) {
+          Econ.spendCutter(s, b, made);
+          Econ.addStock(s, 'deadwood', made);
+        }
+        b.rate = made;
+        b.status = left <= 0 ? 'stand_spent' : (staffEff < 1 ? 'understaffed' : 'ok');
+        continue;
+      } else if (d.out.water || d.out.cacao || d.out.honey ||
+                 d.out.game || d.out.flint || d.out.bone || d.out.ochre) {
+
+        const kind = Object.keys(d.out)[0];
+        if (!Econ.sourceRunning(d)) {
+          b.status = 'dry_season'; b.rate = 0; b.lastStaffEff = staffEff;
+          continue;
+        }
+        const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b);
+        made = d.out[kind] * staffEff * mult * Econ.M * (1 + C.beerBonus);
+        Econ.addStock(s, kind, made);
       } else if (d.out.stone) {
 
         const left = Econ.quarryStoneLeft(b);
@@ -300,12 +361,13 @@ const Econ = {
       b.status = staffEff < 1 ? 'understaffed' : 'ok';
     }
 
+    Econ.waterTick(s, offline);
+
     const procs = byPlaced.filter(b => DEF(b.type).procIn && DEF(b.type).workers && !b.mothballed);
-    if (s.policyFeedFirst !== false) {
-      procs.sort((a, b) =>
-        ((DEF(b.type).procOut === 'flour') ? 1 : 0) - ((DEF(a.type).procOut === 'flour') ? 1 : 0) ||
-        a.placed - b.placed);
-    }
+
+    procs.sort((a, b) =>
+      ((DEF(b.type).procOut === 'flour') ? 1 : 0) - ((DEF(a.type).procOut === 'flour') ? 1 : 0) ||
+      a.placed - b.placed);
     for (const b of procs) {
       const d = DEF(b.type);
       if (b.block) { b.status = b.block; b.rate = 0; continue; }
@@ -406,9 +468,12 @@ const Econ = {
       }
       if (s.hunger >= TUNE.HUNGER_WARN && !C.h50Told) {
         C.h50Told = 1;
+
         UI.toast('⚠️ FAMINE RISING. Residents will hold on for roughly ' +
-          Math.round(TUNE.STARVE_MINUTES * (1 - s.hunger)) + ' more minutes. Import grain at the Hall, ' +
-          'open the Temple Granary\'s dole, or get flour moving — then the recovery is fast.', 12000);
+          Math.round(TUNE.STARVE_MINUTES * (1 - s.hunger)) + ' more minutes. ' +
+          (Econ.hearthActive(s)
+            ? 'Import dried meat at the Long Hearth, fish the ice, send a hunt, or get the Drying Rack moving — then the recovery is fast.'
+            : 'Import grain at the Hall, open the Temple Granary\'s dole, or get flour moving — then the recovery is fast.'), 12000);
         if (!C.famineLogged) { C.famineLogged = 1; Econ.log(s, '⚠️', 'Famine took hold of the city.'); }
       }
     }
@@ -468,7 +533,10 @@ const Econ = {
 
         let kind = null, best = 0;
         for (const k of d.sellsRaw) {
-          const avail = (s.stock[k] || 0) - (monRes[k] || 0);
+
+          const fKeep = (TUNE.FUEL[k] && Econ.hearthActive(s))
+            ? Econ.warmDemand(s) * TUNE.TEMPO * TUNE.FUEL_RESERVE_MIN / TUNE.FUEL[k] : 0;
+          const avail = (s.stock[k] || 0) - (monRes[k] || 0) - fKeep;
           if (avail > best) { best = avail; kind = k; }
         }
         b.rawKind = kind;
@@ -480,13 +548,27 @@ const Econ = {
         }
       } else {
 
+        const fuelKeep = (TUNE.FUEL[d.sells] && Econ.hearthActive(s))
+          ? Econ.warmDemand(s) * TUNE.TEMPO * TUNE.FUEL_RESERVE_MIN / TUNE.FUEL[d.sells] : 0;
         const keep = (d.sells === 'flour'
-          ? residents * TUNE.FLOUR_PER_RESIDENT * TUNE.TEMPO * reserveMin : 0) + (monRes[d.sells] || 0);
+          ? residents * TUNE.FLOUR_PER_RESIDENT * TUNE.TEMPO * reserveMin : 0) +
+          fuelKeep + (monRes[d.sells] || 0);
         sell = Math.min(d.sellRate * throughput,
                         Math.max(0, s.stock[d.sells] - keep));
         s.stock[d.sells] -= sell;
         Econ.note(d.sells, 0, sell);
-        gain = sell * d.sellPrice * priceMult;
+
+        let price = d.sellPrice;
+        if (!(price > 0)) {
+          price = TUNE.PRICES[d.sells] || 1;
+          if (!Econ._priceWarned) Econ._priceWarned = {};
+          if (!Econ._priceWarned[b.type]) {
+            Econ._priceWarned[b.type] = 1;
+            console.warn('EPOCH: ' + b.type + ' sells ' + d.sells +
+              ' with no sellPrice — falling back to the list price $' + price + '. Author it in data.js.');
+          }
+        }
+        gain = sell * price * priceMult;
       }
       income += gain;
       b.rate = sell;
@@ -550,8 +632,8 @@ const Econ = {
       } else R.streak = 0;
     }
 
-    const next = s.era + 1;
-    if (!offline && next <= MAX_ERA && !s.prompted[next] && Econ.eraReady(s)) {
+    const next = Econ.nextEra(s);
+    if (!offline && next && !s.prompted[next] && Econ.eraReady(s)) {
       s.prompted[next] = 1;
       UI.promptAdvance(next);
     }
@@ -601,6 +683,76 @@ const Econ = {
     const T = TUNE.TRADE;
     if (!T || dist <= T.freeRadius) return 1;
     return Math.min(T.maxMultiplier, 1 + (dist - T.freeRadius) / T.premiumPer);
+  },
+
+  NILE_PHASES: ['akhet', 'peret', 'shemu'],
+  NILE_LABEL: {
+    akhet: 'Akhet — the flood',
+    peret: 'Peret — the growing',
+    shemu: 'Shemu — the drought',
+  },
+
+  nileActive(s) { return rungOf(s.era) === 5; },
+
+  nileTick(s, offline) {
+    const C = G.cache;
+    C.nilePhase = null; C.nileMult = 1;
+    if (!Econ.nileActive(s)) { s.nile = null; return; }
+    if (!s.nile) s.nile = { phase: 1, left: TUNE.NILE.peret };
+    if (offline) {
+      C.nilePhase = Econ.NILE_PHASES[s.nile.phase];
+      return;
+    }
+
+    s.nile.left -= 1;
+    if (s.nile.left <= 0) {
+      s.nile.phase = (s.nile.phase + 1) % 3;
+      const name = Econ.NILE_PHASES[s.nile.phase];
+      s.nile.left = TUNE.NILE[name];
+
+      if (name === 'akhet') {
+        let renewed = 0;
+        const chunks = new Set();
+        for (const b of s.buildings) {
+          const d = DEF(b.type);
+          if (!d || !d.out || !d.out.grain) continue;
+          if (!Econ.nileFloods(b)) continue;
+          Grid.tilesOf(b, (tx, ty) => {
+            if (!Grid.inB(tx, ty)) return;
+            if (Grid.setSoil(s, tx, ty, 1)) chunks.add(Grid.chunkKeyOf(tx, ty));
+          });
+          renewed++;
+        }
+        if (chunks.size && window.Rend && Rend.markSoilDirty) Rend.markSoilDirty(chunks);
+        Econ.log(s, '\u{1F30A}', 'Akhet: the river came up. ' + renewed +
+          ' field' + (renewed === 1 ? '' : 's') + ' under water, and every one of them renewed.');
+        UI.toast('\u{1F30A} AKHET — the flood is in. ' + renewed + ' field' + (renewed === 1 ? '' : 's') +
+          ' will grow nothing for ' + Math.round(TUNE.NILE.akhet) + 's, and will come out of it on fresh silt. ' +
+          'Your granary is what the city eats until then.', 11000);
+      } else if (name === 'peret') {
+        Econ.log(s, '\u{1F33F}', 'Peret: the water is off the fields and the silt is new.');
+        UI.toast('\u{1F33F} PERET — the water is off the land. Fresh silt: +' +
+          Math.round(TUNE.NILE.peretBonus * 100) + '% grain while it lasts.', 9000);
+      } else {
+        Econ.log(s, '\u{2600}\u{FE0F}', 'Shemu: the harvest, and the ground begins to dry.');
+        UI.toast('\u{2600}\u{FE0F} SHEMU — harvest and drought. The salt clock is running again; ' +
+          'fill the granary before the river comes back.', 9000);
+      }
+    }
+
+    const phase = Econ.NILE_PHASES[s.nile.phase];
+    C.nilePhase = phase;
+    C.nileLeft = s.nile.left;
+    C.nileMult = phase === 'peret' ? 1 + TUNE.NILE.peretBonus : 1;
+  },
+
+  nileFloods(b) {
+    let hit = false;
+    Grid.tilesOf(b, (tx, ty) => {
+      if (hit || !Grid.inB(tx, ty)) return;
+      if (Econ.nearChannel(tx, ty, TUNE.NILE.floodBand)) hit = true;
+    });
+    return hit;
   },
 
   soilTick(s, offline) {
@@ -690,6 +842,32 @@ const Econ = {
     return left;
   },
 
+  cutterWoodLeft(b) {
+    let left = 0;
+    Grid.tilesOf(b, (tx, ty) => {
+      if (Grid.inB(tx, ty)) left += Grid.woodAt(G.s, tx, ty);
+    });
+    return left;
+  },
+  spendCutter(s, b, amt) {
+    const tiles = [];
+    Grid.tilesOf(b, (tx, ty) => {
+      if (Grid.inB(tx, ty) && Grid.woodAt(s, tx, ty) > 0) tiles.push([tx, ty]);
+    });
+    if (!tiles.length) return;
+    const each = amt / tiles.length;
+    let burned = false;
+    for (const [tx, ty] of tiles) if (Grid.spendWood(s, tx, ty, each)) burned = true;
+    if (burned) {
+      G.cache.dirty = true;
+      if (window.Rend && Rend.invalidateTerrain) Rend.invalidateTerrain();
+      Econ.log(s, '\u{1F525}', 'A dead stand was felled to nothing — that ground is ash now, forever.');
+      UI.firstToast('ashfirst', 'A tree tile is SPENT and has become ASH. The forest does not grow back ' +
+        'in this age — every fire you light is paid for out of a finite map. Site the next Cutter ' +
+        'before this one dies.');
+    }
+  },
+
   spendQuarry(s, b, amt) {
     const tiles = [];
     Grid.tilesOf(b,(tx, ty) => {
@@ -721,6 +899,8 @@ const Econ = {
     let why = 'ok';
     if (!houses.length) why = 'nohouse';
     else if (s.hunger >= M.hungerStop) why = 'hungry';
+
+    else if ((s.chill || 0) >= TUNE.COLD.stopGrowth) why = 'cold';
     else if (blocked === houses.length) why = 'blocked';
     else if (open <= 0) why = 'full';
     C.migrateWhy = why;
@@ -800,7 +980,8 @@ const Econ = {
 
   houseUpgrade(s, h) {
     const lvl = h.level || 1;
-    if (lvl >= HOUSE_MAX_LEVEL) return null;
+
+    if (lvl >= houseMaxLevel(s)) return null;
     if (lvl === 1 && (h.nearHomes || 0) < Econ.NEIGHBOURS_FOR_RUNG2) {
 
       return { blocked: 'neighbours', need: Econ.NEIGHBOURS_FOR_RUNG2, have: h.nearHomes || 0 };
@@ -981,9 +1162,11 @@ const Econ = {
         b.complete = true;
         Econ.log(s, d.icon || '\u{1F3DB}️', 'THE ' + d.name.toUpperCase() + ' WAS COMPLETED.');
 
-        if (b.type === 'ziggurat') {
+        const gift = monumentGift(s.era);
+        if (gift) {
+          gift.apply(s);
           s.pendingGift = 1;
-          Econ.log(s, '\u{1F6F8}', 'The Anunnaki departed — humanity rules itself now. Their parting gift awaits a choice.');
+          Econ.log(s, gift.icon, gift.log);
         }
         if (!offline) {
           if (window.Sfx) Sfx.play('drum');
@@ -995,12 +1178,33 @@ const Econ = {
     return moneyDrawn;
   },
 
+  nextEra(s) { return nextWrittenEra(s.era); },
+
   eraReady(s) {
-    const next = s.era + 1;
-    if (next > MAX_ERA) return false;
-    const r = eraReq(next);
+    const next = Econ.nextEra(s);
+    if (!next) return false;
+    const r = eraReq(s.era + 1);
+
+    const base = s.eraBase || {};
     return Game.totalResidents(s) >= r.pop && s.money >= r.money &&
-           s.cum.flour >= r.food && s.cum.stone >= r.stone;
+           (s.cum.flour - (base.flour || 0)) >= r.food &&
+           (s.cum.stone - (base.stone || 0)) >= r.stone &&
+           Econ.monumentDone(s, s.era);
+  },
+
+  monumentFor(era) {
+    const e = Math.max(1, Math.round(era || 1));
+    for (const k in BUILDINGS) {
+      const d = BUILDINGS[k];
+      if (d.monument && (d.era || 1) === e) return { key: k, def: d };
+    }
+    return null;
+  },
+  monumentDone(s, era) {
+    const m = Econ.monumentFor(era);
+
+    if (!m) return true;
+    return s.buildings.some(b => b.type === m.key && b.complete);
   },
 
   grantEraLand(s) {
@@ -1042,17 +1246,164 @@ const Econ = {
     return out;
   },
 
+  migrateStalePrestige(s) {
+    if (!s || (s.era || 1) <= 1) return null;
+    const stale = s.buildings.filter(b => {
+      const d = DEF(b.type);
+      if (!d || b.relic || d.fixed || b.type === 'road') return false;
+      return (d.era || 1) < s.era;
+    });
+    if (!stale.length) return null;
+
+    const carried = [];
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (d && d.monument && b.complete && !b.relic) {
+        carried.push({ type: b.type, era: d.era || 1, name: d.name });
+      }
+    }
+    s.relics = (s.relics || []).concat(carried);
+
+    const before = { buildings: s.buildings.length, stale: stale.length,
+                     pop: Game.totalResidents(s), money: Math.round(s.money) };
+    const res = Econ.prestigeReset(s);
+    Econ.log(s, '\u{1F30D}', 'The age was turned before the ground was. Your ' + before.stale +
+      ' buildings from the previous age have been left behind where they belong, and ' +
+      s.relics.length + ' monument' + (s.relics.length === 1 ? '' : 's') + ' came with you.');
+    return { before, relics: s.relics.length, placed: res ? res.placed.length : 0 };
+  },
+
+  prestigeReset(s) {
+    const C = TUNE.WORLD / 2;
+
+    s.seed = (Math.imul(s.seed, 1664525) + 1013904223) >>> 0;
+
+    s.buildings = [];
+    s.owned = [];
+    s.cleared = {}; s.planted = {}; s.terraEdits = {}; s.soilEdits = {}; s.rockSpent = {};
+
+    s.woodSpent = {}; s.herds = null; s.hunt = null; s.chill = 0;
+    s.nextId = 1; s.placeCounter = 0;
+
+    s.hallLevel = Math.min(s.era, 4); s.hallJob = null;
+    s.hunger = 0; s.settlerAcc = 0; s.festival = null;
+    s.stock = Game.startStock(true);
+    s.foundingLeft = TUNE.FOUNDING.purse;
+
+    s.money = Math.round(TUNE.START_MONEY * Math.pow(TUNE.PRESTIGE_PURSE_MULT, s.era - 4));
+
+    G.cache = Game.freshCache();
+    Grid.genTerrain(s);
+
+    const cc = TUNE.WORLD / TUNE.CHUNK / 2 - 1;
+    for (let cy = cc; cy <= cc + 2; cy++)
+      for (let cx = cc; cx <= cc + 2; cx++)
+        s.owned.push(cx + ',' + cy);
+
+    for (let y = C - 4; y <= C + 7; y++)
+      for (let x = C - 4; x <= C + 7; x++)
+        if (Grid.treeAt(s, x, y)) s.cleared[Grid.key(x, y)] = 1;
+
+    Grid.rebuild(s);
+    Grid.addBuilding(s, 'townhall', C - 2, C - 2);
+    Grid.rebuild(s);
+
+    return { placed: [], unplaced: (s.relics || []).slice(), granted: 0 };
+  },
+
+  placeRelics(s, C) {
+    const out = { placed: [], unplaced: [], granted: 0 };
+
+    const claim = (x, y, w, h) => {
+      const added = [];
+      const p0 = Grid.chunkOf(x, y), p1 = Grid.chunkOf(x + w - 1, y + h - 1);
+      for (let cx = p0.cx; cx <= p1.cx; cx++)
+        for (let cy = p0.cy; cy <= p1.cy; cy++) {
+          const k = cx + ',' + cy;
+          if (G.cache.ownedSet.has(k)) continue;
+          s.owned.push(k); G.cache.ownedSet.add(k); added.push(k);
+        }
+      return added;
+    };
+    const unclaim = (keys) => {
+      for (const k of keys) {
+        G.cache.ownedSet.delete(k);
+        const i = s.owned.indexOf(k);
+        if (i >= 0) s.owned.splice(i, 1);
+      }
+    };
+
+    let slot = 0;
+    for (const r of (s.relics || [])) {
+      const d = DEF(r.type);
+      if (!d) { out.unplaced.push(r); continue; }
+      const w = d.w || 1, h = d.h || 1;
+      let done = false;
+      for (let ring = TUNE.RELIC_RING; ring <= TUNE.RELIC_RING + 32 && !done; ring += 3) {
+        const spots = 12;
+        for (let i = 0; i < spots && !done; i++) {
+          const a = ((slot + i) / spots) * Math.PI * 2;
+          const x = Math.round(C - 1 + Math.cos(a) * ring);
+          const y = Math.round(C - 1 + Math.sin(a) * ring);
+          if (!Grid.inB(x, y) || !Grid.inB(x + w - 1, y + h - 1)) continue;
+          const added = claim(x, y, w, h);
+          if (!Grid.canPlace(s, r.type, x, y)) { unclaim(added); continue; }
+          const b = Grid.addBuilding(s, r.type, x, y);
+          if (!b) { unclaim(added); continue; }
+          b.complete = true;
+          b.done = true;
+          b.relic = true;
+          b.relicEra = r.era;
+          out.placed.push(r); out.granted += added.length; done = true; slot += 5;
+        }
+      }
+      if (!done) out.unplaced.push(r);
+    }
+    return out;
+  },
+
   advanceEra(s) {
     if (!Econ.eraReady(s)) return false;
-    s.era++;
+
+    const carried = [];
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+
+      if (d && d.monument && b.complete) {
+        carried.push({ type: b.type, era: d.era || 1, name: d.name });
+      }
+    }
+    s.relics = (s.relics || []).concat(carried);
+
+    const wasPop = Game.totalResidents(s), wasMoney = s.money, wasBuildings = s.buildings.length;
+
+    s.era = Econ.nextEra(s);
+
+    s.eraBase = { flour: s.cum.flour, stone: s.cum.stone };
     const era = ERAS[s.era - 1];
-    Econ.log(s, '\u{1F30D}', 'The age turned: Era ' + s.era + ' — ' + era.name + ', at ' +
-      Game.totalResidents(s) + ' residents and ' + Util.fmtMoney(s.money) + ' in the treasury.');
-    const land = Econ.grantEraLand(s);
+
+    Econ.log(s, '\u{1F30D}', 'The age turned: Era ' + s.era + ' — ' + era.name +
+      '. The old city is behind you — ' + wasBuildings + ' buildings, ' + wasPop +
+      ' residents, ' + Util.fmtMoney(wasMoney) + ' spent into the ground. ' +
+      s.relics.length + ' monument' + (s.relics.length === 1 ? '' : 's') + ' came with you.');
+
+    const res = Econ.prestigeReset(s);
+    const land = { parcels: s.owned.length, tiles: s.owned.length * TUNE.CHUNK * TUNE.CHUNK };
+
+    if (res && res.unplaced.length) {
+      Econ.log(s, '\u{26A0}\u{FE0F}', res.unplaced.length + ' relic' +
+        (res.unplaced.length === 1 ? '' : 's') + ' found no ground near the new hall and wait in the dynasty.');
+    }
+
     Grid.rebuild(s);
     UI.refreshPalette();
 
-    if (window.Rend) { Rend.layerDirty = true; Rend.onWorldChange(); }
+    if (window.Rend) {
+      Rend.layerDirty = true;
+      if (Rend.invalidateTerrain) Rend.invalidateTerrain();
+      Rend.onWorldChange();
+      if (Rend.focusOn) { const h = s.buildings.find(b => b.type === 'townhall'); if (h) Rend.focusOn(h); }
+    }
 
     UI.eraCeremony(s.era, land);
     return true;
@@ -1060,18 +1411,22 @@ const Econ = {
 
   blockOf(b) {
     if (window.Dev && Dev.flags.noBlockers) return null;
+
+    if (b.relic) return null;
     const d = DEF(b.type);
 
     if (d.needsRoad && !b.conn) return 'no_road';
     if (d.needsWater && !Grid.covered(G.cache.water, b)) return 'no_water';
     if (d.needsPower && !Grid.covered(G.cache.power, b)) return 'no_power';
+
+    if (d.needsWarm && (!G.cache.warm || !Grid.covered(G.cache.warm, b))) return 'no_warmth';
     return null;
   },
 
   stampPower(s) {
     const C = G.cache;
     C.power.fill(0);
-    if (s.era < 9) return;
+    if (s.era < 30) return;
     for (const b of s.buildings) {
       const d = DEF(b.type);
 
@@ -1080,21 +1435,436 @@ const Econ = {
     }
   },
 
+  SEASON_PHASES: ['wet', 'dry'],
+  SEASON_LABEL: {
+    wet: 'The Rains',
+    dry: 'The Dry',
+  },
+
+  tankActive(s) { return rungOf(s.era) === 14; },
+
+  hearthActive(s) { return rungOf(s.era) === 1; },
+
+  HERD_NAMES: { mammoth: 'woolly mammoth', bison: 'steppe bison', rhino: 'woolly rhinoceros', sabertooth: 'sabertooth' },
+  HERD_ICON: { mammoth: '\u{1F9A3}', bison: '\u{1F9AC}', rhino: '\u{1F98F}', sabertooth: '\u{1F405}' },
+
+  seedHerds(s) {
+    const W = TUNE.WORLD, C = W / 2;
+    const rnd = Util.mulberry32((s.seed ^ 0x5EED) >>> 0);
+    const herds = [];
+    let id = 1;
+    for (const kind in TUNE.HERDS.counts) {
+      for (let i = 0; i < TUNE.HERDS.counts[kind]; i++) {
+        let x, y, tries = 0;
+
+        if (i === 0) {
+          const a = rnd() * Math.PI * 2, r = 30 + rnd() * 15;
+          x = C + Math.cos(a) * r; y = C + Math.sin(a) * r;
+        } else {
+          do {
+            x = 20 + rnd() * (W - 40); y = 20 + rnd() * (W - 40); tries++;
+          } while (Math.hypot(x - C, y - C) < TUNE.HERDS.standoff + 10 && tries < 50);
+        }
+        herds.push({ id: id++, kind, x, y, heading: rnd() * Math.PI * 2 });
+      }
+    }
+    return herds;
+  },
+
+  herdTick(s, offline) {
+    if (!Econ.hearthActive(s)) return;
+    if (!s.herds) s.herds = Econ.seedHerds(s);
+    if (offline) return;
+    const W = TUNE.WORLD, C = W / 2;
+
+    const rnd = Util.mulberry32((s.seed ^ s.tick) >>> 0);
+    for (const h of s.herds) {
+      h.heading += (rnd() - 0.5) * 0.25;
+      const sp = TUNE.HERDS.speed[h.kind] || 0.1;
+      const nx = h.x + Math.cos(h.heading) * sp, ny = h.y + Math.sin(h.heading) * sp;
+      if (Math.hypot(nx - C, ny - C) < TUNE.HERDS.standoff ||
+          nx < 12 || ny < 14 || nx > W - 12 || ny > W - 12 ||
+          G.cache.terrain[Grid.key(Math.round(nx), Math.round(ny))] === TERRAIN.MOUNTAIN) {
+        h.heading += Math.PI * (0.6 + rnd() * 0.8);
+        continue;
+      }
+      h.x = nx; h.y = ny;
+    }
+
+    if (s.hunt) {
+      s.hunt.left -= 1;
+      if (s.hunt.left <= 0) Econ.resolveHunt(s);
+    }
+  },
+
+  nearestHerd(s, b) {
+    if (!s.herds) return null;
+    const d = Grid.dimsOf(b);
+    const cx = b.x + d.w / 2, cy = b.y + d.h / 2;
+    let best = null, bd = Infinity;
+    for (const h of s.herds) {
+      const dist = Math.hypot(h.x - cx, h.y - cy);
+      if (dist < bd) { bd = dist; best = h; }
+    }
+    return best && bd <= TUNE.HUNT.range ? { herd: best, dist: bd } : null;
+  },
+
+  huntOdds(s, herd, dist) {
+    const H = TUNE.HUNT;
+    let p = H.odds[herd.kind] || 0.5;
+    p -= dist * H.distPenalty;
+    return Util.clamp(p, 0.05, 0.95);
+  },
+  sabertoothNear(s, herd) {
+    return (s.herds || []).some(h => h !== herd && h.kind === 'sabertooth' &&
+      Math.hypot(h.x - herd.x, h.y - herd.y) < 18);
+  },
+
+  launchHunt(s, camp) {
+    if (!Econ.hearthActive(s)) return 'not this age';
+    if (s.hunt) return 'a hunt is already out';
+    const t = Econ.nearestHerd(s, camp);
+    if (!t) return 'no herd within reach — watch the steppe';
+    const party = TUNE.HUNT.party;
+    if (Game.totalResidents(s) <= party + 4) return 'the camp cannot spare ' + party + ' hunters';
+
+    const houses = s.buildings.filter(b => DEF(b.type).cap);
+    for (let i = 0; i < party; i++) Econ.removeResident(s, houses);
+    s.hunt = {
+      herdId: t.herd.id, kind: t.herd.kind, party,
+      left: TUNE.HUNT.ticks, dist: Math.round(t.dist),
+      odds: Econ.huntOdds(s, t.herd, t.dist),
+      cat: Econ.sabertoothNear(s, t.herd),
+      seed: (s.seed ^ s.tick ^ 0xBEEF) >>> 0,
+    };
+    Econ.log(s, '\u{1F3F9}', party + ' hunters walked out after the ' +
+      Econ.HERD_NAMES[t.herd.kind] + ', ' + Math.round(t.dist) + ' tiles onto the steppe.');
+    UI.toast('\u{1F3F9} THE HUNT IS OUT — ' + party + ' hunters tracking the ' +
+      Econ.HERD_NAMES[t.herd.kind] + '. They are gone from your labour pool until they return. ' +
+      'Odds ' + Math.round(s.hunt.odds * 100) + '%' + (s.hunt.cat ? ' — and a sabertooth is shadowing the herd.' : '.'), 12000);
+    return null;
+  },
+
+  resolveHunt(s) {
+    const hunt = s.hunt;
+    s.hunt = null;
+    if (!hunt) return;
+    const rnd = Util.mulberry32(hunt.seed);
+    const success = rnd() < hunt.odds;
+
+    let lost = 0;
+    const risk = (success ? 0.03 : 0.10) + (hunt.cat ? TUNE.HUNT.catOdds : 0);
+    for (let i = 0; i < hunt.party; i++) if (rnd() < risk) lost++;
+    const back = hunt.party - lost;
+
+    const houses = s.buildings.filter(b => DEF(b.type).cap && !b.block);
+    let seated = 0;
+    for (let i = 0; i < back; i++) {
+      const room = houses.find(h => (h.residents || 0) < (h.cap || 0));
+      if (room) { room.residents = (room.residents || 0) + 1; seated++; }
+    }
+    if (success) {
+      const haul = TUNE.HUNT.haul[hunt.kind] || {};
+      const got = [];
+      for (const k in haul) { Econ.addStock(s, k, haul[k]); got.push(haul[k] + ' ' + k); }
+
+      s.herds = (s.herds || []).filter(h => h.id !== hunt.herdId);
+      Econ.log(s, '\u{1F3F9}', 'THE HUNT CAME HOME: the ' + Econ.HERD_NAMES[hunt.kind] +
+        ' is taken — ' + got.join(', ') + '.' +
+        (lost ? ' ' + lost + ' hunter' + (lost === 1 ? '' : 's') + ' did not come back.' : ' Nobody was lost.'));
+      UI.toast('\u{1F3F9} THE HUNT CAME HOME — ' + got.join(', ') + '.' +
+        (lost ? ' \u{1FAA6} ' + lost + ' hunter' + (lost === 1 ? '' : 's') + ' died on the steppe.' : ' Everyone came back.'), 14000);
+      if (window.Sfx) Sfx.play('bell');
+    } else {
+      Econ.log(s, '\u{1F3F9}', 'The hunt FAILED — the ' + Econ.HERD_NAMES[hunt.kind] + ' broke away.' +
+        (lost ? ' ' + lost + ' hunter' + (lost === 1 ? '' : 's') + ' did not come back.' : ''));
+      UI.toast('\u{1F3F9} The hunt failed — the ' + Econ.HERD_NAMES[hunt.kind] + ' broke away' +
+        (lost ? ', and \u{1FAA6} ' + lost + ' hunter' + (lost === 1 ? '' : 's') + ' died out there' : '') +
+        '. The animal is still on the map. So are you.', 12000);
+    }
+    if (s.records) s.records.hunts = (s.records.hunts || 0) + 1;
+  },
+
+  warmDemand(s) {
+    const geo = Econ.warmGeo(s);
+    let sum = 0;
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d || !d.warm || b.mothballed || b.done === false) continue;
+      if (geo && !Grid.covered(geo, b)) continue;
+      sum += d.warm;
+    }
+
+    const keeper = s.buildings.some(b => DEF(b.type).fuelKeeper && !b.mothballed &&
+      b.done !== false && (b.staff || 0) > 0);
+    return sum * (keeper ? 1 - TUNE.FIREKEEPER.save : 1);
+  },
+
+  fuelEquiv(s) {
+    let e = 0;
+    for (const k in TUNE.FUEL) e += (s.stock[k] || 0) * TUNE.FUEL[k];
+    return e;
+  },
+
+  warmForecast(s) {
+    const demand = Econ.warmDemand(s);
+    const have = Econ.fuelEquiv(s);
+    const perTick = demand * Econ.M;
+    return { demand, have, secs: perTick > 0 ? have / perTick : Infinity };
+  },
+
+  warmGeo(s) {
+    const C = G.cache;
+    if (C.warmGeoClean && C.warmGeo) return C.warmGeo;
+    if (!C.warmGeo) C.warmGeo = new Uint8Array(TUNE.WORLD * TUNE.WORLD);
+    C.warmGeo.fill(0);
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d.warmRadius || b.done === false || b.mothballed) continue;
+      Grid.stampRadiusCircle(C.warmGeo, b, d.warmRadius + rankRadiusBonus(b));
+    }
+    C.warmGeoClean = true;
+    return C.warmGeo;
+  },
+
+  stampWarmth(s, offline) {
+    const C = G.cache;
+    if (!Econ.hearthActive(s)) { C.dark = false; return; }
+    if (!C.warm) C.warm = new Uint8Array(TUNE.WORLD * TUNE.WORLD);
+
+    const want = Econ.warmDemand(s) * Econ.M;
+    let unpaid = want;
+
+    for (const kind of ['deadwood', 'bone', 'charcoal']) {
+      if (unpaid <= 0) break;
+      const worth = TUNE.FUEL[kind];
+      const useUnits = Math.min(s.stock[kind] || 0, unpaid / worth);
+      if (useUnits <= 0) continue;
+      s.stock[kind] -= useUnits;
+      Econ.note(kind, 0, useUnits);
+      unpaid -= useUnits * worth;
+    }
+    const dark = unpaid > want * 0.001;
+    C.dark = dark;
+    C.warmDraw = want - unpaid;
+
+    C.warm.fill(0);
+    if (!dark) C.warm.set(Econ.warmGeo(s));
+
+    let coldRes = 0, residents = 0;
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d.cap || !b.residents) continue;
+      residents += b.residents;
+      if (dark || !Grid.covered(C.warm, b)) coldRes += b.residents;
+    }
+    if (!offline) {
+      const rise = 1 / (TUNE.COLD.freezeMinutes * 60);
+      if (residents > 0 && coldRes > 0) {
+        s.chill = Math.min(1, (s.chill || 0) + (coldRes / residents) * rise);
+      } else {
+        s.chill = Math.max(0, (s.chill || 0) - TUNE.COLD.recover);
+      }
+
+      if ((s.chill || 0) <= 0.001) { C.cold20Told = 0; C.cold40Told = 0; }
+      if (s.chill >= TUNE.COLD.stopGrowth && !C.cold20Told) {
+        C.cold20Told = 1;
+        UI.toast('\u{2744}\u{FE0F} The camp is going cold — newcomers are turning away. Check the fuel ' +
+          'chip: are the fires dark, or is a home outside every hearth circle?', 10000);
+      }
+      if (s.chill >= TUNE.COLD.warnAt && !C.cold40Told) {
+        C.cold40Told = 1;
+        if (window.Sfx) Sfx.play('bell');
+        UI.toast('\u{1F9CA} FREEZING. People will hold on for roughly ' +
+          Math.round(TUNE.COLD.freezeMinutes * (1 - s.chill)) + ' more minutes. Feed the fires — ' +
+          'cut wood, burn bone, stop selling charcoal — or mothball what you can spare.', 12000);
+        Econ.log(s, '\u{1F9CA}', 'The cold took hold of the camp.');
+      }
+
+      if (!dark && Econ.fuelEquiv(s) > want * 60) C.darkTold = 0;
+      if (dark && !C.darkTold) {
+        C.darkTold = 1;
+        Econ.log(s, '\u{1F525}', 'The fuel ran out and every fire in the camp went dark.');
+        UI.toast('\u{1F525} THE FIRES ARE DARK — the fuel is gone, and everything inside the hearth ' +
+          'circles has stopped. Your Cutters, Drives, Weirs and Quarries keep working; nothing else ' +
+          'does. Cut wood, burn bone, and stop the Fuel Stack selling your warmth.', 15000);
+      }
+    }
+
+    if (!offline && (s.chill || 0) >= 1 && s.tick % 10 === 0) {
+      const houses = s.buildings.filter(b => DEF(b.type).cap);
+      Econ.removeResident(s, houses);
+    }
+  },
+
+  seasonTick(s, offline) {
+    const C = G.cache;
+    C.seasonPhase = null; C.seasonLeft = 0;
+    if (!Econ.tankActive(s)) { s.season = null; return; }
+
+    if (!s.season) s.season = { phase: 0, left: TUNE.SEASON.wet };
+    if (offline) {
+
+      C.seasonPhase = Econ.SEASON_PHASES[s.season.phase];
+      C.seasonLeft = s.season.left;
+      return;
+    }
+
+    s.season.left -= 1;
+    if (s.season.left <= 0) {
+      s.season.phase = (s.season.phase + 1) % 2;
+      const name = Econ.SEASON_PHASES[s.season.phase];
+      s.season.left = TUNE.SEASON[name];
+
+      C.seasonPhase = name;
+      C.seasonLeft = s.season.left;
+      if (name === 'dry') {
+
+        const f = Econ.waterForecast(s);
+        Econ.log(s, '\u{2600}\u{FE0F}', 'The dry season came in. The rains are ' +
+          Math.round(TUNE.SEASON.dry) + 's away and the catchments have stopped.');
+        UI.toast('\u{2600}\u{FE0F} THE DRY — every catchment and reservoir has stopped collecting. ' +
+          'Only the cenotes still run. You have ' + f.text + ', and the rains return in ' +
+          Math.round(TUNE.SEASON.dry) + 's. Mothball what you can spare, or ration at the Council House.', 13000);
+      } else {
+        Econ.log(s, '\u{1F327}\u{FE0F}', 'The rains returned — the courts are draining into the tanks again.');
+        UI.toast('\u{1F327}\u{FE0F} THE RAINS — the catchments are collecting again. Fill the tank, ' +
+          'light what you mothballed, and buy capacity before the next dry.', 10000);
+      }
+    }
+    C.seasonPhase = Econ.SEASON_PHASES[s.season.phase];
+    C.seasonLeft = s.season.left;
+  },
+
+  sourceRunning(d) {
+    if (!d.wetOnly) return true;
+    return G.cache.seasonPhase !== 'dry';
+  },
+
+  stampWater(s) {
+    const C = G.cache;
+    if (!Econ.tankActive(s)) return;
+    const dry = (s.stock.water || 0) <= 0;
+    C.brownout = dry;
+    C.water.fill(0);
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d.waterRadius || b.done === false) continue;
+
+      if (d.tankFed && dry) continue;
+      if (b.mothballed) continue;
+      Grid.stampRadiusCircle(C.water, b, d.waterRadius + rankRadiusBonus(b));
+    }
+  },
+
+  waterDemand(s) {
+    let workers = 0;
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d || !d.needsWater || b.mothballed || b.done === false) continue;
+      workers += b.staff || 0;
+    }
+    const raw = Game.totalResidents(s) * TUNE.WATER_PER_RESIDENT +
+                workers * TUNE.WATER_PER_WORKER;
+    return raw * (s.policyRation ? (1 - TUNE.RATION.drawCut) : 1);
+  },
+
+  waterSupply(s) {
+    let out = 0;
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d || !d.out || !d.out.water || b.mothballed || b.done === false) continue;
+      if (b.block || !b.staff) continue;
+      if (!Econ.sourceRunning(d)) continue;
+      out += d.out.water * (b.staff / d.workers) * rankOutMult(b);
+    }
+    return out;
+  },
+
+  waterForecast(s) {
+    const demand = Econ.waterDemand(s);
+    const supply = Econ.waterSupply(s);
+    const net = supply - demand;
+    const have = s.stock.water || 0;
+    if (net >= 0) {
+      return { net, demand, supply, secs: Infinity,
+               text: have > 0 ? 'water to spare' : 'no water banked, but supply covers the draw' };
+    }
+
+    const secs = have / (-net * Econ.M);
+    return { net, demand, supply, secs,
+             text: Math.round(secs) + 's of water left at this draw' };
+  },
+
+  waterTick(s, offline) {
+    const C = G.cache;
+    C.waterDraw = 0;
+    if (!Econ.tankActive(s)) return;
+    const want = Econ.waterDemand(s) * Econ.M;
+    if (want <= 0) return;
+    const use = Math.min(want, s.stock.water || 0);
+    s.stock.water -= use;
+    Econ.note('water', 0, use);
+    C.waterDraw = use;
+    C.waterShort = want - use;
+
+    if (!offline && !C.brownout) {
+      const cap = Econ.capOf(s, 'water');
+      const f = Econ.waterForecast(s);
+      if (f.net >= 0 && (s.stock.water || 0) > cap * 0.4) C.lowWaterTold = 0;
+      else if (!C.lowWaterTold && f.net < 0 && f.secs >= 5 && f.secs < 90) {
+        C.lowWaterTold = 1;
+        UI.toast('\u{1F4A7} THE TANK IS DRAINING — ' + Math.round(f.secs) + 's of water left. ' +
+          'You are drinking ' + (f.demand * TUNE.TEMPO).toFixed(0) + '/min and collecting ' +
+          (f.supply * TUNE.TEMPO).toFixed(0) + '/min. Turn on the Reservoir Ration at the Council House ' +
+          '(free, instant), MOTHBALL what you can spare, and add a source or a Chultun. ' +
+          'When it hits zero every aqueduct goes dark at once.', 15000);
+        Econ.log(s, '\u{1F4A7}', 'The tank began to run down — ' + Math.round(f.secs) + 's of water left.');
+      }
+    }
+
+    if (!offline) {
+      if ((s.stock.water || 0) > want * 3) C.dryTold = 0;
+      if ((s.stock.water || 0) <= 0 && !C.dryTold) {
+        C.dryTold = 1;
+        if (window.Sfx) Sfx.play('bell');
+        Econ.log(s, '\u{1F4A7}', 'The tank ran dry and the city browned out.');
+        UI.toast('\u{1F4A7} THE TANK IS EMPTY — every aqueduct has gone dark, and with it everything ' +
+          'that needs water. Your Milpas and Quarries keep working; nothing else does. MOTHBALL the ' +
+          'industry until the rains, turn on the Reservoir Ration, and build a Chultun or an Aguada ' +
+          'before the next dry season.', 16000);
+      }
+    }
+  },
+
   BASE_CAP: { grain: 'GRAIN_CAP', flour: 'FLOUR_CAP', stone: 'STONE_CAP', blocks: 'BLOCKS_CAP',
               clay: 'CLAY_CAP', pottery: 'POTTERY_CAP', wool: 'WOOL_CAP',
               cloth: 'CLOTH_CAP', beer: 'BEER_CAP',
               dates: 'DATES_CAP', fish: 'FISH_CAP', salt: 'SALT_CAP', reeds: 'REEDS_CAP',
               baskets: 'BASKETS_CAP', sesame: 'SESAME_CAP', oil: 'OIL_CAP',
-              dyedcloth: 'DYEDCLOTH_CAP', mudbrick: 'MUDBRICK_CAP' },
+              dyedcloth: 'DYEDCLOTH_CAP', mudbrick: 'MUDBRICK_CAP',
+              water: 'WATER_CAP', cacao: 'CACAO_CAP',
+              chocolate: 'CHOCOLATE_CAP', honey: 'HONEY_CAP',
+              deadwood: 'DEADWOOD_CAP', charcoal: 'CHARCOAL_CAP',
+              game: 'GAME_CAP', pemmican: 'PEMMICAN_CAP',
+              hide: 'HIDE_CAP', parka: 'PARKA_CAP', flint: 'FLINT_CAP',
+              blades: 'BLADES_CAP', bone: 'BONE_CAP', ochre: 'OCHRE_CAP',
+              carvings: 'CARVINGS_CAP', ivory: 'IVORY_CAP' },
 
   CRAFT_KINDS: ['clay', 'pottery', 'wool', 'cloth', 'beer', 'reeds', 'baskets',
-                'sesame', 'oil', 'dyedcloth', 'mudbrick', 'salt', 'dates', 'fish'],
+                'sesame', 'oil', 'dyedcloth', 'mudbrick', 'salt', 'dates', 'fish',
+                'cacao', 'chocolate',
+
+                'deadwood', 'charcoal', 'hide', 'parka', 'flint', 'blades',
+                'bone', 'ochre', 'carvings', 'ivory'],
 
   capOf(s, kind) {
     const m = subTier(s).storageMult;
     const base = TUNE[Econ.BASE_CAP[kind]] || 30;
-    if (kind === 'grain' || kind === 'flour') {
-      const key = kind === 'grain' ? 'storeGrain' : 'storeFlour';
+    if (kind === 'grain' || kind === 'flour' || kind === 'game' || kind === 'pemmican') {
+
+      const key = kind === 'grain' ? 'storeGrain' : kind === 'flour' ? 'storeFlour'
+                : kind === 'game' ? 'storeGame' : 'storePemmican';
       let extra = 0;
       for (const b of s.buildings) {
         const d = DEF(b.type);
@@ -1102,6 +1872,17 @@ const Econ = {
         if (!d || !d[key] || b.done === false || b.mothballed || (d.needsRoad && !b.conn)) continue;
         if (d.needsWater && !Grid.covered(G.cache.water, b)) continue;
         extra += d[key];
+      }
+      return Math.round(m * (base + extra));
+    }
+
+    if (kind === 'water') {
+      let extra = 0;
+      for (const b of s.buildings) {
+        const d = DEF(b.type);
+        if (!d || !d.storeWater || b.done === false) continue;
+        if (d.needsRoad && !b.conn) continue;
+        extra += d.storeWater;
       }
       return Math.round(m * (base + extra));
     }
@@ -1126,7 +1907,10 @@ const Econ = {
     s.stock[kind] += stored;
     const overflow = amt - stored;
     if (overflow > 0) {
-      if (s.holdAtCap && s.holdAtCap[kind]) {
+
+      if (TUNE.NO_EXPORT && TUNE.NO_EXPORT[kind]) {
+        Econ.note(kind, amt, 0, 0, overflow);
+      } else if (s.holdAtCap && s.holdAtCap[kind]) {
 
         Econ.note(kind, amt, 0, 0, overflow);
       } else {
@@ -1230,11 +2014,22 @@ const Econ = {
   },
   rentInfo(s) {
     const p = Econ.rentPoints(s);
+
+    const sec = standingSection(p.rp, s.era);
+    const at = standingThreshold(sec, s.era);
+    const next = standingThreshold(sec + 1, s.era);
+    const span = next - at;
     return {
       ...p,
       achievement: rentAchievement(p.rp, s.era),
       monthly: rentMonthly(s.era, s.hallLevel, s.subTier, p.rp),
       ceiling: RENT_MONTHLY[Util.clamp(s.era, 1, MAX_ERA)],
+      section: sec,
+      sections: STANDING_SECTIONS,
+      sectionAt: at,
+      nextAt: next,
+      toNext: isFinite(next) ? Math.max(0, next - p.rp) : 0,
+      progress: (isFinite(span) && span > 0) ? Util.clamp((p.rp - at) / span, 0, 1) : 1,
     };
   },
 
@@ -1307,17 +2102,18 @@ const Econ = {
   },
 
   importGrain(s) {
-    const cost = TUNE.IMPORT_GRAIN.units * TUNE.IMPORT_GRAIN.price;
+    const imp = eraImport(s.era);
+    const cost = TUNE.IMPORT_GRAIN.units * imp.price;
     if (s.money < cost) return false;
     s.money -= cost;
 
-    const space = Math.max(0, Econ.capOf(s, 'grain') - s.stock.grain);
+    const space = Math.max(0, Econ.capOf(s, imp.kind) - (s.stock[imp.kind] || 0));
     const stored = Math.min(TUNE.IMPORT_GRAIN.units, space);
-    s.stock.grain += stored;
+    s.stock[imp.kind] += stored;
     const overflow = TUNE.IMPORT_GRAIN.units - stored;
-    if (overflow > 0) s.money += overflow * TUNE.PRICES.grain * TUNE.EXPORT_MULT;
-    Econ.log(s, '\u{1F6B6}', 'A caravan sold the city ' + TUNE.IMPORT_GRAIN.units +
-      ' grain at $' + TUNE.IMPORT_GRAIN.price + ' a sack — four times the fair price.');
+    if (overflow > 0) s.money += overflow * TUNE.PRICES[imp.kind] * TUNE.EXPORT_MULT;
+    Econ.log(s, '\u{1F6B6}', imp.who + ' ' + TUNE.IMPORT_GRAIN.units + ' ' + imp.kind +
+      ' at $' + imp.price + ' a ' + imp.unit + ' — four times the fair price.');
     return cost;
   },
 

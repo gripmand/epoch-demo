@@ -5,7 +5,8 @@ const UI = {
   activeTab: 'infra',
 
   init() {
-    for (const id of ['money', 'net', 'rent', 'rent-rate', 'pop', 'workers', 'grain', 'flour', 'stone', 'blocks', 'cp', 'builders'])
+    for (const id of ['money', 'net', 'rent', 'rent-rate', 'pop', 'workers', 'grain', 'flour', 'stone', 'blocks',
+                      'water', 'season', 'fuel', 'cp', 'builders'])
       UI.els[id] = document.getElementById('hud-' + id);
     UI.els.era = document.getElementById('era-chip');
     UI.els.eraBar = document.getElementById('era-bar');
@@ -14,6 +15,9 @@ const UI = {
     UI.els.toasts = document.getElementById('toasts');
     UI.els.stoneChip = document.getElementById('chip-stone');
     UI.els.blocksChip = document.getElementById('chip-blocks');
+    UI.els.waterChip = document.getElementById('chip-water');
+    UI.els.seasonChip = document.getElementById('chip-season');
+    UI.els.fuelChip = document.getElementById('chip-fuel');
 
     UI.buildPalette();
 
@@ -126,14 +130,23 @@ const UI = {
 
     if (UI.activeTab === 'terra') {
       for (const t of TERRA_TOOLS) {
+
+        const lock = terraLocked(t.kind, G.s.era);
+        const cost = terraCost(t.kind, G.s.era);
         const btn = document.createElement('button');
         btn.className = 'pal-btn';
         btn.dataset.terra = t.kind;
-        btn.title = 'Paint ' + t.name.toLowerCase() + ' — $' + TUNE.TERRA[t.kind] + ' per tile. Drag to sculpt. Only on owned, empty land.';
+        if (lock) {
+          btn.disabled = true;
+          btn.classList.add('locked');
+          btn.title = 'Not in this age: ' + lock + '.';
+        } else {
+          btn.title = 'Paint ' + t.name.toLowerCase() + ' — $' + cost + ' per tile. Drag to sculpt. Only on owned, empty land.';
+        }
         btn.innerHTML = '<span class="pal-ico">' + t.icon + '</span>' +
           '<span class="pal-name">' + t.name + '</span>' +
-          '<span class="pal-cost">$' + TUNE.TERRA[t.kind] + '</span>';
-        btn.onclick = () => Input.setTool('terra', t.kind);
+          '<span class="pal-cost">' + (lock ? '\u{1F512}' : '$' + cost) + '</span>';
+        btn.onclick = () => { if (!lock) Input.setTool('terra', t.kind); };
         body.appendChild(btn);
       }
       UI.reflectTool();
@@ -146,11 +159,26 @@ const UI = {
       if (d.noBuild || d.fixed) continue;
       if ((d.tier || 'infra') !== UI.activeTab) continue;
       const era = d.era || 1;
+
+      if (era !== G.s.era && !d.universal) {
+
+        if (!(era > G.s.era && UI.showLocked)) continue;
+      }
       const locked = era > G.s.era;
       if (locked && !UI.showLocked) continue;
       if (UI.search && !(d.name + ' ' + (d.desc || '')).toLowerCase().includes(UI.search)) continue;
 
       const mon = d.monument ? monumentBuild(type, era) : null;
+
+      if (type === 'road') {
+        const rd = roadFor(G.s.era);
+        items.push({ type, d, era: G.s.era, locked: false, mon,
+                     nameOverride: 'Road',
+                     labelOverride: 'Road <span class="gold-dim">\u{00B7} ' +
+                       UI.esc(rd.flavour) + '</span>',
+                     descOverride: rd.desc });
+        continue;
+      }
       items.push({ type, d, era, locked, mon });
     }
     items.sort((a, b) => a.era - b.era || a.d.name.localeCompare(b.d.name));
@@ -172,7 +200,10 @@ const UI = {
     }
 
     let lastEra = null;
-    for (const { type, d, era, locked, mon } of items) {
+    for (const { type, d, era, locked, mon, nameOverride, labelOverride, descOverride } of items) {
+      const shownName = nameOverride || d.name;
+      const shownLabel = labelOverride || UI.esc(shownName);
+      const shownDesc = descOverride || d.desc;
       if (era !== lastEra) {
         lastEra = era;
         body.appendChild(UI.el('div', 'pal-era', 'Era ' + era + ' · ' + ERAS[era - 1].name));
@@ -186,15 +217,15 @@ const UI = {
         : mon
           ? '$' + d.cost + ' lays the foundation. Your city then delivers ' + bill +
             ' over time — it earns nothing until it is finished.'
-          : (d.desc || '') + (d.upkeep ? '  (upkeep $' + (d.upkeep * TUNE.TEMPO).toFixed(2) + '/min)' : '');
+          : (shownDesc || '') + (d.upkeep ? '  (upkeep $' + (d.upkeep * TUNE.TEMPO).toFixed(2) + '/min)' : '');
       const cost = locked ? '\u{1F512} E' + era : '$' + d.cost + (mon ? '+' : '');
       btn.innerHTML = '<span class="pal-ico">' + (d.icon || '─') + '</span>' +
-        '<span class="pal-name">' + d.name + '</span>' +
+        '<span class="pal-name">' + shownLabel + '</span>' +
         '<span class="pal-cost">' + cost + '</span>';
       btn.onclick = () => {
 
         const devFree = window.Dev && Dev.flags.freeBuild;
-        if (locked && !devFree) { UI.toast('\u{1F512} ' + d.name + ' unlocks in Era ' + era + ' — ' + ERAS[era - 1].name + '.'); return; }
+        if (locked && !devFree) { UI.toast('\u{1F512} ' + shownName + ' unlocks in Era ' + era + ' — ' + ERAS[era - 1].name + '.'); return; }
         Input.setTool(type === 'road' ? 'road' : 'build', type);
       };
       body.appendChild(btn);
@@ -294,13 +325,14 @@ const UI = {
   },
 
   themeFor(era) {
-    if (era <= 1) return 'anunnaki';
-    if (era === 2) return 'egypt';
-    if (era <= 4) return 'jungle';
-    if (era <= 6) return 'classical';
-    if (era <= 8) return 'medieval';
-    if (era === 9) return 'industrial';
-    if (era <= 11) return 'modern';
+    if (era <= 4) return 'anunnaki';
+    if (era <= 9) return 'egypt';
+    if (era <= 13) return 'classical';
+    if (era <= 14) return 'jungle';
+    if (era <= 27) return 'medieval';
+    if (era <= 29) return 'classical';
+    if (era <= 32) return 'industrial';
+    if (era <= 34) return 'modern';
     return 'cosmic';
   },
 
@@ -311,6 +343,8 @@ const UI = {
     blocked: 'Your housing has no road access or no water, so nobody will move in.',
     hungry: 'The city is hungry, so nobody new is arriving. Residents will hold on for up to ' +
             TUNE.STARVE_MINUTES + ' minutes — build a Farm and a Mill before then.',
+    cold: 'The camp is freezing, so nobody new is arriving. Feed the fires — cut wood, burn bone, ' +
+          'stop selling charcoal — and cover every home with a hearth circle.',
   },
 
   BUILD: '2026-07-28.6-depthwave',
@@ -356,23 +390,28 @@ const UI = {
     if (UI.els.builders) UI.els.builders.parentElement.style.display = 'none';
 
     const ri = Econ.rentInfo(s);
-    const perSec = ri.monthly / 30 / 86400;
-    const dec = perSec > 0 ? Util.clamp(Math.ceil(-Math.log10(perSec)) + 1, 8, 12) : 8;
-    const rentTxt = s.realRent.toFixed(dec);
-
-    const lead = rentTxt.match(/^0\.0*/);
-    UI.els.rent.innerHTML = (lead && lead[0].length < rentTxt.length)
-      ? '<span class="rent-dim">$' + lead[0] + '</span>' + rentTxt.slice(lead[0].length)
-      : '$' + rentTxt;
-
+    UI.els.rent.innerHTML = '<span class="rent-dim">Standing </span>' + ri.section +
+      '<span class="rent-dim"> / ' + ri.sections + '</span>';
     UI.els.rent.classList.remove('locked-rent');
-    if (UI.els['rent-rate']) UI.els['rent-rate'].style.display = 'none';
+    const rateEl = UI.els['rent-rate'];
+    if (rateEl) {
+      if (ri.section >= ri.sections) {
+        rateEl.style.display = '';
+        rateEl.textContent = 'this age is fully built';
+      } else {
+        rateEl.style.display = '';
+        rateEl.textContent = '+' + Math.ceil(ri.toNext) + ' to ' + (ri.section + 1);
+      }
+    }
 
     const rentChip = UI.els.rent.parentElement;
     if (rentChip) {
-      rentChip.title = 'Real money, accruing every second from your Town Hall — ' +
-        '$' + ri.monthly.toFixed(ri.monthly < 0.01 ? 6 : 2) + ' per month at this city\'s size. ' +
-        'It only ever goes up. Click the Town Hall for how it is earned.';
+      rentChip.title = 'City standing — section ' + ri.section + ' of ' + ri.sections +
+        ' for this age. ' + Math.round(ri.rp) + ' points from ' + ri.working +
+        ' working buildings and ' + ri.monuments + ' monument' +
+        (ri.monuments === 1 ? '' : 's') +
+        (ri.idle ? ', with ' + ri.idle + ' idle and earning nothing' : '') +
+        '. Click the Town Hall for how it is earned.';
     }
 
     UI.els.pop.textContent = Game.totalResidents(s) + ' / ' + Game.totalCapacity(s);
@@ -393,29 +432,42 @@ const UI = {
       wchip.onclick = () => UI.togglePanel('workers-panel', UI.workersHTML);
     }
 
-    UI.els.grain.textContent = Util.fmtNum(s.stock.grain) + ' / ' + Econ.capOf(s, 'grain');
-    UI.els.flour.textContent = Util.fmtNum(s.stock.flour) + ' / ' + Econ.capOf(s, 'flour');
+    const ice = Econ.hearthActive(s);
+    const RAW = ice ? 'game' : 'grain', COOKED = ice ? 'pemmican' : 'flour';
+    const gIco = UI.els.grain.parentElement && UI.els.grain.parentElement.querySelector('.res-ico');
+    const fIco = UI.els.flour.parentElement && UI.els.flour.parentElement.querySelector('.res-ico');
+    if (gIco) gIco.textContent = ice ? '\u{1F98C}' : '\u{1F33E}';
+    if (fIco) fIco.textContent = ice ? '\u{1F356}' : '\u{1F35E}';
+    UI.els.grain.textContent = Util.fmtNum(s.stock[RAW] || 0) + ' / ' + Econ.capOf(s, RAW);
+    UI.els.flour.textContent = Util.fmtNum(s.stock[COOKED] || 0) + ' / ' + Econ.capOf(s, COOKED);
 
     if (lit) {
-      const made = (C.tally.flour && C.tally.flour.made) || 0;
+      const made = (C.tally[COOKED] && C.tally[COOKED].made) || 0;
       const demandMin = Game.totalResidents(s) * TUNE.FLOUR_PER_RESIDENT * TUNE.TEMPO;
       const fchip = UI.els.flour.parentElement;
       if (fchip) {
         const bal = made - demandMin;
-        fchip.title = 'Flour: milled +' + Util.fmtNum(made) + '/min · eaten −' + Util.fmtNum(demandMin) +
+        fchip.title = (ice ? 'Pemmican: dried +' : 'Flour: milled +') + Util.fmtNum(made) +
+          '/min · eaten −' + Util.fmtNum(demandMin) +
           '/min → ' + (bal >= 0 ? 'surplus +' : 'SHORT −') + Util.fmtNum(Math.abs(bal)) + '/min' +
-          (bal < 0 ? '. Each craft chain adds ~7 mouths and no flour — add farms and a mill, or food from dates and fish.' : '');
+          (bal < 0 ? (ice
+            ? '. Every chain adds mouths and no meat — add Reindeer Drives and a Drying Rack, or fish the ice.'
+            : '. Each craft chain adds ~7 mouths and no flour — add farms and a mill, or food from dates and fish.') : '');
         fchip.classList.toggle('bad', bal < -0.05 && demandMin > 0);
       }
       const gchip = UI.els.grain.parentElement;
-      if (gchip && C.grainDrawAvg) {
+      if (gchip && ice) {
+        const made2 = (C.tally.game && C.tally.game.made) || 0;
+        gchip.title = 'Game: +' + Util.fmtNum(made2) + '/min from the drives and the hunts — ' +
+          'the Drying Rack and the Hide Frames both draw on it, and only one of them feeds anyone';
+      } else if (gchip && C.grainDrawAvg) {
         const gd = C.grainDrawAvg;
         const made2 = (C.tally.grain && C.tally.grain.made) || 0;
         gchip.title = 'Grain: +' + Util.fmtNum(made2) + '/min from fields · mills −' + Util.fmtNum(gd.mill) +
           ' · breweries −' + Util.fmtNum(gd.brewery) +
           (gd.oxen > 0.01 ? ' · oxen −' + Util.fmtNum(gd.oxen) : '') +
           (gd.dole > 0.01 ? ' · the dole −' + Util.fmtNum(gd.dole) : '') +
-          (s.policyFeedFirst !== false ? ' — mills eat first (Bread before beer is ON)' : ' — draw is placement order (policy OFF)');
+          ' — mills always draw before breweries';
       }
     }
 
@@ -467,7 +519,7 @@ const UI = {
       if (UI._migStrip) UI._migStrip.style.display = 'none';
     }
 
-    const showStone = s.era >= 3;
+    const showStone = s.era >= 5;
     UI.els.stoneChip.classList.toggle('hidden', !showStone);
     UI.els.blocksChip.classList.toggle('hidden', !showStone);
     UI.els.stoneChip.style.display = showStone ? '' : 'none';
@@ -477,19 +529,79 @@ const UI = {
       UI.els.blocks.textContent = Util.fmtNum(s.stock.blocks) + ' / ' + Econ.capOf(s, 'blocks');
     }
 
+    const showTank = Econ.tankActive(s);
+    if (UI.els.waterChip) {
+      UI.els.waterChip.classList.toggle('hidden', !showTank);
+      UI.els.waterChip.style.display = showTank ? '' : 'none';
+    }
+    if (UI.els.seasonChip) {
+      UI.els.seasonChip.classList.toggle('hidden', !showTank);
+      UI.els.seasonChip.style.display = showTank ? '' : 'none';
+    }
+    if (showTank && UI.els.water) {
+      const cap = Econ.capOf(s, 'water');
+      const f = Econ.waterForecast(s);
+      const have = s.stock.water || 0;
+      let txt = Util.fmtNum(have) + ' / ' + cap;
+      if (have <= 0) txt += ' · DARK';
+      else if (f.secs !== Infinity) txt += ' · ' + Math.round(f.secs) + 's';
+      else txt += ' · +' + f.net.toFixed(1) + '/min';
+      UI.els.water.textContent = txt;
+
+      const phase = G.cache.seasonPhase;
+      const short = have <= 0 ||
+        (f.secs !== Infinity && phase === 'dry' && f.secs < (G.cache.seasonLeft || 0));
+      UI.els.waterChip.classList.toggle('bad', have <= 0);
+      UI.els.waterChip.classList.toggle('warn', !(have <= 0) && short);
+
+      if (UI.els.season) {
+        const lbl = Econ.SEASON_LABEL[phase] || '—';
+        UI.els.season.textContent = lbl + ' · ' + Math.round(G.cache.seasonLeft || 0) + 's' +
+          (s.policyRation ? ' · RATIONED' : '');
+        UI.els.seasonChip.classList.toggle('warn', phase === 'dry');
+      }
+    }
+
+    const showFire = Econ.hearthActive(s);
+    if (UI.els.fuelChip) {
+      UI.els.fuelChip.classList.toggle('hidden', !showFire);
+      UI.els.fuelChip.style.display = showFire ? '' : 'none';
+    }
+    if (showFire && UI.els.fuel) {
+      const f = Econ.warmForecast(s);
+      let txt = Util.fmtNum(f.have);
+      if (G.cache.dark) txt += ' · DARK';
+      else if (f.secs !== Infinity && f.secs < 3600) txt += ' · ' + Math.round(f.secs) + 's';
+      UI.els.fuel.textContent = txt;
+      UI.els.fuelChip.classList.toggle('bad', !!G.cache.dark || (s.chill || 0) >= TUNE.COLD.warnAt);
+      UI.els.fuelChip.classList.toggle('warn', !G.cache.dark && f.secs < 120);
+      UI.els.fuelChip.title = 'Fuel in delivered warmth (wood ×1, bone ×1, charcoal ×3): ' +
+        Util.fmtNum(f.have) + '. The fires draw ' + (f.demand * TUNE.TEMPO).toFixed(1) +
+        '/min — ' + (f.secs === Infinity ? 'no draw yet' : Math.round(f.secs) + 's of fire left') +
+        ((s.chill || 0) > 0.02 ? '. CHILL at ' + Math.round(s.chill * 100) + '% — people freeze out at 100%.' : '.');
+    }
+
     const era = ERAS[s.era - 1];
     const ready = Econ.eraReady(s);
     UI.els.era.classList.toggle('ready', ready);
+
     UI.els.era.querySelector('.era-name').textContent =
-      ready ? '⬆ Era ' + (s.era + 1) + ' READY — click!' : 'Era ' + s.era + ' · ' + era.name;
-    if (s.era >= MAX_ERA) UI.els.eraBar.style.width = '100%';
+      ready ? '⬆ THE AGE CAN TURN — click' : 'Era ' + s.era + ' · ' + era.name;
+
+    if (!Econ.nextEra(s)) UI.els.eraBar.style.width = '100%';
     else {
       const r = eraReq(s.era + 1);
+
+      const base = s.eraBase || {};
+      const site = s.buildings.find(b => DEF(b.type) && DEF(b.type).monument && (DEF(b.type).era || 1) === s.era);
+      const monFrac = Econ.monumentDone(s, s.era) ? 1
+        : (site ? (Econ.monumentProgress(s, site) || {}).frac || 0 : 0);
       const f = Math.min(
         Game.totalResidents(s) / r.pop,
         Math.max(0, s.money) / r.money,
-        s.cum.flour / r.food,
-        r.stone ? s.cum.stone / r.stone : 1
+        Math.max(0, s.cum.flour - (base.flour || 0)) / r.food,
+        r.stone ? Math.max(0, s.cum.stone - (base.stone || 0)) / r.stone : 1,
+        monFrac
       );
       UI.els.eraBar.style.width = Math.round(Math.min(1, f) * 100) + '%';
     }
@@ -577,12 +689,21 @@ const UI = {
   statusText(b) {
     const M = {
       ok: ['RUNNING', 'good'], no_road: ['NO ROAD to Town Hall', 'bad'],
-      no_water: ['NO WATER coverage', 'bad'], no_power: ['NO POWER', 'bad'],
+
+      no_water: [G.cache.brownout ? 'BROWNED OUT — the tank is empty' : 'NO WATER coverage', 'bad'],
+      no_power: ['NO POWER', 'bad'],
+
+      no_warmth: [G.cache.dark ? 'THE FIRES ARE DARK — no fuel' : 'OUTSIDE every hearth circle', 'bad'],
+      stand_spent: ['STAND SPENT — the ground is ash. Demolish and move on', 'warn'],
       no_staff: ['NO WORKERS available', 'bad'], understaffed: ['UNDERSTAFFED', 'warn'],
       no_input: ['NO INPUT in stock', 'bad'], no_customers: ['NOT ENOUGH CUSTOMERS', 'bad'],
       hungry: ['RESIDENTS HUNGRY', 'bad'],
 
       resting: ['RESTING — ground recovering', 'warn'],
+
+      flooded: ['UNDER THE FLOOD — renewing', 'warn'],
+
+      dry_season: ['THE DRY — collecting nothing', 'warn'],
       halted: ['HALTED — deliveries paused', 'warn'],
       building: ['UNDER CONSTRUCTION', 'warn'],
     };
@@ -849,19 +970,95 @@ const UI = {
       rows += '<div class="insp-row"><span>Chapter</span><span class="gold">' + s.hallLevel + ' / ' + MAX_ERA + '</span></div>';
       rows += '<div class="insp-row"><span>Income floor</span><span class="good">+$' +
         (HALLS[s.hallLevel].trickle * TUNE.TEMPO).toFixed(1) + '/min</span></div>';
-      const tier = subTier(s);
-      const ri = Econ.rentInfo(s);
-      rows += '<div class="insp-row"><span>Account</span><span class="' + (tier.key === 'free' ? '' : 'gold') + '">' + tier.name + '</span></div>';
-      rows += '<div class="insp-row"><span>Rent points</span><span>' + Math.round(ri.rp) +
-        ' <span class="gold-dim">(' + ri.monuments + ' monument' + (ri.monuments === 1 ? '' : 's') + ', ' + ri.working + ' working)</span></span></div>';
-      rows += '<div class="insp-row"><span>Era earning cap</span><span>' + Math.round(ri.achievement * 100) + '% of $' + ri.ceiling.toFixed(2) + '/mo</span></div>';
-      if (ri.idle) rows += '<div class="insp-row"><span>Idle buildings</span><span class="bad">' + ri.idle + ' earning nothing</span></div>';
-      rows += '<div class="insp-row"><span>Real rent</span><span class="gold">$' + ri.monthly.toFixed(3) + '/month</span></div>';
-      if (tier.key === 'free') {
-        rows += '<div class="insp-row"><span>Withdrawable</span><span class="bad">No — Settler accounts accrue only</span></div>';
-        rows += '<div class="insp-row"><span>As a Citizen</span><span class="good">$' + rentMonthly(s.era, s.hallLevel, 'citizen', ri.rp).toFixed(2) + '/month, withdrawable</span></div>';
+
+      if (G.cache.nilePhase) {
+        const ph = G.cache.nilePhase;
+        const left = Math.max(0, Math.round(G.cache.nileLeft || 0));
+        rows += '<div class="insp-row"><span>The year</span><span class="' +
+          (ph === 'akhet' ? 'warn' : ph === 'peret' ? 'good' : '') + '">' +
+          UI.esc(Econ.NILE_LABEL[ph]) + ' <span class="gold-dim">(' + left + 's left)</span></span></div>';
+        rows += '<div class="insp-row insp-note"><span>' +
+          (ph === 'akhet' ? 'Fields in reach of the river are under water and growing nothing — and will come out on fresh silt. The granary is what the city eats.'
+           : ph === 'peret' ? 'The silt is new: +' + Math.round(TUNE.NILE.peretBonus * 100) + '% grain while it lasts.'
+           : 'The ground is drying and the salt clock is running. Fill the granary before the river returns.') +
+          '</span></div>';
       }
-      rows += '<div class="insp-row"><span>Real rent accrued</span><span class="gold">$' + s.realRent.toFixed(8) + '</span></div>';
+
+      if (Econ.hearthActive(s)) {
+        const f = Econ.warmForecast(s);
+        rows += '<div class="insp-row"><span>The fires</span><span class="' +
+          (G.cache.dark ? 'bad' : 'good') + '">' + (G.cache.dark ? 'DARK — no fuel' : 'lit') + '</span></div>';
+        rows += '<div class="insp-row"><span>Fuel (warmth)</span><span>' + Util.fmtNum(f.have) +
+          ' <span class="gold-dim">(wood ×1 · bone ×1 · charcoal ×3)</span></span></div>';
+        rows += '<div class="insp-row"><span>Draw</span><span class="bad">−' +
+          (f.demand * TUNE.TEMPO).toFixed(1) + '/min' +
+          (f.secs !== Infinity ? ' <span class="gold-dim">(' + Math.round(f.secs) + 's of fire left)</span>' : '') +
+          '</span></div>';
+        rows += '<div class="insp-row"><span>Chill</span><span class="' +
+          ((s.chill || 0) >= TUNE.COLD.warnAt ? 'bad' : (s.chill || 0) >= TUNE.COLD.stopGrowth ? 'warn' : 'good') + '">' +
+          Math.round((s.chill || 0) * 100) + '%</span></div>';
+        const herds = (s.herds || []).length;
+        rows += '<div class="insp-row"><span>On the steppe</span><span>' + herds +
+          ' animal' + (herds === 1 ? '' : 's') +
+          (s.hunt ? ' <span class="gold-dim">· a hunt is out (' + Math.max(0, s.hunt.left) + 's)</span>' : '') +
+          '</span></div>';
+        rows += '<div class="insp-row insp-note"><span>' +
+          (G.cache.dark
+            ? 'Everything inside the hearth circles is stopped. The Cutters, Drives, Weirs and Quarries keep working — feed the fires with what they bring in.'
+            : 'The fire eats before everything else. Half of what the Clamp makes is warmth and half is money, and choosing the split every minute is the age.') +
+          '</span></div>';
+      }
+
+      if (G.cache.seasonPhase) {
+        const ph = G.cache.seasonPhase;
+        const left = Math.max(0, Math.round(G.cache.seasonLeft || 0));
+        const f = Econ.waterForecast(s);
+        rows += '<div class="insp-row"><span>The year</span><span class="' +
+          (ph === 'dry' ? 'warn' : 'good') + '">' + UI.esc(Econ.SEASON_LABEL[ph]) +
+          ' <span class="gold-dim">(' + left + 's left)</span></span></div>';
+        rows += '<div class="insp-row"><span>The tank</span><span class="' +
+          ((s.stock.water || 0) <= 0 ? 'bad' : '') + '">' + Util.fmtNum(s.stock.water || 0) +
+          ' / ' + Econ.capOf(s, 'water') + '</span></div>';
+        rows += '<div class="insp-row"><span>Collected</span><span class="good">+' +
+          (f.supply * TUNE.TEMPO).toFixed(1) + '/min</span></div>';
+        rows += '<div class="insp-row"><span>Drunk</span><span class="bad">−' +
+          (f.demand * TUNE.TEMPO).toFixed(1) + '/min' +
+          (s.policyRation ? ' <span class="gold-dim">(rationed)</span>' : '') + '</span></div>';
+        rows += '<div class="insp-row"><span>' + (f.net >= 0 ? 'Filling' : 'Draining') + '</span><span class="' +
+          (f.net >= 0 ? 'good' : 'warn') + '">' + (f.net >= 0 ? '+' : '') +
+          (f.net * TUNE.TEMPO).toFixed(1) + '/min' +
+          (f.secs !== Infinity ? ' <span class="gold-dim">(' + Math.round(f.secs) + 's of water left)</span>' : '') +
+          '</span></div>';
+        rows += '<div class="insp-row insp-note"><span>' +
+          ((s.stock.water || 0) <= 0
+            ? 'The aqueducts are dark. Milpas and Quarries keep working; everything else is stopped. Mothball the industry, ration the reservoirs, and buy capacity before the next dry.'
+           : ph === 'dry'
+            ? 'Only the cenotes are still collecting. Everything else is a roof, and it is not raining.'
+            : 'The courts and reservoirs are collecting. Buy tank now — capacity is worthless in the rains and everything in the dry.') +
+          '</span></div>';
+      }
+
+      const invN = (s.relics || []).length;
+      const standN = s.buildings.filter(b => b.relic).length;
+      if (invN || standN) {
+        rows += '<div class="insp-row"><span>The dynasty</span><span class="' + (invN ? 'warn' : 'good') + '">' +
+          (invN ? invN + ' monument' + (invN === 1 ? '' : 's') + ' waiting to be placed'
+                : standN + ' monument' + (standN === 1 ? '' : 's') + ' standing') + '</span></div>';
+      }
+      const ri = Econ.rentInfo(s);
+      rows += '<div class="insp-row"><span>City standing</span><span class="gold">Section ' +
+        ri.section + ' of ' + ri.sections + '</span></div>';
+      rows += '<div class="insp-row"><span>Standing points</span><span>' + Math.round(ri.rp) +
+        ' <span class="gold-dim">(' + ri.monuments + ' monument' + (ri.monuments === 1 ? '' : 's') + ', ' + ri.working + ' working)</span></span></div>';
+      if (ri.section < ri.sections) {
+        rows += '<div class="insp-row"><span>Next section at</span><span>' + Math.round(ri.nextAt) +
+          ' <span class="gold-dim">(' + Math.ceil(ri.toNext) + ' more · ' +
+          Math.round(ri.progress * 100) + '% of the way)</span></span></div>';
+      } else {
+        rows += '<div class="insp-row"><span>Next section</span><span class="good">none — this age is fully built</span></div>';
+      }
+
+      if (ri.idle) rows += '<div class="insp-row"><span>Idle buildings</span><span class="bad">' + ri.idle + ' contributing nothing</span></div>';
 
       const why = G.cache.migrateWhy || 'nohouse';
       const okNow = why === 'ok';
@@ -983,7 +1180,8 @@ const UI = {
       if (!n) {
         buttons += '<button class="btn-gold" disabled>Final chapter reached</button>';
       } else if (n.locked === 'era') {
-        buttons += '<button class="btn-gold" disabled>\u{1F512} Reach Era ' + (s.era + 1) + ' for the next chapter</button>';
+
+        buttons += '<button class="btn-gold" disabled>\u{1F512} Turn the age to unlock the next chapter</button>';
       } else {
         const ok = s.money >= n.money;
         buttons += '<button id="insp-hallup" class="btn-gold" ' + (ok ? '' : 'disabled') + '>Upgrade to chapter ' +
@@ -991,32 +1189,75 @@ const UI = {
           rentMonthly(s.era, n.level, s.subTier).toFixed(2) + '/mo rent</small></button>';
       }
 
-      const impCost = TUNE.IMPORT_GRAIN.units * TUNE.IMPORT_GRAIN.price;
+      const imp = eraImport(s.era);
+      const impCost = TUNE.IMPORT_GRAIN.units * imp.price;
       buttons += '<button id="insp-import" class="btn-primary" ' + (s.money >= impCost ? '' : 'disabled') +
-        ' title="Grain lists at $' + TUNE.PRICES.grain + ' and exports at $' +
-        (TUNE.PRICES.grain * TUNE.EXPORT_MULT).toFixed(2) + ' — importing costs $' + TUNE.IMPORT_GRAIN.price +
-        ' a sack. Ruinous on purpose: it is a famine valve, not a strategy.">' +
-        '\u{1F6B6} Import ' + TUNE.IMPORT_GRAIN.units + ' grain — ' + Util.fmtMoney(impCost) + '</button>';
-      const fc = Econ.festivalCost(s);
-      const fRunning = s.festival && s.festival.left > 0;
-      const fOk = !fRunning && (s.stock.beer || 0) >= fc.beer && (s.stock.cloth || 0) >= fc.cloth;
-      buttons += '<button id="insp-festival" class="btn-primary" ' + (fOk ? '' : 'disabled') +
-        ' title="Pour out the city\'s beer and cloth: hunger drops by ' + Math.round(TUNE.FESTIVAL.hungerDrop * 100) +
-        ' points at once and settlers arrive at ' + TUNE.FESTIVAL.migMult + '× until ' + TUNE.FESTIVAL.settlers +
-        ' newcomers have come. Count-based — no timer.">' +
-        (fRunning ? '\u{1F37A} Festival running — ' + s.festival.left + ' guests still on the road'
-                  : '\u{1F37A} Festival of Ninkasi — ' + fc.beer + ' beer + ' + fc.cloth + ' cloth') + '</button>';
+        ' title="' + (imp.kind.charAt(0).toUpperCase() + imp.kind.slice(1)) + ' lists at $' + TUNE.PRICES[imp.kind] + ' and exports at $' +
+        (TUNE.PRICES[imp.kind] * TUNE.EXPORT_MULT).toFixed(2) + ' — importing costs $' + imp.price +
+        ' a ' + imp.unit + '. Ruinous on purpose: it is a famine valve, not a strategy.">' +
+        '\u{1F6B6} Import ' + TUNE.IMPORT_GRAIN.units + ' ' + imp.kind + ' — ' + Util.fmtMoney(impCost) + '</button>';
+      if (rungOf(s.era) === 4) {
+        const fc = Econ.festivalCost(s);
+        const fRunning = s.festival && s.festival.left > 0;
+        const fOk = !fRunning && (s.stock.beer || 0) >= fc.beer && (s.stock.cloth || 0) >= fc.cloth;
+        buttons += '<button id="insp-festival" class="btn-primary" ' + (fOk ? '' : 'disabled') +
+          ' title="Pour out the city\'s beer and cloth: hunger drops by ' + Math.round(TUNE.FESTIVAL.hungerDrop * 100) +
+          ' points at once and settlers arrive at ' + TUNE.FESTIVAL.migMult + '× until ' + TUNE.FESTIVAL.settlers +
+          ' newcomers have come. Count-based — no timer.">' +
+          (fRunning ? '\u{1F37A} Festival running — ' + s.festival.left + ' guests still on the road'
+                    : '\u{1F37A} Festival of Ninkasi — ' + fc.beer + ' beer + ' + fc.cloth + ' cloth') + '</button>';
+      }
       const pol = (id, on, name, tip) =>
         '<button id="' + id + '" class="btn-plain" title="' + tip + '">' +
         (on ? '☑' : '☐') + ' ' + name + '</button>';
-      buttons += pol('insp-pol-feed', s.policyFeedFirst !== false, 'Bread before beer',
-        'ON: mills draw grain before breweries every tick, whatever order they were built in. OFF: draw is placement order.');
-      buttons += pol('insp-pol-ration', !!s.policyRationLaw, 'Ration Law',
-        'While hunger is at or past 50%, the flour chain staffs FIRST — the temple commandeers labour for bread.');
-      buttons += pol('insp-pol-beer', !!s.policyBeerRation, 'Beer Ration Decree',
-        'The city drinks ' + (TUNE.BEER_RATION.perResident * TUNE.TEMPO).toFixed(1) +
-        ' beer per resident per minute and every building works +' +
-        Math.round(TUNE.BEER_RATION.bonus * 100) + '%. Stops the moment the beer runs dry.');
+
+      const ep = eraPolicy(s.era);
+      if (ep) {
+        buttons += pol('insp-pol-era', !!s[ep.key], ep.icon + ' ' + ep.name, ep.tip);
+
+        if (s[ep.key]) {
+
+          if (G.cache.ration) {
+            const f = Econ.waterForecast(s);
+            buttons += '<div class="insp-row"><span>' + UI.esc(ep.name) + '</span><span class="good">' +
+              'saving ' + (Econ.waterDemand(s) / (1 - TUNE.RATION.drawCut) * TUNE.RATION.drawCut * TUNE.TEMPO).toFixed(1) +
+              ' water/min for −' + Math.round(TUNE.RATION.slow * 100) + '% work' +
+              (f.secs !== Infinity ? ' <span class="gold-dim">(' + Math.round(f.secs) + 's left)</span>' : '') +
+              '</span></div>';
+          } else {
+            const live = (G.cache.beerBonus || 0) > 0;
+            buttons += '<div class="insp-row"><span>' + UI.esc(ep.name) + '</span><span class="' +
+              (live ? 'good' : 'gold-dim') + '">' +
+              (live ? 'paying +' + Math.round(G.cache.beerBonus * 100) + '% now'
+                    : ep.key === 'policyCorvee' ? 'idle — waits for the flood' : 'idle — nothing to ration')
+              + '</span></div>';
+          }
+        }
+      }
+    }
+
+    if (DEF(b.type).huntBase) {
+      if (s.hunt) {
+        buttons += '<button class="btn-primary" disabled>\u{1F3F9} The hunt is out — ' +
+          Math.max(0, s.hunt.left) + 's · ' + s.hunt.party + ' hunters after the ' +
+          Econ.HERD_NAMES[s.hunt.kind] + '</button>';
+      } else {
+        const t = Econ.nearestHerd(s, b);
+        if (!t) {
+          buttons += '<button class="btn-primary" disabled>\u{1F3F9} No herd within ' +
+            TUNE.HUNT.range + ' tiles — watch the steppe</button>';
+        } else {
+          const odds = Econ.huntOdds(s, t.herd, t.dist);
+          const cat = Econ.sabertoothNear(s, t.herd);
+          buttons += '<button id="insp-hunt" class="btn-gold" title="' + TUNE.HUNT.party +
+            ' hunters leave your labour pool for ' + TUNE.HUNT.ticks + 's. They can DIE out there — ' +
+            'a failed hunt is more dangerous than a successful one, and a shadowing sabertooth is ' +
+            'more dangerous than both.">' +
+            '\u{1F3F9} Send the hunt — ' + Econ.HERD_NAMES[t.herd.kind] + ', ' + Math.round(t.dist) +
+            ' tiles · odds ' + Math.round(odds * 100) + '%' + (cat ? ' · \u{1F405} SHADOWED' : '') +
+            '</button>';
+        }
+      }
     }
 
     if (b.type === 'templeGranary') {
@@ -1028,11 +1269,11 @@ const UI = {
         ' (' + TUNE.RESERVE_POLICY[next] + ' min)</button>';
     }
     const up = UPGRADES[b.type];
-    if (up) {
-      const unlocked = s.era >= up.era;
-      const can = unlocked && s.money >= up.cost;
+
+    if (up && s.era >= up.era) {
+      const can = s.money >= up.cost;
       buttons += '<button id="insp-upgrade" class="btn-primary" ' + (can ? '' : 'disabled') + '>' +
-        (unlocked ? 'Upgrade → ' + up.label + ' ($' + up.cost + ')' : '\u{1F512} ' + up.label + ' — Era ' + up.era) + '</button>';
+        'Upgrade → ' + up.label + ' ($' + up.cost + ')</button>';
     }
 
     if (rankUpgradable(d)) {
@@ -1115,8 +1356,18 @@ const UI = {
         ? '<button id="insp-rest-all" class="btn-plain">\u{1F4A4} Rest ALL ' + fields.length + ' fields</button>'
         : '<button id="insp-rest-all" class="btn-gold">\u{1F33E} Resume ALL ' + fields.length + ' fields</button>';
     }
-    if (!d.fixed && b.type !== 'road') {
-      buttons += '<button id="insp-move" class="btn-primary">\u{1F4E6} Move building</button>';
+
+    if (b.type !== 'road') {
+      buttons += '<button id="insp-move" class="btn-primary">\u{1F4E6} Move ' +
+        (d.fixed ? UI.esc(anchorFor(G.s.era).name) : 'building') + '</button>';
+    }
+
+    if (d.fixed) {
+      const nInv = (s.relics || []).length;
+      const nAll = nInv + s.buildings.filter(x => x.relic).length;
+      buttons += '<button id="insp-dynasty" class="' + (nInv ? 'btn-gold' : 'btn-plain') + '">' +
+        '\u{1F3DB}\u{FE0F} The Dynasty' + (nAll ? ' (' + nAll + ')' : '') +
+        (nInv ? ' — ' + nInv + ' to place' : '') + '</button>';
     }
 
     if (b.type !== 'road') {
@@ -1153,6 +1404,13 @@ const UI = {
       if (!Econ.startHall(s)) return;
       UI.toast('\u{1F3DB}️ Town Hall is now chapter ' + s.hallLevel + ' — income floor and rent both raised.', 9000);
       UI.showInspector(b);
+    };
+    const huntBtn = document.getElementById('insp-hunt');
+    if (huntBtn) huntBtn.onclick = () => {
+      const err = Econ.launchHunt(s, b);
+      if (err) UI.toast('\u{1F3F9} ' + err + '.', 8000);
+      UI.showInspector(b);
+      UI.updateHUD(s);
     };
     const ug = document.getElementById('insp-upgrade');
     if (ug) ug.onclick = () => {
@@ -1228,9 +1486,15 @@ const UI = {
         UI.showInspector(b);
       };
     };
-    wirePol('insp-pol-feed', 'policyFeedFirst', 'Bread before beer');
-    wirePol('insp-pol-ration', 'policyRationLaw', 'The Ration Law');
-    wirePol('insp-pol-beer', 'policyBeerRation', 'The Beer Ration Decree');
+    const epw = eraPolicy(G.s.era);
+    if (epw) {
+      const el = document.getElementById('insp-pol-era');
+      if (el) el.onclick = () => {
+        G.s[epw.key] = !G.s[epw.key];
+        UI.toast(epw.icon + ' ' + (G.s[epw.key] ? epw.on : epw.off), 9000);
+        UI.showInspector(b);
+      };
+    }
     const resv = document.getElementById('insp-reserve');
     if (resv) resv.onclick = () => {
       const cur = G.s.granaryPolicy || 'lean';
@@ -1321,6 +1585,8 @@ const UI = {
     };
     const mv = document.getElementById('insp-move');
     if (mv) mv.onclick = () => Input.startMove(b);
+    const dyn = document.getElementById('insp-dynasty');
+    if (dyn) dyn.onclick = () => { UI.hideInspector(); UI.relicPanel(); };
     const hup = document.getElementById('insp-houseup');
     if (hup) hup.onclick = () => {
       if (!Econ.buyHouseUpgrade(G.s, b)) return;
@@ -1398,6 +1664,7 @@ const UI = {
       no_road: 'no road to the Hall', no_water: 'no water coverage', no_power: 'no power',
       no_staff: 'no workers', no_input: 'nothing to work with',
       no_customers: 'not enough customers nearby', building: 'still under construction',
+      dry_season: 'the dry season — collecting nothing',
     };
     let h = '<div class="panel-title">\u{1F31E} While you were away</div>' +
       '<div class="panel-sub">' + a.hours + ' hours of city time' +
@@ -1584,7 +1851,7 @@ const UI = {
     const s = G.s, C = G.cache;
     const pop = Game.totalResidents(s);
     let html = '<h2>The Era Ladder</h2>';
-    if (s.era < MAX_ERA) {
+    if (Econ.nextEra(s)) {
       const n = s.era + 1, r = eraReq(n);
 
       const eta = (cur, need, perMin) => {
@@ -1605,33 +1872,63 @@ const UI = {
       const migPerMin = (C.migrateRate || 0) * TUNE.TEMPO;
       const netPerMin = C.net * 60;
       const flourPerMin = (C.tally.flour && C.tally.flour.made) || 0;
-      html += '<div class="panel-sub">Era ' + n + ' — ' + ERAS[n - 1].name + ' requires:</div>';
+
+      html += '<div class="panel-sub">The age can turn when this city has:</div>';
+
+      const eb = s.eraBase || {};
+      const flourNow = Math.max(0, s.cum.flour - (eb.flour || 0));
+      const stoneNow = Math.max(0, s.cum.stone - (eb.stone || 0));
       html += rrow('Population', pop, r.pop, migPerMin, '+' + migPerMin.toFixed(1) + '/min');
       html += rrow('Treasury ($)', Math.max(0, s.money), r.money, netPerMin, (netPerMin >= 0 ? '+' : '') + '$' + netPerMin.toFixed(0) + '/min');
-      html += rrow('Total flour milled', s.cum.flour, r.food, flourPerMin, '+' + flourPerMin.toFixed(1) + '/min');
-      if (r.stone) html += rrow('Total stone quarried', s.cum.stone, r.stone, (C.tally.stone && C.tally.stone.made) || 0, 'rate');
+      html += rrow('Flour milled this age', flourNow, r.food, flourPerMin, '+' + flourPerMin.toFixed(1) + '/min');
+      if (r.stone) html += rrow('Stone quarried this age', stoneNow, r.stone, (C.tally.stone && C.tally.stone.made) || 0, 'rate');
+
+      const mon = Econ.monumentFor(s.era);
+      let monFrac = 1;
+      if (mon) {
+        const site = s.buildings.find(b => b.type === mon.key);
+        const monOK = Econ.monumentDone(s, s.era);
+        monFrac = monOK ? 1 : (site ? ((Econ.monumentProgress(s, site) || {}).frac || 0) : 0);
+        html += '<div class="insp-row"><span>' + UI.esc(mon.def.name) + '</span><span class="' +
+          (monOK ? 'good' : 'warn') + '">' +
+          (monOK ? 'standing ✓' : site ? Math.round(monFrac * 100) + '% built' : 'not begun') +
+          '</span></div>';
+      }
 
       const fr = [
         ['population', pop / r.pop], ['money', Math.max(0, s.money) / r.money],
-        ['flour', s.cum.flour / r.food],
+        ['flour', flourNow / r.food],
       ];
-      if (r.stone) fr.push(['stone', s.cum.stone / r.stone]);
+      if (r.stone) fr.push(['stone', stoneNow / r.stone]);
+      if (mon) fr.push([mon.def.name, monFrac]);
       fr.sort((a, b) => a[1] - b[1]);
       if (fr[0][1] < 1) {
-        html += '<div class="panel-sub warn">The gate that binds right now: <b>' + fr[0][0] +
+        html += '<div class="panel-sub warn">The gate that binds right now: <b>' + UI.esc(String(fr[0][0])) +
           '</b> at ' + Math.round(fr[0][1] * 100) + '%. Aim the city at that.</div>';
       }
       if (Econ.eraReady(s))
-        html += '<button id="era-advance-btn" class="btn-gold" style="width:100%;margin-top:8px">⬆ Advance to ' + ERAS[n - 1].name + '</button>';
-    } else {
+        html += '<button id="era-advance-btn" class="btn-gold" style="width:100%;margin-top:8px">' +
+          '⬆ Turn the age — leave this city behind</button>';
+    } else if (s.era >= MAX_ERA) {
       html += '<div class="panel-sub gold">The Looking Glass is open. You finished the ladder.</div>';
+    } else {
+
+      html += '<div class="panel-sub gold">You stand at the edge of the written ages. ' +
+        'The ladder runs on — those rungs are still being carved.</div>';
     }
     html += '<div class="era-list">';
+
     for (const e of ERAS) {
       const here = e.n === s.era;
+      const lived = e.n <= s.era && (WRITTEN_RUNGS.includes(e.n) || e.n < START_ERA);
       const locked = e.n > s.era;
-      html += '<div class="era-item' + (here ? ' here' : '') + (locked ? ' locked' : '') + '">' +
-        '<b>' + e.n + ' · ' + e.name + '</b><span>' + e.blurb + '</span></div>';
+      html += '<div class="era-item' + (here ? ' here' : '') + (!lived && !here ? ' locked' : '') + '">' +
+        (here || lived
+          ? '<b>' + e.n + ' · ' + e.name + '</b><span>' + e.blurb + '</span>'
+          : locked
+            ? '<b>' + e.n + ' · ?</b><span>Unwritten. You find out when the age turns.</span>'
+            : '<b>' + e.n + ' · ?</b><span>Unwritten — your dynasty passed this age by. It will be carved one day.</span>') +
+        '</div>';
     }
     html += '</div>';
     return html;
@@ -1691,8 +1988,10 @@ const UI = {
       '<p><b>Advancing:</b> meet an era’s requirements and you’ll be asked to advance. Not ready? The era chip (top left) glows — click it whenever you choose. Cities transform between eras; they never reset.</p>' +
       '<p><b>Adjacency:</b> EVERY chain\'s producer and workshop boost each other +25% when touching — Farm↔Mill, ' +
       'Clay Pit↔Kiln, Fold↔Weaver, Reeds↔Baskets, Sesame↔Press, Quarry↔Stonecutter. Square/Shrine/Temple boost housing, industry hurts it. Fertile soil (dark green) boosts farms.</p>' +
-      '<p><b>The Hall governs:</b> its panel holds the era\'s POLICIES — Bread before beer (mills eat first, ON by default), ' +
-      'the Ration Law (famine staffing), the Beer Ration Decree (+10% work for beer) — plus emergency grain imports and the Festival of Ninkasi.</p>' +
+      '<p><b>The Hall governs:</b> its panel holds THIS AGE\'S ONE POLICY — a standing decree that spends a good ' +
+      'you produce to make every building work harder, and simply stops when you run out. It also holds the ' +
+      'dynasty\'s monuments, emergency grain imports and the festival. (Mills always draw grain before breweries, ' +
+      'and the food chain always staffs first during a famine — those are not choices, they are just how a city works.)</p>' +
       '<p><b>When things bleed:</b> any working building can be MOTHBALLED from its panel — 20% upkeep, no workers, no output, one click back. ' +
       'Empty frontier parcels sell back at 60% with the Buy Land tool. Ctrl+Z undoes a misplaced building within 10 seconds, full refund.</p>' +
       '<p><b>The world is yours to shape:</b> newly bought land keeps its wild trees — clear them with ⛏️ Demolish ($' + TUNE.CLEAR_TREE + ' each) before building. The <b>Terraform</b> tab paints grass, fertile soil, water, rock, mountains and trees so you can design the land itself.</p>' +
@@ -1710,8 +2009,7 @@ const UI = {
     const s = G.s, C = G.cache;
     let h = '<div class="panel-title">\u{1F528} The Staffing List</div>' +
       '<div class="panel-sub">Buildings staff in PLACEMENT order — first built, first served. ' +
-      (s.policyRationLaw ? 'The Ration Law promotes the flour chain while hunger ≥ 50%.' :
-        'The Ration Law (Town Hall) can promote the flour chain during famine.') + '</div>';
+      'While hunger is at or past 50% the flour chain is promoted automatically.' + '</div>';
     h += '<table class="tally"><tr><th>#</th><th>Building</th><th>Staff</th></tr>';
     const workers = s.buildings.filter(b => DEF(b.type).workers && b.done !== false)
       .sort((a, b) => a.placed - b.placed);
@@ -1750,40 +2048,80 @@ const UI = {
     return h;
   },
 
+  relicPanel() {
+    const s = G.s;
+    UI.togglePanel('relic-panel', () => {
+      const inv = s.relics || [];
+      const standing = s.buildings.filter(b => b.relic);
+      let h = '<h2>\u{1F3DB}\u{FE0F} The Dynasty</h2>' +
+        '<div class="panel-sub">' +
+        (s.cityName ? UI.esc(s.cityName) + ' — ' : '') +
+        (inv.length + standing.length) + ' monument' + ((inv.length + standing.length) === 1 ? '' : 's') +
+        ' finished across every age you have played.</div>';
+      if (!inv.length && !standing.length) {
+        h += '<p>Nothing yet. Finish this age\'s monument and it comes with you when the age turns — ' +
+          'and every age after that.</p>';
+        return h;
+      }
+      if (inv.length) {
+        h += '<div class="panel-title2">Waiting to be placed</div>';
+        h += '<div class="adv-btns" style="flex-direction:column">';
+        inv.forEach((r, i) => {
+          const d = DEF(r.type) || {};
+          h += '<button class="btn-gold relic-place" data-i="' + i + '">' +
+            (d.icon || '\u{1F3DB}\u{FE0F}') + ' Place the ' + UI.esc(d.name || r.type) +
+            ' <span class="gold-dim">(from era ' + (r.era || 1) + ')</span></button>';
+        });
+        h += '</div>';
+        h += '<div class="panel-sub">It arrives finished — no deliveries, no road, no water. ' +
+          'It pays its trickle, its +' + Math.round(TUNE.MONUMENT_BOOST * 100) +
+          '% city dividend and its standing the moment it stands.</div>';
+      }
+      if (standing.length) {
+        h += '<div class="panel-title2">Standing in this city</div><table class="tally">';
+        for (const b of standing) {
+          const d = DEF(b.type) || {};
+          h += '<tr><td>' + (d.icon || '') + ' ' + UI.esc(d.name || b.type) +
+            '</td><td>era ' + (b.relicEra || '?') + ' \u{00B7} +$' +
+            ((d.trickle || 0) * TUNE.TEMPO).toFixed(0) + '/min</td></tr>';
+        }
+        h += '</table>';
+      }
+      return h;
+    });
+    const p = document.getElementById('relic-panel');
+    if (p) p.querySelectorAll('.relic-place').forEach(btn => {
+      btn.onclick = () => { p.remove(); Input.startRelic(+btn.dataset.i); };
+    });
+  },
+
   anunnakiDepart(s) {
+    const g = monumentGift(s.era);
+    if (!g) { s.pendingGift = 0; return; }
+
+    const homes = s.buildings.filter(b => DEF(b.type) && DEF(b.type).cap);
+    const topName = houseLevelName(s.era, houseMaxLevel(s));
     UI.togglePanel('depart-panel', () =>
-      '<h2>\u{1F6F8} The Anunnaki Depart</h2>' +
-      '<div class="panel-sub">The Ziggurat stands. Their work here is done.</div>' +
-      '<p>From its summit, a boat of the sky rises. The teachers who handed your people grain, water and walls ' +
-      'are leaving the world to you now — but they do not leave empty-handed. <b>Choose their parting gift:</b></p>' +
+      '<h2>' + g.icon + ' ' + g.title + '</h2>' +
+      '<div class="panel-sub">' + g.lead + '</div>' +
+      '<p>' + g.body + '</p>' +
+      '<p>' + g.grant + '</p>' +
+      (g.key === 'housing'
+        ? '<div class="insp-row"><span>Housing ceiling</span><span class="gold">rung ' +
+          houseMaxLevel(s) + ' — ' + UI.esc(topName) + '</span></div>' +
+          '<div class="insp-row"><span>Homes it applies to</span><span>' + homes.length +
+          ' standing, and every one you build after</span></div>'
+        : '') +
       '<div class="adv-btns" style="flex-direction:column">' +
-      '<button id="gift-flour" class="btn-gold">\u{1F35E} A year of bread — the granary fills with flour</button>' +
-      '<button id="gift-soil" class="btn-gold">\u{1F33E} The land made new — every field\'s soil restored to 100%</button>' +
-      '<button id="gift-rank" class="btn-gold">⚙️ A craft perfected — your next rank upgrade is FREE</button>' +
+      '<button id="gift-ok" class="btn-gold">Their work here is done</button>' +
       '</div>');
-    const wire = (id, fn) => { const el = document.getElementById(id); if (el) el.onclick = () => {
-      fn();
+    const el = document.getElementById('gift-ok');
+    if (el) el.onclick = () => {
       s.pendingGift = 0;
       const p = document.getElementById('depart-panel'); if (p) p.remove();
+      UI.toast(g.toast, 11000);
       UI.updateHUD(G.s);
-    }; };
-    wire('gift-flour', () => {
-      const amt = Math.round(Econ.capOf(s, 'flour') * 0.8);
-      s.stock.flour = Math.min(Econ.capOf(s, 'flour'), (s.stock.flour || 0) + amt);
-      Econ.log(s, '\u{1F35E}', 'Their gift: the granary filled with bread.');
-      UI.toast('\u{1F35E} The granary is full. Bread for a long time to come.', 9000);
-    });
-    wire('gift-soil', () => {
-      s.soilEdits = {};
-      if (window.Rend && Rend.invalidateTerrain) Rend.invalidateTerrain();
-      Econ.log(s, '\u{1F33E}', 'Their gift: the salt drawn out of every field — the land made new.');
-      UI.toast('\u{1F33E} Every field in the city is fresh silt again. The salt clock starts over.', 9000);
-    });
-    wire('gift-rank', () => {
-      s.freeRank = 1;
-      Econ.log(s, '⚙️', 'Their gift: a craft perfected — the next rank upgrade costs nothing.');
-      UI.toast('⚙️ Your next rank upgrade is free. Spend it on the building your tally loves most.', 9000);
-    });
+    };
   },
 
   promptNaming() {

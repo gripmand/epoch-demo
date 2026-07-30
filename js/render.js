@@ -30,7 +30,18 @@ const Rend = {
   _chunkKeyAt: '',
 
   ERA_GROUND: {
+
     1: {
+      base:     { color: 0xcfd3d6, tex: 'silt' },
+      fertile:  { color: 0xb8bfb2, tex: 'field' },
+      salt:     { color: 0xe3ddc9, tex: 'salt' },
+      saltRidge: 0xefe9d6,
+      rock:     { color: 0x8f8b84, tex: 'rock' },
+      cliff:    0xdce8ee,
+      bed:      0x9fb8c4,
+      grain: 0.12, macro: 0.10,
+    },
+    4: {
       base:     { color: 0xe9a952, tex: 'silt' },
       fertile:  { color: 0x8f9a3c, tex: 'field' },
 
@@ -42,28 +53,28 @@ const Rend = {
 
       grain: 0.16, macro: 0.14,
     },
-    2: {
+    5: {
       base:     { color: 0xd9b271, tex: 'silt' },
       fertile:  { color: 0x7f9440, tex: 'field' },
       salt:     { color: 0xf0e2c0, tex: 'salt' },
       rock:     { color: 0xc0a273, tex: 'rock' },
       cliff: 0x8a6d4a, bed: 0x4a5a46, grain: 0.18, macro: 0.20,
     },
-    3: {
+    14: {
       base:     { color: 0x9aad63, tex: 'silt' },
       fertile:  { color: 0x6d9440, tex: 'field' },
       salt:     { color: 0xd8d9be, tex: 'salt' },
       rock:     { color: 0xbfc0b0, tex: 'rock' },
       cliff: 0x8e9184, bed: 0x2f6a63, grain: 0.16, macro: 0.22,
     },
-    9: {
+    30: {
       base:     { color: 0x8f8a76, tex: 'silt' },
       fertile:  { color: 0x77864a, tex: 'field' },
       salt:     { color: 0xb9b3a4, tex: 'salt' },
       rock:     { color: 0x6e6459, tex: 'rock' },
       cliff: 0x554e46, bed: 0x3c4249, grain: 0.14, macro: 0.24,
     },
-    12: {
+    35: {
       base:     { color: 0x9a938a, tex: 'silt' },
       fertile:  { color: 0x6f7a74, tex: 'field' },
       salt:     { color: 0xcfc9c0, tex: 'salt' },
@@ -205,12 +216,13 @@ const Rend = {
   },
 
   ERA_LIFT: {
-    1: { water: -0.75, rock: 0.42, mountain: 0.95 },
-    2: { water: -0.75, rock: 0.60, mountain: 1.90 },
-    3: { water: -0.60, rock: 0.95, mountain: 2.60 },
-    4: { water: -0.85, rock: 0.90, mountain: 3.40 },
-    5: { water: -0.80, rock: 1.10, mountain: 3.20 },
-    7: { water: -0.75, rock: 0.90, mountain: 3.40 },
+    1:  { water: -0.35, rock: 0.55, mountain: 2.8 },
+    4:  { water: -0.75, rock: 0.42, mountain: 0.95 },
+    5:  { water: -0.75, rock: 0.60, mountain: 1.90 },
+    10: { water: -0.80, rock: 1.10, mountain: 3.20 },
+    14: { water: -0.60, rock: 0.95, mountain: 2.60 },
+    22: { water: -0.75, rock: 0.90, mountain: 3.40 },
+    26: { water: -0.85, rock: 0.90, mountain: 3.40 },
   },
 
   liftSet(era) {
@@ -226,6 +238,7 @@ const Rend = {
     if (t === TERRAIN.ROCK) return L.rock;
     if (t === TERRAIN.MOUNTAIN) return L.mountain;
     if (t === TERRAIN.SALT) return -0.05;
+    if (t === TERRAIN.ASH) return -0.02;
     return 0;
   },
 
@@ -468,7 +481,8 @@ const Rend = {
         if (Grid.inB(wx, wy)) {
           const t = G.cache.terrain[Grid.key(wx, wy)];
           if (t === TERRAIN.FERTILE) r = 255;
-          else if (t === TERRAIN.SALT) gg = 255;
+
+          else if (t === TERRAIN.SALT || t === TERRAIN.ASH) gg = 255;
           else if (t === TERRAIN.ROCK || t === TERRAIN.MOUNTAIN) b = 255;
 
           if (t !== TERRAIN.WATER && t !== TERRAIN.ROCK && t !== TERRAIN.MOUNTAIN) {
@@ -645,7 +659,7 @@ const Rend = {
         const t = G.cache.terrain[Grid.key(x, y)];
         const i = (y * W + x) * 4;
         data[i] = t === TERRAIN.FERTILE ? 255 : 0;
-        data[i + 1] = t === TERRAIN.SALT ? 255 : 0;
+        data[i + 1] = (t === TERRAIN.SALT || t === TERRAIN.ASH) ? 255 : 0;
         data[i + 2] = (t === TERRAIN.ROCK || t === TERRAIN.MOUNTAIN) ? 255 : 0;
         data[i + 3] = 255;
       }
@@ -908,7 +922,9 @@ const Rend = {
     if (c.roads) { Rend.scene.remove(c.roads); c.roads.geometry.dispose(); c.roads = null; }
     const CH = Rend.CH;
     const pos = [], idx = [];
-    const HW = 0.30;
+
+    const RD = roadFor(s ? s.era : 1);
+    const HW = RD.hw;
     const LIFT = 0.035;
 
     const quad = (x0, z0, x1, z1) => {
@@ -940,7 +956,7 @@ const Rend = {
     g.setIndex(idx);
     g.computeVertexNormals();
     g.computeBoundingSphere();
-    const mat = Gfx.mat(0x8a6a3f, { cache: false });
+    const mat = Gfx.mat(RD.color, { cache: false });
     mat.polygonOffset = true;
     mat.polygonOffsetFactor = -2;
     c.roads = new THREE.Mesh(g, mat);
@@ -957,7 +973,7 @@ const Rend = {
     const tool = Input.tool;
     const bt = tool.mode === 'build' && tool.type ? DEF(tool.type) : null;
     const showW = Rend.showWater || (bt && (bt.waterRadius || bt.needsWater));
-    const showP = s.era >= 9 && (Rend.showPower || (bt && (bt.powerRadius || bt.needsPower)));
+    const showP = s.era >= 30 && (Rend.showPower || (bt && (bt.powerRadius || bt.needsPower)));
 
     for (let y = 0; y < CH; y++)
       for (let x = 0; x < CH; x++) {
@@ -1021,31 +1037,34 @@ const Rend = {
   },
 
   ERA_SCATTER: {
-    1:  { tree: ['palm', 'poplar'], scrub: ['tamarisk'], scrubDensity: 0.055, marsh: ['reed'],
+
+    1:  { tree: ['deadTree'], scrub: ['bush'], scrubDensity: 0.06, marsh: ['reed'],
           rock: ['boulder'], crag: ['crag'] },
-    2:  { tree: ['palm', 'acacia'], scrub: ['tamarisk'], scrubDensity: 0.05, marsh: ['reed'],
+    4:  { tree: ['palm', 'poplar'], scrub: ['tamarisk'], scrubDensity: 0.055, marsh: ['reed'],
           rock: ['boulder'], crag: ['crag'] },
-    3:  { tree: ['ceiba', 'jungle'], scrub: ['jungle'], scrubDensity: 0.18, marsh: ['reed'],
+    5:  { tree: ['palm', 'acacia'], scrub: ['tamarisk'], scrubDensity: 0.05, marsh: ['reed'],
+          rock: ['boulder'], crag: ['crag'] },
+    14:  { tree: ['ceiba', 'jungle'], scrub: ['jungle'], scrubDensity: 0.18, marsh: ['reed'],
           rock: ['karst'], crag: ['karst'] },
-    4:  { tree: ['ahuehuete', 'jungle'], scrub: ['agave'], scrubDensity: 0.14, marsh: ['reed'],
+    26:  { tree: ['ahuehuete', 'jungle'], scrub: ['agave'], scrubDensity: 0.14, marsh: ['reed'],
           rock: ['boulder'], crag: ['crag'] },
-    5:  { tree: ['olive', 'cypress'], scrub: ['bush'], scrubDensity: 0.12, marsh: ['reed'],
+    10:  { tree: ['olive', 'cypress'], scrub: ['bush'], scrubDensity: 0.12, marsh: ['reed'],
           rock: ['boulder'], crag: ['crag'] },
-    6:  { tree: ['umbrella', 'cypress', 'olive'], scrub: ['bush'], scrubDensity: 0.11, marsh: ['reed'],
+    13:  { tree: ['umbrella', 'cypress', 'olive'], scrub: ['bush'], scrubDensity: 0.11, marsh: ['reed'],
           rock: ['boulder'], crag: ['crag'] },
-    7:  { tree: ['olive', 'cypress'], scrub: ['bush'], scrubDensity: 0.13, marsh: ['reed'],
+    22:  { tree: ['olive', 'cypress'], scrub: ['bush'], scrubDensity: 0.13, marsh: ['reed'],
           rock: ['boulder'], crag: ['crag'] },
-    8:  { tree: ['cypress', 'poplar', 'olive'], scrub: ['bush'], scrubDensity: 0.10, marsh: ['reed'],
+    28:  { tree: ['cypress', 'poplar', 'olive'], scrub: ['bush'], scrubDensity: 0.10, marsh: ['reed'],
           rock: ['boulder'], crag: ['crag'] },
-    9:  { tree: ['deadTree'], scrub: ['deadTree'], scrubDensity: 0.06, marsh: ['reed'],
+    30:  { tree: ['deadTree'], scrub: ['deadTree'], scrubDensity: 0.06, marsh: ['reed'],
           rock: ['slag'], crag: ['slag'] },
-    10: { tree: ['streetTree'], scrub: ['bush'], scrubDensity: 0.07, marsh: ['reed'],
+    33: { tree: ['streetTree'], scrub: ['bush'], scrubDensity: 0.07, marsh: ['reed'],
           rock: ['boulder'], crag: ['crag'] },
-    11: { tree: ['streetTree'], scrub: ['bush'], scrubDensity: 0.06, marsh: ['reed'],
+    34: { tree: ['streetTree'], scrub: ['bush'], scrubDensity: 0.06, marsh: ['reed'],
           rock: ['boulder'], crag: ['crag'] },
-    12: { tree: ['pod'], scrub: [], scrubDensity: 0, marsh: [], rock: ['regolith'], crag: ['regolith'] },
-    13: { tree: ['pod'], scrub: [], scrubDensity: 0, marsh: [], rock: ['regolith'], crag: ['regolith'] },
-    14: { tree: ['crystal'], scrub: ['crystal'], scrubDensity: 0.05, marsh: [],
+    35: { tree: ['pod'], scrub: [], scrubDensity: 0, marsh: [], rock: ['regolith'], crag: ['regolith'] },
+    36: { tree: ['pod'], scrub: [], scrubDensity: 0, marsh: [], rock: ['regolith'], crag: ['regolith'] },
+    37: { tree: ['crystal'], scrub: ['crystal'], scrubDensity: 0.05, marsh: [],
           rock: ['regolith'], crag: ['crystal'] },
   },
 
@@ -1711,10 +1730,372 @@ const Rend = {
     Rend.camera.lookAt(c.tx, ty + 0.5, c.tz);
   },
 
+  HERD_STYLE: {
+    mammoth:    { color: 0x8a5a30, shag: 0x4e3320, pale: 0xbb9463, size: 1.35 },
+    bison:      { color: 0x6b4a2c, shag: 0x2f2118, pale: 0xb59a6d, size: 0.95 },
+    rhino:      { color: 0x8f8a76, shag: 0x5c584a, pale: 0xc2bda4, size: 1.15 },
+    sabertooth: { color: 0xd0983f, shag: 0x8a5f24, pale: 0xf0e2c0, size: 1.0 },
+  },
+
+  loft(spine, ring) {
+    const R = ring || 8;
+    const pos = [], col = [], idx = [];
+    const tmp = new THREE.Color();
+    const put = (st, t) => {
+      const c = Math.cos(t);
+      const rise = c >= 0 ? (st.up === undefined ? st.w : st.up) : (st.dn === undefined ? st.w : st.dn);
+      pos.push(Math.sin(t) * st.w, st.y + rise * c, st.z);
+
+      tmp.copy(Gfx.color(st.c));
+      if (st.cb !== undefined && c < 0) tmp.lerp(Gfx.color(st.cb), Math.min(1, -c * 1.5));
+      col.push(tmp.r, tmp.g, tmp.b);
+    };
+    for (const st of spine) for (let k = 0; k < R; k++) put(st, k / R * Math.PI * 2);
+    for (let i = 0; i < spine.length - 1; i++) {
+      for (let k = 0; k < R; k++) {
+        const a = i * R + k, b = i * R + (k + 1) % R;
+        const c = (i + 1) * R + k, d = (i + 1) * R + (k + 1) % R;
+        idx.push(a, b, c, b, d, c);
+      }
+    }
+
+    const nose = pos.length / 3;
+    const f = spine[0], r = spine[spine.length - 1];
+    pos.push(0, f.y, f.z); tmp.copy(Gfx.color(f.c)); col.push(tmp.r, tmp.g, tmp.b);
+    pos.push(0, r.y, r.z); tmp.copy(Gfx.color(r.c)); col.push(tmp.r, tmp.g, tmp.b);
+    const base = (spine.length - 1) * R;
+    for (let k = 0; k < R; k++) {
+      idx.push(nose, (k + 1) % R, k);
+      idx.push(nose + 1, base + k, base + (k + 1) % R);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    g.setIndex(idx);
+    g.computeVertexNormals();
+    return g;
+  },
+
+  buildAnimal(kind, s) {
+    const st = Rend.HERD_STYLE[kind] || Rend.HERD_STYLE.bison;
+    const g = new THREE.Group();
+    g.userData.legs = [];
+
+    const skin = Gfx.mat(0xffffff, { vertexColors: true, cache: false });
+    const coat = Gfx.mat(st.color), shag = Gfx.mat(st.shag), pale = Gfx.mat(st.pale);
+    const ivory = Gfx.mat(0xe6d7b6), horn = Gfx.mat(0x6b5f52), eyeM = Gfx.mat(0x120e0b);
+
+    const body = spine => {
+      const m = new THREE.Mesh(Rend.loft(spine.map(p => ({
+        z: p.z * s, y: p.y * s, w: p.w * s, c: p.c,
+        up: (p.up === undefined ? p.w : p.up) * s,
+        dn: (p.dn === undefined ? p.w : p.dn) * s,
+      }))), skin);
+      g.add(m); return m;
+    };
+    const M = (geo, mat, x, y, z, rx, ry, rz) => {
+      const m = new THREE.Mesh(geo, mat || coat);
+      m.position.set(x, y, z);
+      m.rotation.set(rx || 0, ry || 0, rz || 0);
+      g.add(m); return m;
+    };
+    const ball = (r, mat, x, y, z, sx2, sy2, sz2) => {
+      const m = M(new THREE.SphereGeometry(r, 7, 6), mat, x, y, z);
+      m.scale.set(sx2 || 1, sy2 || 1, sz2 || 1); return m;
+    };
+    const eyes = (y, z, w, r) => { for (const sx of [-1, 1]) ball(r || s * 0.05, eyeM, sx * w, y, z); };
+
+    const chain = (o) => {
+      let node = new THREE.Object3D();
+      node.position.set(o.x || 0, o.y, o.z);
+      node.rotation.set(o.pitch || 0, 0, o.roll || 0);
+      g.add(node);
+      let len = o.len, rad = o.r;
+      const taper = o.taper === undefined ? 0.8 : o.taper;
+      for (let i = 0; i < o.n; i++) {
+        const seg = new THREE.Mesh(new THREE.CylinderGeometry(rad * taper, rad, len, o.sides || 6), o.mat);
+        seg.position.y = len / 2;
+        if (o.flat) seg.scale.x = o.flat;
+        node.add(seg);
+        const tip = new THREE.Object3D();
+        tip.position.y = len;
+        tip.rotation.x = o.bend || 0;
+        tip.rotation.z = o.curl || 0;
+        node.add(tip);
+        node = tip; rad *= taper; len *= (o.shrink === undefined ? 0.9 : o.shrink);
+      }
+      return node;
+    };
+
+    const leg = (x, z, hipY, thigh, shank, r, ph, sw, knee) => {
+
+      const rise = r * 0.9;
+      const hip = new THREE.Object3D();
+      hip.position.set(x, hipY + rise, z);
+      g.add(hip);
+      thigh += rise;
+      const up = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.80, r * 1.45, thigh, 7), coat);
+      up.position.y = -thigh / 2; hip.add(up);
+      const kn = new THREE.Object3D();
+      kn.position.y = -thigh; kn.rotation.x = knee || 0; hip.add(kn);
+      const lo = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.64, r * 0.80, shank, 7), coat);
+      lo.position.y = -shank / 2; kn.add(lo);
+      const ft = new THREE.Mesh(new THREE.SphereGeometry(r * 0.78, 7, 5), shag);
+      ft.position.y = -shank + r * 0.16; ft.scale.set(1.05, 0.6, 1.3); kn.add(ft);
+      g.userData.legs.push({ p: hip, ph: ph, sw: sw });
+    };
+
+    const tuft = (tip, r, mat) => {
+      const m = new THREE.Mesh(new THREE.SphereGeometry(r, 6, 5), mat);
+      m.scale.set(0.8, 1.7, 0.8); m.position.y = r * 0.5;
+      tip.add(m); return m;
+    };
+
+    if (kind === 'mammoth') {
+
+      body([
+        { z: 1.10, y: 1.60, w: 0.34, up: 0.26, dn: 0.34, c: st.color, cb: st.shag },
+        { z: 0.74, y: 1.62, w: 0.62, up: 0.44, dn: 0.74, c: st.color, cb: st.shag },
+        { z: 0.30, y: 1.62, w: 0.76, up: 0.58, dn: 0.72, c: st.color, cb: st.shag },
+        { z: -0.14, y: 1.54, w: 0.74, up: 0.48, dn: 0.58, c: st.color, cb: st.shag },
+        { z: -0.60, y: 1.44, w: 0.64, up: 0.36, dn: 0.46, c: st.color, cb: st.shag },
+        { z: -1.04, y: 1.34, w: 0.66, up: 0.28, dn: 0.44, c: st.color, cb: st.shag },
+        { z: -1.42, y: 1.30, w: 0.44, up: 0.22, dn: 0.36, c: st.shag },
+        { z: -1.62, y: 1.32, w: 0.18, up: 0.12, dn: 0.16, c: st.shag },
+      ]);
+
+      body([
+        { z: 0.95, y: 1.86, w: 0.26, up: 0.08, dn: 0.30, c: st.shag },
+        { z: 0.55, y: 2.02, w: 0.42, up: 0.09, dn: 0.34, c: st.shag },
+        { z: 0.20, y: 2.12, w: 0.46, up: 0.09, dn: 0.36, c: st.shag },
+        { z: -0.25, y: 1.96, w: 0.44, up: 0.08, dn: 0.34, c: st.shag },
+        { z: -0.70, y: 1.74, w: 0.36, up: 0.08, dn: 0.30, c: st.shag },
+        { z: -1.10, y: 1.57, w: 0.26, up: 0.07, dn: 0.26, c: st.shag },
+      ]);
+
+      body([
+        { z: 0.58, y: 1.20, w: 0.74, up: 0.24, dn: 0.52, c: st.shag },
+        { z: 0.10, y: 1.16, w: 0.86, up: 0.26, dn: 0.54, c: st.shag },
+        { z: -0.45, y: 1.10, w: 0.80, up: 0.24, dn: 0.48, c: st.shag },
+        { z: -0.98, y: 1.04, w: 0.68, up: 0.22, dn: 0.42, c: st.shag },
+      ]);
+      body([
+        { z: 1.06, y: 1.60, w: 0.34, up: 0.26, dn: 0.34, c: st.color },
+        { z: 1.30, y: 1.68, w: 0.44, up: 0.36, dn: 0.40, c: st.color },
+        { z: 1.54, y: 1.70, w: 0.44, up: 0.44, dn: 0.44, c: st.color },
+        { z: 1.76, y: 1.58, w: 0.36, up: 0.28, dn: 0.40, c: st.pale },
+        { z: 1.90, y: 1.44, w: 0.24, up: 0.18, dn: 0.26, c: st.pale },
+      ]);
+      ball(s * 0.27, coat, 0, s * 2.02, s * 1.46, 1.15, 0.72, 1.0);
+      for (const sx of [-1, 1])
+        ball(s * 0.16, shag, sx * s * 0.44, s * 1.78, s * 1.32, 0.32, 1.15, 0.9);
+      eyes(s * 1.66, s * 1.74, s * 0.30, s * 0.055);
+      chain({ y: s * 1.44, z: s * 1.92, pitch: 2.75, bend: -0.24, len: s * 0.34,
+              r: s * 0.155, n: 6, mat: coat, taper: 0.88, shrink: 0.94 });
+
+      for (const sx of [-1, 1])
+        chain({ x: sx * s * 0.34, y: s * 1.34, z: s * 1.78, pitch: 2.15, roll: -sx * 0.30,
+                bend: -0.46, curl: sx * 0.10, len: s * 0.46, r: s * 0.105, n: 5,
+                mat: ivory, taper: 0.84 });
+      const tail = chain({ y: s * 1.34, z: -s * 1.62, pitch: 3.45, bend: 0.12,
+                           len: s * 0.22, r: s * 0.05, n: 3, mat: shag });
+      tuft(tail, s * 0.085, shag);
+
+      leg(-s * 0.38, s * 0.55, s * 0.96, s * 0.50, s * 0.46, s * 0.250, 0, 0.30, -0.12);
+      leg(s * 0.38, s * 0.55, s * 0.96, s * 0.50, s * 0.46, s * 0.250, Math.PI, 0.30, -0.12);
+      leg(-s * 0.35, -s * 0.94, s * 0.88, s * 0.44, s * 0.44, s * 0.230, Math.PI * 1.05, 0.28, 0.14);
+      leg(s * 0.35, -s * 0.94, s * 0.88, s * 0.44, s * 0.44, s * 0.230, 0.05, 0.28, 0.14);
+    } else if (kind === 'bison') {
+
+      body([
+        { z: 0.88, y: 1.26, w: 0.36, up: 0.28, dn: 0.36, c: st.shag },
+        { z: 0.56, y: 1.32, w: 0.56, up: 0.52, dn: 0.58, c: st.shag },
+        { z: 0.20, y: 1.30, w: 0.60, up: 0.60, dn: 0.54, c: st.shag },
+        { z: -0.18, y: 1.22, w: 0.56, up: 0.42, dn: 0.42, c: st.color },
+        { z: -0.58, y: 1.12, w: 0.47, up: 0.28, dn: 0.34, c: st.pale },
+        { z: -0.96, y: 1.06, w: 0.45, up: 0.22, dn: 0.31, c: st.pale },
+        { z: -1.26, y: 1.05, w: 0.29, up: 0.17, dn: 0.23, c: st.pale },
+        { z: -1.44, y: 1.07, w: 0.13, up: 0.10, dn: 0.11, c: st.pale },
+      ]);
+      body([
+        { z: 0.90, y: 1.20, w: 0.30, up: 0.26, dn: 0.34, c: st.shag },
+        { z: 1.10, y: 1.02, w: 0.36, up: 0.32, dn: 0.36, c: st.shag },
+        { z: 1.30, y: 0.90, w: 0.34, up: 0.28, dn: 0.34, c: st.shag },
+        { z: 1.50, y: 0.86, w: 0.22, up: 0.18, dn: 0.22, c: st.shag },
+        { z: 1.60, y: 0.84, w: 0.15, up: 0.13, dn: 0.15, c: st.pale },
+      ]);
+      ball(s * 0.32, shag, 0, s * 0.86, s * 0.72, 1.06, 1.10, 1.25);
+      ball(s * 0.13, shag, 0, s * 0.62, s * 1.26, 0.85, 1.75, 0.9);
+      for (const sx of [-1, 1]) {
+        ball(s * 0.11, shag, sx * s * 0.32, s * 1.00, s * 1.12, 0.45, 1.0, 0.9);
+        const t = chain({ x: sx * s * 0.20, y: s * 1.06, z: s * 1.16, roll: -sx * 1.35,
+                          bend: -0.12, curl: sx * 0.45, len: s * 0.26, r: s * 0.052,
+                          n: 4, mat: horn, taper: 0.8 });
+        t.add(new THREE.Mesh(new THREE.ConeGeometry(s * 0.026, s * 0.10, 5), ivory));
+      }
+      eyes(s * 1.00, s * 1.36, s * 0.24, s * 0.05);
+      const btail = chain({ y: s * 1.06, z: -s * 1.44, pitch: 3.35, bend: 0.10,
+                            len: s * 0.22, r: s * 0.035, n: 3, mat: shag });
+      tuft(btail, s * 0.075, shag);
+      leg(-s * 0.33, s * 0.56, s * 0.82, s * 0.42, s * 0.40, s * 0.165, 0, 0.32, -0.12);
+      leg(s * 0.33, s * 0.56, s * 0.82, s * 0.42, s * 0.40, s * 0.165, Math.PI, 0.32, -0.12);
+      leg(-s * 0.28, -s * 0.80, s * 0.72, s * 0.37, s * 0.35, s * 0.150, Math.PI * 1.05, 0.30, 0.15);
+      leg(s * 0.28, -s * 0.80, s * 0.72, s * 0.37, s * 0.35, s * 0.150, 0.05, 0.30, 0.15);
+    } else if (kind === 'rhino') {
+
+      body([
+        { z: 1.02, y: 1.14, w: 0.36, up: 0.28, dn: 0.32, c: st.color, cb: st.shag },
+        { z: 0.68, y: 1.22, w: 0.58, up: 0.46, dn: 0.56, c: st.color, cb: st.shag },
+        { z: 0.32, y: 1.20, w: 0.64, up: 0.50, dn: 0.52, c: st.color, cb: st.shag },
+        { z: -0.08, y: 1.14, w: 0.66, up: 0.38, dn: 0.46, c: st.color, cb: st.shag },
+        { z: -0.52, y: 1.12, w: 0.60, up: 0.34, dn: 0.40, c: st.color, cb: st.shag },
+        { z: -0.98, y: 1.10, w: 0.62, up: 0.32, dn: 0.38, c: st.color, cb: st.shag },
+        { z: -1.38, y: 1.08, w: 0.42, up: 0.26, dn: 0.34, c: st.shag },
+        { z: -1.60, y: 1.08, w: 0.18, up: 0.13, dn: 0.16, c: st.shag },
+      ]);
+      body([
+        { z: 0.90, y: 1.40, w: 0.20, up: 0.09, dn: 0.28, c: st.shag },
+        { z: 0.50, y: 1.60, w: 0.30, up: 0.10, dn: 0.30, c: st.shag },
+        { z: 0.00, y: 1.46, w: 0.32, up: 0.10, dn: 0.30, c: st.shag },
+        { z: -0.60, y: 1.40, w: 0.30, up: 0.09, dn: 0.28, c: st.shag },
+        { z: -1.15, y: 1.30, w: 0.20, up: 0.08, dn: 0.24, c: st.shag },
+      ]);
+      body([
+        { z: 1.00, y: 1.14, w: 0.36, up: 0.30, dn: 0.32, c: st.color },
+        { z: 1.30, y: 1.00, w: 0.44, up: 0.36, dn: 0.36, c: st.color },
+        { z: 1.62, y: 0.84, w: 0.42, up: 0.34, dn: 0.32, c: st.color },
+        { z: 1.90, y: 0.70, w: 0.34, up: 0.28, dn: 0.26, c: st.pale },
+        { z: 2.06, y: 0.62, w: 0.25, up: 0.21, dn: 0.19, c: st.pale },
+      ]);
+
+      chain({ y: s * 0.60, z: s * 2.04, pitch: 0.70, bend: -0.24, len: s * 0.235,
+              r: s * 0.175, n: 4, mat: horn, taper: 0.88, flat: 0.34 });
+      chain({ y: s * 0.94, z: s * 1.60, pitch: -0.25, bend: -0.20, len: s * 0.15,
+              r: s * 0.075, n: 2, mat: horn, taper: 0.7, flat: 0.5 });
+      for (const sx of [-1, 1])
+        ball(s * 0.10, shag, sx * s * 0.28, s * 1.28, s * 1.16, 0.45, 1.0, 0.85);
+      eyes(s * 0.98, s * 1.72, s * 0.28, s * 0.05);
+      const rtail = chain({ y: s * 1.08, z: -s * 1.60, pitch: 3.4, bend: 0.14,
+                            len: s * 0.18, r: s * 0.04, n: 3, mat: shag });
+      tuft(rtail, s * 0.065, shag);
+      leg(-s * 0.37, s * 0.58, s * 0.76, s * 0.39, s * 0.37, s * 0.205, 0, 0.26, -0.10);
+      leg(s * 0.37, s * 0.58, s * 0.76, s * 0.39, s * 0.37, s * 0.205, Math.PI, 0.26, -0.10);
+      leg(-s * 0.34, -s * 0.88, s * 0.66, s * 0.34, s * 0.32, s * 0.190, Math.PI * 1.05, 0.24, 0.13);
+      leg(s * 0.34, -s * 0.88, s * 0.66, s * 0.34, s * 0.32, s * 0.190, 0.05, 0.24, 0.13);
+    } else {
+
+      body([
+        { z: 0.80, y: 0.96, w: 0.26, up: 0.22, dn: 0.26, c: st.color, cb: st.pale },
+        { z: 0.52, y: 0.98, w: 0.40, up: 0.34, dn: 0.42, c: st.color, cb: st.pale },
+        { z: 0.16, y: 0.94, w: 0.42, up: 0.30, dn: 0.36, c: st.color, cb: st.pale },
+        { z: -0.20, y: 0.88, w: 0.34, up: 0.24, dn: 0.26, c: st.color, cb: st.pale },
+        { z: -0.56, y: 0.86, w: 0.37, up: 0.23, dn: 0.28, c: st.color, cb: st.pale },
+        { z: -0.84, y: 0.84, w: 0.25, up: 0.18, dn: 0.22, c: st.color },
+        { z: -1.00, y: 0.86, w: 0.11, up: 0.09, dn: 0.10, c: st.color },
+      ]);
+      body([
+
+        { z: 0.76, y: 0.98, w: 0.28, up: 0.24, dn: 0.28, c: st.color },
+        { z: 0.96, y: 1.06, w: 0.38, up: 0.34, dn: 0.36, c: st.color },
+        { z: 1.18, y: 1.04, w: 0.38, up: 0.30, dn: 0.36, c: st.color },
+        { z: 1.36, y: 0.98, w: 0.26, up: 0.20, dn: 0.28, c: st.pale },
+        { z: 1.48, y: 0.94, w: 0.18, up: 0.14, dn: 0.18, c: st.pale },
+      ]);
+      for (const sx of [-1, 1]) {
+
+        ball(s * 0.085, coat, sx * s * 0.24, s * 1.32, s * 1.00, 1.0, 1.0, 0.45);
+
+        chain({ x: sx * s * 0.12, y: s * 0.84, z: s * 1.42, pitch: 3.02, bend: 0.14,
+                len: s * 0.21, r: s * 0.046, n: 3, mat: ivory, taper: 0.74, shrink: 0.88 });
+      }
+      eyes(s * 1.16, s * 1.32, s * 0.18, s * 0.05);
+      const ctail = chain({ y: s * 0.84, z: -s * 1.00, pitch: 3.1, bend: 0.22,
+                            len: s * 0.13, r: s * 0.045, n: 2, mat: coat });
+      tuft(ctail, s * 0.062, shag);
+
+      leg(-s * 0.26, s * 0.44, s * 0.62, s * 0.33, s * 0.29, s * 0.135, 0, 0.34, -0.16);
+      leg(s * 0.26, s * 0.44, s * 0.62, s * 0.33, s * 0.29, s * 0.135, Math.PI, 0.34, -0.16);
+      leg(-s * 0.22, -s * 0.54, s * 0.56, s * 0.30, s * 0.26, s * 0.125, Math.PI * 1.05, 0.32, 0.20);
+      leg(s * 0.22, -s * 0.54, s * 0.56, s * 0.30, s * 0.26, s * 0.125, 0.05, 0.32, 0.20);
+    }
+    return g;
+  },
+  syncHerds(s, time) {
+    if (!Rend._herdObjs) Rend._herdObjs = new Map();
+    const live = new Set();
+    const active = s && s.herds && Econ.hearthActive && Econ.hearthActive(s);
+
+    const dt = Math.min(0.1, Math.max(0.001, time - (Rend._herdT === undefined ? time : Rend._herdT)));
+    Rend._herdT = time;
+    if (active) {
+      for (const h of s.herds) {
+        live.add(h.id);
+        let o = Rend._herdObjs.get(h.id);
+        if (!o) {
+          const st = Rend.HERD_STYLE[h.kind] || Rend.HERD_STYLE.bison;
+
+          o = new THREE.Group();
+          const a = Rend.buildAnimal(h.kind, st.size * (0.9 + ((h.id * 37) % 5) * 0.05));
+          o.add(a);
+          o.position.set(h.x, 0, h.y);
+          Rend.scene.add(o);
+          Rend._herdObjs.set(h.id, o);
+        }
+
+        const sp = (TUNE.HERDS.speed[h.kind] || 0.1);
+        if (o._hx !== h.x || o._hz !== h.y) { o._hx = h.x; o._hz = h.y; o._simT = time; }
+        const el = Math.min(1.2, time - (o._simT === undefined ? time : o._simT));
+        const tx = h.x + Math.cos(h.heading) * sp * el;
+        const tz = h.y + Math.sin(h.heading) * sp * el;
+        const dx = tx - o.position.x, dz = tz - o.position.z;
+        const dist = Math.hypot(dx, dz);
+        let moving = false;
+        if (dist > 3) { o.position.x = tx; o.position.z = tz; }
+        else if (dist > 0.005) {
+          const step = Math.min(dist, sp * dt * (dist > 0.4 ? 1.6 : 1.05));
+          o.position.x += dx / dist * step;
+          o.position.z += dz / dist * step;
+          moving = step > sp * dt * 0.3;
+        }
+        o.position.y = Math.max(0, Rend.groundY ? Rend.groundY(o.position.x, o.position.z) : 0);
+
+        if (moving && dist > 0.05) {
+          const want = Math.atan2(dx, dz);
+          let dr = want - o.rotation.y;
+          while (dr > Math.PI) dr -= Math.PI * 2;
+          while (dr < -Math.PI) dr += Math.PI * 2;
+          o.rotation.y += dr * Math.min(1, dt * 5);
+        }
+
+        const a = o.children[0];
+        if (!a) continue;
+        const stepped = Math.hypot(o.position.x - (o._px === undefined ? o.position.x : o._px),
+                                   o.position.z - (o._pz === undefined ? o.position.z : o._pz));
+        o._px = o.position.x; o._pz = o.position.z;
+        o._gait = (o._gait || 0) + stepped * 4.6;
+        const legs = a.userData && a.userData.legs;
+        if (legs) {
+
+          o._amp = (o._amp === undefined ? 0 : o._amp) + ((moving ? 1 : 0) - (o._amp || 0)) * Math.min(1, dt * 6);
+          for (const L of legs) L.p.rotation.x = Math.sin(o._gait + L.ph) * L.sw * o._amp;
+        }
+        a.position.y = Math.abs(Math.sin(o._gait)) * 0.045 * (o._amp || 0);
+      }
+    }
+    for (const [id, o] of Rend._herdObjs) {
+      if (!live.has(id)) {
+        Rend.scene.remove(o);
+        o.traverse(m => { if (m.geometry) m.geometry.dispose(); });
+        Rend._herdObjs.delete(id);
+      }
+    }
+  },
+
   draw(s, time) {
     if (!Rend.renderer) return;
     if (s && s.era !== Rend._era) Rend.applyEra(s.era);
     Rend.ensureWater();
+    Rend.syncHerds(s, time);
     if (Rend._waterTime) Rend._waterTime.value = time;
     Shapes.WIND.time.value = time;
     Gfx.followShadow(Rend.cam.tx, Rend.cam.tz);
@@ -1839,6 +2220,7 @@ const Rend = {
         [TERRAIN.GRASS]: rgb(GR.base.color),
         [TERRAIN.FERTILE]: rgb(GR.fertile.color),
         [TERRAIN.SALT]: rgb(GR.salt.color),
+        [TERRAIN.ASH]: rgb(GR.salt.color).map(v => Math.round(v * 0.55)),
         [TERRAIN.ROCK]: rgb(GR.rock.color),
         [TERRAIN.MOUNTAIN]: rgb(GR.cliff),
         [TERRAIN.WATER]: rgb(Gfx.gradeFor(Rend._era || 1).water.color),

@@ -20,6 +20,27 @@ const Input = {
     Rend._overlayDirty = true;
   },
 
+  strandedCount(s) {
+    let n = 0;
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d || !d.needsRoad || d.fixed || b.done === false) continue;
+      if (!b.conn) n++;
+    }
+    return n;
+  },
+
+  startRelic(i) {
+    const r = (G.s.relics || [])[i];
+    if (!r || !DEF(r.type)) return;
+    Input.tool = { mode: 'relic', type: r.type, payload: i };
+    Input.rot = 0;
+    Input.selected = null;
+    UI.hideInspector();
+    UI.toast('\u{1F3DB}\u{FE0F} Placing the ' + DEF(r.type).name + ' — click where it should stand. ' +
+      'It arrives finished. Esc or right-click to put it back.', 10000);
+  },
+
   startMove(b) {
     Input.tool = { mode: 'move', type: b.type, payload: b };
     Input.rot = b.rot || 0;
@@ -126,13 +147,61 @@ const Input = {
       case 'build':
         if (p) Input.place(s, Input.tool.type, p.x, p.y);
         break;
+      case 'relic': {
+        if (!p) return;
+        const idx = Input.tool.payload;
+        const r = (s.relics || [])[idx];
+        if (!r) { Input.setTool('select'); return; }
+
+        const d = DEF(r.type);
+        const added = [];
+        const p0 = Grid.chunkOf(p.x, p.y), p1 = Grid.chunkOf(p.x + (d.w || 1) - 1, p.y + (d.h || 1) - 1);
+        for (let cx = p0.cx; cx <= p1.cx; cx++)
+          for (let cy = p0.cy; cy <= p1.cy; cy++) {
+            const k = cx + ',' + cy;
+            if (G.cache.ownedSet.has(k)) continue;
+            s.owned.push(k); G.cache.ownedSet.add(k); added.push(k);
+          }
+        if (!Grid.canPlace(s, r.type, p.x, p.y, null, Input.rot)) {
+          for (const k of added) {
+            G.cache.ownedSet.delete(k);
+            const i2 = s.owned.indexOf(k); if (i2 >= 0) s.owned.splice(i2, 1);
+          }
+          UI.toast('Can’t stand it there — ' + Grid.whyBlocked(s, r.type, p.x, p.y, Input.rot) + '.', 9000);
+          return;
+        }
+        const b = Grid.addBuilding(s, r.type, p.x, p.y, Input.rot);
+        if (!b) { Input.setTool('select'); return; }
+        b.complete = true; b.done = true; b.relic = true; b.relicEra = r.era;
+        s.relics.splice(idx, 1);
+        Grid.rebuild(s);
+        Econ.log(s, '\u{1F3DB}\u{FE0F}', 'The ' + d.name + ' stands again, in a new age.');
+        UI.toast('\u{1F3DB}\u{FE0F} The ' + d.name + ' stands. It pays its trickle and its city dividend ' +
+          'from now on, and needs no road or water.', 10000);
+        Input.setTool('select');
+        Input.selected = b;
+        UI.showInspector(b);
+        break;
+      }
       case 'move': {
         if (!p) return;
         const b = Input.tool.payload;
         if (!b || !s.buildings.includes(b)) { Input.setTool('select'); return; }
         if (Grid.canPlace(s, b.type, p.x, p.y, b.id, Input.rot)) {
+
+          const isAnchor = !!DEF(b.type).fixed;
+          const before = isAnchor ? Input.strandedCount(s) : 0;
           Grid.moveBuilding(s, b, p.x, p.y, Input.rot);
           Grid.rebuild(s);
+          if (isAnchor) {
+            const lost = Input.strandedCount(s) - before;
+            if (lost > 0) {
+              UI.toast('\u{26A0}\u{FE0F} ' + lost + (lost === 1 ? ' building has' : ' buildings have') +
+                ' lost road access. Every road is measured outward from the ' +
+                DEF(b.type).name + ', so it has to touch your network — move it back, ' +
+                'or run a road out to it.', 12000);
+            }
+          }
           Input.setTool('select');
           Input.selected = b;
           UI.showInspector(b);
@@ -267,7 +336,7 @@ const Input = {
         showTT('sell +' + Util.fmtMoney(Math.round(Grid.chunkPrice(c.cx, c.cy) * TUNE.SELL_LAND)));
       } else Input.tt.classList.add('hidden');
     } else if (Input.tool.mode === 'terra' && p) {
-      showTT('$' + TUNE.TERRA[Input.tool.type]);
+      showTT('$' + terraCost(Input.tool.type, G.s.era));
     } else if (Input.tool.mode === 'road' && Input.painting && Input.stroke) {
 
       showTT('$' + Input.stroke.cost + ' · ' + Input.stroke.tiles.length + ' tiles' +
@@ -561,7 +630,11 @@ const Input = {
     const r = Grid.terraform(s, kind, x, y);
     if (r === 'unowned') UI.firstToast('terraown', 'Terraforming only works on land you own.');
     else if (r === 'occupied') UI.firstToast('terraocc', 'Demolish structures before reshaping the ground under them.');
-    else if (r === 'money') UI.toast('Not enough money — ' + kind + ' costs $' + TUNE.TERRA[kind] + ' per tile.');
+    else if (r === 'money') UI.toast('Not enough money — ' + kind + ' costs $' + terraCost(kind, s.era) + ' per tile.');
+    else if (r === 'locked') UI.toast('\u{1F6AB} ' + (terraLocked(kind, s.era) ||
+      'that brush is not available in this age') + '.', 9000);
+    else if (r === 'ash') UI.firstToast('ash', '\u{1F525} Ash cannot be reshaped — not for money, not ever. ' +
+      'That ground is where a forest was, and the forest is not coming back.');
     else if (r === true) UI.firstToast('terra', 'Terraforming! Sculpt grass, water, rock, mountains and trees to design your world.');
   },
 
