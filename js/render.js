@@ -1068,6 +1068,20 @@ const Rend = {
           rock: ['regolith'], crag: ['crystal'] },
   },
 
+  ROAD_CONTRAST_MIN: 45,
+  auditRoadContrast() {
+    const luma = c => 0.2126 * ((c >> 16) & 255) + 0.7152 * ((c >> 8) & 255) + 0.0722 * (c & 255);
+    const bad = [];
+    for (const k of Object.keys(Rend.ERA_GROUND).map(Number).sort((a, b) => a - b)) {
+      const g = Rend.ERA_GROUND[k].base.color, rd = roadFor(k);
+      const dL = Math.abs(luma(g) - luma(rd.color));
+      if (dL < Rend.ROAD_CONTRAST_MIN)
+        bad.push({ rung: k, flavour: rd.flavour, ground: '#' + g.toString(16),
+                   road: '#' + rd.color.toString(16), dLuma: +dL.toFixed(1) });
+    }
+    return bad;
+  },
+
   scatterFor(era) {
     const keys = Object.keys(Rend.ERA_SCATTER).map(Number).sort((a, b) => a - b);
     let pick = keys[0];

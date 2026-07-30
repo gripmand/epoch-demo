@@ -1497,14 +1497,17 @@ function eraImport(era) {
 }
 
 const ERA_ROAD = {
-  1: { flavour: 'Snow Track', color: 0xd8dde2, hw: 0.28,
-       desc: 'Beaten snow and marker stakes, packed hard by sledge runners. Connects buildings to the ' +
-             'Long Hearth — every building needs road access. $10 a tile, nothing to keep.' },
+
+  1: { flavour: 'Snow Track', color: 0x6d6459, hw: 0.31,
+       desc: 'Snow trodden through to the frozen loess beneath, staked out with markers so it can be ' +
+             'found after a blow. Connects buildings to the Great Hearth — every building needs road ' +
+             'access. $10 a tile, nothing to keep.' },
   4: { flavour: 'Beaten Track', color: 0x8a6a3f, hw: 0.30,
        desc: 'Earth packed hard by feet and sledges. Connects buildings to the ' +
              'seat of power — every building needs road access. $10 a tile, nothing to keep.' },
-  5: { flavour: 'Processional Way', color: 0xc9b48a, hw: 0.34,
-       desc: 'Dressed limestone laid flat and swept. Egypt built roads to move stone and ' +
+
+  5: { flavour: 'Processional Way', color: 0xf0e8dc, hw: 0.34,
+       desc: 'Dressed limestone laid flat and swept white. Egypt built roads to move stone and ' +
              'to walk gods along — wider than a track, and it shows. $10 a tile, nothing to keep.' },
   14: { flavour: 'Sacbé', color: 0xe6e0d2, hw: 0.38,
         desc: 'A raised roadbed of rubble faced with cut stone and finished in white lime plaster — ' +
