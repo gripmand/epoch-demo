@@ -97,6 +97,7 @@ const TUNE = {
 
   INSTANT_BUILD: true,
 
+  TERRAIN_BONUS: 0.5,
   FERTILE_BONUS: 0.5,
   ADJ_BONUS: 0.25,
   AUTOSAVE_MS: 10000,
@@ -556,10 +557,11 @@ const BUILDINGS = {
   },
   flintquarry: {
     name: 'Flint Quarry', tier: 'food', era: 1, w: 2, h: 2, cost: 110, upkeep: 0.15,
-    icon: '\u{1FAA8}', color: '#8f939c', workers: 2, onRock: true, industry: true,
+    icon: '\u{1FAA8}', color: '#8f939c', workers: 2, onRock: true, rockRadius: 6, industry: true,
+
     out: { flint: 1.6 },
-    desc: 'Nodules broken out of the chert on the moraine ridge: 1.6 flint a minute. Must sit on rock, ' +
-      'and the ridge does not grow back.',
+    desc: 'Nodules broken out of the chert on the moraine ridge: 1.6 flint a minute. It works the rock ' +
+      'within 6 tiles — put it anywhere near an outcrop — and the ridge does not grow back.',
   },
   boneyard: {
     name: 'Mammoth Boneyard', tier: 'food', era: 1, w: 2, h: 2, cost: 120, upkeep: 0.12,
@@ -697,7 +699,7 @@ const BUILDINGS = {
   },
   bonelodge: {
 
-    name: 'Mammoth-Bone Lodge', tier: 'housing', era: 1, w: 1, h: 1, cost: 300, upkeep: 0.10,
+    name: 'Mammoth-Bone Lodge', tier: 'housing', era: 1, w: 2, h: 2, cost: 300, upkeep: 0.10,
 
     icon: '\u{1F3D5}\u{FE0F}', color: '#d8cdb5', cap: 16, needsRoad: true, needsWater: true, needsWarm: true, warm: 0.13,
     desc: 'A ridge of arched tusks and mammoth rib, walled in stacked jaws and lashed over with hide: ' +
@@ -1717,7 +1719,6 @@ const UPGRADES = {
   catchment: { to: 'aguada',     cost: 1150, era: 14, label: 'Aguada Reservoir' },
 
   hearth:   { to: 'longfire',  cost: 160, era: 1, label: 'Longfire & Melt Row' },
-  hidetent: { to: 'bonelodge', cost: 220, era: 1, label: 'Mammoth-Bone Lodge' },
 
   hunterscamp:   { to: 'spearlodge',   cost: 260, era: 1, label: 'Spear Lodge' },
   spearlodge:    { to: 'mammothblind', cost: 400, era: 1, label: 'Mammoth Blind' },

@@ -2006,6 +2006,33 @@ const Shapes = {
       return g;
     },
 
+    sunkenHut(d) {
+      const g = new THREE.Group();
+      const bank = Shapes.cyl(0.44, 0.16, 'snow', 9);
+      g.add(bank);
+      const cone = Shapes.cone(0.34, 0.66, 'hide', 8);
+      cone.position.y = 0.14;
+      g.add(cone);
+      const cap = Shapes.cone(0.13, 0.18, 'hideDark', 6);
+      cap.position.y = 0.66;
+      g.add(cap);
+      for (let i = 0; i < 3; i++) {
+        const a = i / 3 * Math.PI * 2;
+        const p = Shapes.cyl(0.015, 0.94, 'timberCold', 4);
+        p.position.set(Math.cos(a) * 0.05, 0.14, Math.sin(a) * 0.05);
+        p.rotation.x = -Math.sin(a) * 0.14; p.rotation.z = Math.cos(a) * 0.14;
+        g.add(p);
+      }
+
+      const screen = Shapes.box(0.52, 0.3, 0.04, 'hideDark');
+      screen.position.set(0, 0.14, -0.4);
+      g.add(screen);
+      const door = Shapes.box(0.14, 0.24, 0.02, 'charcoal');
+      door.position.set(0, 0.14, 0.32);
+      g.add(door);
+      return g;
+    },
+
     boneLodge(d) {
       const g = new THREE.Group();
 
@@ -2425,7 +2452,7 @@ const Shapes = {
 
   HOUSE_SKINS: {
 
-    1: ['hideTent', 'boneLodge'],
+    1: ['hideTent', 'sunkenHut'],
     4: ['reedHouse', 'mudbrickHouse', 'courtyardHouse'],
     5: ['egyptHouse', 'egyptHouse', 'nomarchEstate'],
     14: ['mayaHouse', 'mayaHouse', 'councilHouse'],

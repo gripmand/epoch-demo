@@ -317,7 +317,7 @@ const Econ = {
       } else if (d.out.clay || d.out.wool) {
 
         const kind = d.out.clay ? 'clay' : 'wool';
-        const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b);
+        const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b) * Econ.groundMult(b);
         made = d.out[kind] * staffEff * mult * Econ.M * (1 + C.beerBonus);
         Econ.addStock(s, kind, made);
       } else if (d.out.dates || d.out.fish || d.out.salt || d.out.reeds || d.out.sesame) {
@@ -357,7 +357,7 @@ const Econ = {
           b.status = 'dry_season'; b.rate = 0; b.lastStaffEff = staffEff;
           continue;
         }
-        const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b);
+        const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b) * Econ.groundMult(b);
         made = d.out[kind] * staffEff * mult * Econ.M * (1 + C.beerBonus);
         Econ.addStock(s, kind, made);
       } else if (d.out.stone || d.out.flint) {
@@ -855,13 +855,35 @@ const Econ = {
     }
   },
 
+  rockTiles(s, b) {
+    const R = DEF(b.type).rockRadius;
+    const out = [];
+    if (!R) {
+      Grid.tilesOf(b, (tx, ty) => {
+        if (Grid.inB(tx, ty) && G.cache.terrain[Grid.key(tx, ty)] === TERRAIN.ROCK) out.push([tx, ty]);
+      });
+      return out;
+    }
+    const dm = Grid.dimsOf(b);
+    const cx = b.x + (dm.w - 1) / 2, cy = b.y + (dm.h - 1) / 2;
+    for (let ty = Math.floor(cy - R); ty <= Math.ceil(cy + R); ty++)
+      for (let tx = Math.floor(cx - R); tx <= Math.ceil(cx + R); tx++) {
+        if (!Grid.inB(tx, ty)) continue;
+        const dx = tx - cx, dy = ty - cy;
+        if (dx * dx + dy * dy > R * R) continue;
+        if (G.cache.terrain[Grid.key(tx, ty)] === TERRAIN.ROCK) out.push([tx, ty]);
+      }
+    out.sort((p, q) => ((p[0]-cx)**2 + (p[1]-cy)**2) - ((q[0]-cx)**2 + (q[1]-cy)**2));
+    return out;
+  },
   quarryStoneLeft(b) {
     let left = 0;
-    Grid.tilesOf(b,(tx, ty) => {
-      if (Grid.inB(tx, ty) && G.cache.terrain[Grid.key(tx, ty)] === TERRAIN.ROCK)
-        left += Grid.stoneAt(tx, ty);
-    });
+    for (const [tx, ty] of Econ.rockTiles(G.s, b)) left += Grid.stoneAt(tx, ty);
     return left;
+  },
+
+  groundMult(b) {
+    return Grid.goodGround(G.s, b) ? (1 + (TUNE.TERRAIN_BONUS || 0)) : 1;
   },
 
   woodTiles(s, b) {
@@ -907,15 +929,16 @@ const Econ = {
   },
 
   spendQuarry(s, b, amt) {
-    const tiles = [];
-    Grid.tilesOf(b,(tx, ty) => {
-      if (Grid.inB(tx, ty) && G.cache.terrain[Grid.key(tx, ty)] === TERRAIN.ROCK &&
-          Grid.stoneAt(tx, ty) > 0) tiles.push([tx, ty]);
-    });
+
+    const tiles = Econ.rockTiles(s, b).filter(([tx, ty]) => Grid.stoneAt(tx, ty) > 0);
     if (!tiles.length) return;
-    const each = amt / tiles.length;
-    let exhausted = false;
-    for (const [tx, ty] of tiles) if (Grid.spendStone(s, tx, ty, each)) exhausted = true;
+    let exhausted = false, rest = amt;
+    for (const [tx, ty] of tiles) {
+      if (rest <= 0) break;
+      const take = Math.min(rest, Grid.stoneAt(tx, ty));
+      rest -= take;
+      if (Grid.spendStone(s, tx, ty, take)) exhausted = true;
+    }
     if (exhausted) {
       G.cache.dirty = true;
       if (window.Rend && Rend.invalidateTerrain) Rend.invalidateTerrain();

@@ -552,21 +552,13 @@ const Grid = {
       if (ok && !d.onWood && Grid.treeAt(s, tx, ty)) ok = false;
     }, rot);
 
-    if (ok && d.onRock && rock < 2) ok = false;
-
     if (ok && d.onWood) {
       let wood = 0;
       Grid.footTiles(type, x, y, (tx, ty) => { if (Grid.inB(tx, ty) && Grid.treeAt(s, tx, ty)) wood++; }, rot);
       if (wood < 2) ok = false;
     }
 
-    if (ok && d.onSalt && salt < 2) ok = false;
-
     const sz = Grid.dims(type, rot);
-    if (ok && d.nearWater && !Grid.waterWithin(x, y, sz, d.nearWater)) ok = false;
-    if (ok && d.dryLand && !Grid.isDryLand(x, y, sz)) ok = false;
-
-    if (ok && d.nearTrees && Grid.treesWithin(s, x, y, sz, 3) < d.nearTrees) ok = false;
     return ok;
   },
 
@@ -608,18 +600,7 @@ const Grid = {
     if (d.onWater && dry) return 'a ' + d.name + ' stands IN the water — every tile of it must sit on a channel';
     if (!d.onWater && water) return 'that is in the water';
     if (wrong) return 'the ground there will not take a building';
-    if (d.onSalt && salt < 2) return 'a ' + d.name + ' must sit ON salt flats — at least 2 crusted tiles under it. Look for the white ground on the dry interfluve';
-    if (d.onRock && Grid.rockFrac({ type, x, y, rot }) * sz.w * sz.h < 2) {
-      return 'a ' + d.name + ' must sit on ROCK — at least 2 rocky tiles under its footprint';
-    }
-    if (d.nearWater && !Grid.waterWithin(x, y, sz, d.nearWater)) {
-      return 'a ' + d.name + ' must be within ' + d.nearWater + ' tiles of water — move it to the bank';
-    }
-    if (d.nearTrees && Grid.treesWithin(s, x, y, sz, 3) < d.nearTrees) {
-      return 'a ' + d.name + ' needs ' + d.nearTrees + ' STANDING TREE tiles within 3 — ' +
-        'it belongs in the woods, not on cleared ground. Move it into the forest, or plant trees ' +
-        'from the Terraform tab ($' + TUNE.TERRA.tree + ' each)';
-    }
+
     if (d.onWood) {
       let wood = 0;
       Grid.footTiles(type, x, y, (tx, ty) => { if (Grid.inB(tx, ty) && Grid.treeAt(s, tx, ty)) wood++; }, rot);
@@ -815,6 +796,25 @@ const Grid = {
   },
 
   adjacent(a, b) { return Grid.gap(a, b) === 0; },
+
+  goodGround(s, b) {
+    const d = DEF(b.type);
+    const sz = Grid.dimsOf(b);
+    if (d.onRock) return Grid.rockFrac(b) * sz.w * sz.h >= 2;
+    if (d.onSalt) {
+      let n = 0;
+      Grid.tilesOf(b, (x, y) => { if (Grid.inB(x, y) && G.cache.terrain[Grid.key(x, y)] === TERRAIN.SALT) n++; });
+      return n >= 2;
+    }
+    if (d.nearWater) return Grid.waterWithin(b.x, b.y, sz, d.nearWater);
+    if (d.nearTrees) return Grid.treesWithin(s, b.x, b.y, sz, 3) >= d.nearTrees;
+    if (d.dryLand) {
+      let wet = 0;
+      Grid.tilesOf(b, (x, y) => { if (Grid.inB(x, y) && G.cache.terrain[Grid.key(x, y)] === TERRAIN.WATER) wet++; });
+      return wet === 0;
+    }
+    return false;
+  },
 
   rockFrac(b) {
     const d = DEF(b.type);
