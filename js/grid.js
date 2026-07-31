@@ -432,7 +432,11 @@ const Grid = {
   spendWood(s, x, y, amt) {
     const k = Grid.key(x, y);
     if (!s.woodSpent) s.woodSpent = {};
-    s.woodSpent[k] = Math.min(TUNE.DEADWOOD_YIELD, (s.woodSpent[k] || 0) + amt);
+    const before = s.woodSpent[k] || 0;
+    s.woodSpent[k] = Math.min(TUNE.DEADWOOD_YIELD, before + amt);
+
+    if (G.cache && G.cache.forestLeft !== undefined)
+      G.cache.forestLeft = Math.max(0, G.cache.forestLeft - (s.woodSpent[k] - before));
     if (s.woodSpent[k] >= TUNE.DEADWOOD_YIELD && Grid.treeAt(s, x, y)) {
 
       s.cleared[k] = 1;
@@ -670,6 +674,11 @@ const Grid = {
     const C = G.cache;
 
     C.ratesDirty = true;
+
+    C.forestLeft = 0;
+    for (let y = 0; y < TUNE.WORLD; y++)
+      for (let x = 0; x < TUNE.WORLD; x++)
+        if (Grid.treeAt(s, x, y)) C.forestLeft += Grid.woodAt(s, x, y);
     C.occ.fill(-1); C.road.fill(0); C.byId.clear();
     C.ownedSet = new Set(s.owned);
 

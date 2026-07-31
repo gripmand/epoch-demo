@@ -534,7 +534,7 @@ const BUILDINGS = {
   deadwoodcutter: {
     name: 'Deadwood Cutter', tier: 'food', era: 1, w: 2, h: 2, cost: 110, upkeep: 0.15,
 
-    icon: '\u{1FA93}', color: '#8a7355', workers: 2, woodRadius: 6,
+    icon: '\u{1FA93}', color: '#8a7355', workers: 2,
     out: { deadwood: 1.6 },
     desc: 'Fells and splits 1.6 deadwood a minute from the dead stands within 6 tiles. Put it anywhere ' +
       'near standing timber. It eats 500 from every tile it works, and a spent tile is ASH forever. ' +

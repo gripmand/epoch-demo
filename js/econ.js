@@ -341,6 +341,8 @@ const Econ = {
         b.woodLeft = left;
         const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b);
         made = left > 0 ? Math.min(left, d.out.deadwood * staffEff * mult * Econ.M * (1 + C.beerBonus)) : 0;
+
+        made = Math.min(made, Math.max(0, Econ.capOf(s, 'deadwood') - s.stock.deadwood));
         if (made > 0) {
           Econ.spendCutter(s, b, made);
           Econ.addStock(s, 'deadwood', made);
@@ -369,6 +371,8 @@ const Econ = {
         const rf = d.out.stone ? (0.5 + 0.5 * (b.rockFrac || 0)) : 1;
         const mult = rf * (1 + (b.adjBoost || 0)) * rankOutMult(b);
         made = left > 0 ? d.out[good] * staffEff * mult * Econ.M * (1 + C.beerBonus) : 0;
+
+        made = Math.min(made, Math.max(0, Econ.capOf(s, good) - s.stock[good]));
         if (made > 0) {
           Econ.spendQuarry(s, b, made);
           Econ.addStock(s, good, made);
@@ -889,7 +893,25 @@ const Econ = {
   woodTiles(s, b) {
     const d = DEF(b.type), R = d.woodRadius;
     const out = [];
-    if (!R) { Grid.tilesOf(b, (tx, ty) => { if (Grid.inB(tx, ty)) out.push([tx, ty]); }); return out; }
+
+    if (!R) {
+      const dm0 = Grid.dimsOf(b);
+      const cx0 = b.x + (dm0.w - 1) / 2, cy0 = b.y + (dm0.h - 1) / 2;
+      const WANT = 12, MAX = TUNE.WORLD;
+      for (let r = 0; r <= MAX && out.length < WANT; r++) {
+        for (let dy = -r; dy <= r; dy++) {
+          const ady = Math.abs(dy);
+          for (let dx = -r; dx <= r; dx++) {
+
+            if (r > 0 && ady !== r && Math.abs(dx) !== r) continue;
+            const tx = Math.round(cx0) + dx, ty = Math.round(cy0) + dy;
+            if (!Grid.inB(tx, ty)) continue;
+            if (Grid.woodAt(s, tx, ty) > 0) out.push([tx, ty]);
+          }
+        }
+      }
+      return out;
+    }
     const dm = Grid.dimsOf(b);
     const cx = b.x + (dm.w - 1) / 2, cy = b.y + (dm.h - 1) / 2;
     for (let ty = Math.floor(cy - R); ty <= Math.ceil(cy + R); ty++)
@@ -903,6 +925,8 @@ const Econ = {
     return out;
   },
   cutterWoodLeft(b) {
+
+    if (!DEF(b.type).woodRadius) return Math.max(0, (G.cache && G.cache.forestLeft) || 0);
     let left = 0;
     for (const [tx, ty] of Econ.woodTiles(G.s, b)) left += Grid.woodAt(G.s, tx, ty);
     return left;
