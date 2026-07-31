@@ -370,8 +370,9 @@ function eraGuide(era) {
   if (g) return g;
   return {
     headline: 'This age is still being carved.',
+
     mechanic: 'The rung exists on the ladder, but its guide, chains and mechanic have not been written yet. ' +
-      'The rules that never change (below) all still apply.',
+      'Siting still works the same way, and H shows you what this city is short of.',
     chain: ['Build food first, then the earning chains — every age keeps that shape.'],
     firstSteps: ['Water (or its era\'s equivalent) first.', 'Roads from the seat of power.', 'Housing near the work.'],
     mistake: 'Assuming this age plays like the last one. When it is written, it will not.',
