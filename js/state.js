@@ -25,11 +25,13 @@ const Game = {
       era: START_ERA,
       hallLevel: START_ERA,
       realRent: 0,
-      eraBase: { flour: 0, stone: 0 },
+
+      eraBase: { flour: 0, food: 0, stone: 0 },
       giftHousing: 0,
 
       stock: Game.startStock(granted),
-      cum: { flour: 0, stone: 0, earned: 0 },
+
+      cum: { flour: 0, food: 0, stone: 0, earned: 0 },
       hunger: 0,
       settlerAcc: 0,
 
@@ -253,7 +255,6 @@ const Game = {
       chill: +s.chill || 0,
       woodSpent: s.woodSpent || {},
       herds: s.herds || null,
-      hunt: s.hunt || null,
 
       relics: (s.relics || []).map(r => ({ type: r.type, era: r.era | 0, name: r.name || '' })),
       nextId: s.nextId, placeCounter: s.placeCounter, owned: s.owned, firsts: s.firsts,
@@ -276,6 +277,9 @@ const Game = {
         resting: !!b.resting,
 
         autoHunt: b.autoHunt === false ? false : undefined,
+
+        hunt: b.hunt || undefined,
+        huntRest: b.huntRest > 0 ? Math.round(b.huntRest) : undefined,
 
         halted: !!b.halted,
 
@@ -396,15 +400,20 @@ const Game = {
       realRent: +d.realRent || 0,
 
       eraBase: (d.eraBase && typeof d.eraBase === 'object')
-        ? { flour: +d.eraBase.flour || 0, stone: +d.eraBase.stone || 0 }
-        : { flour: 0, stone: 0 },
+        ? { flour: +d.eraBase.flour || 0,
+            food: d.eraBase.food != null ? (+d.eraBase.food || 0) : (+d.eraBase.flour || 0),
+            stone: +d.eraBase.stone || 0 }
+        : { flour: 0, food: 0, stone: 0 },
 
       stock: (() => {
         const st = {};
         for (const k in TUNE.PRICES) st[k] = +(d.stock && d.stock[k]) || 0;
         return st;
       })(),
-      cum: { flour: +d.cum.flour || 0, stone: +d.cum.stone || 0, earned: +d.cum.earned || 0 },
+
+      cum: { flour: +d.cum.flour || 0,
+             food: d.cum.food != null ? (+d.cum.food || 0) : (+d.cum.flour || 0),
+             stone: +d.cum.stone || 0, earned: +d.cum.earned || 0 },
       hunger: +d.hunger || 0,
       nextId: d.nextId | 0 || 1, placeCounter: d.placeCounter | 0 || 0,
       owned: d.owned.slice(), firsts: d.firsts || {}, prompted: d.prompted || {},
@@ -443,11 +452,13 @@ const Game = {
       woodSpent: d.woodSpent || {},
       herds: Array.isArray(d.herds) ? d.herds.filter(h => h && h.kind && TUNE.HERDS.counts[h.kind] !== undefined)
         .map(h => ({ id: h.id | 0, kind: h.kind, x: +h.x || 0, y: +h.y || 0, heading: +h.heading || 0 })) : null,
-      hunt: (d.hunt && typeof d.hunt === 'object' && d.hunt.kind)
+
+      legacyHunt: (d.hunt && typeof d.hunt === 'object' && d.hunt.kind)
         ? { herdId: d.hunt.herdId | 0, kind: d.hunt.kind, party: d.hunt.party | 0,
             left: Math.max(1, d.hunt.left | 0), dist: d.hunt.dist | 0,
             odds: +d.hunt.odds || 0.5, cat: !!d.hunt.cat, seed: d.hunt.seed >>> 0 }
         : null,
+      hunt: null,
       relics: Array.isArray(d.relics)
         ? d.relics.filter(r => r && BUILDINGS[r.type])
             .map(r => ({ type: r.type, era: r.era | 0, name: r.name || (DEF(r.type) || {}).name || '' }))
@@ -470,6 +481,8 @@ const Game = {
           job: b.job || null, done: b.done !== false,
           resting: !!b.resting,
           autoHunt: b.autoHunt === false ? false : undefined,
+          hunt: b.hunt || null,
+          huntRest: Math.max(0, +b.huntRest || 0),
           halted: !!b.halted,
           mothballed: !!b.mothballed,
           rankPrice: Math.max(0, Math.round(+b.rankPrice || 0)),
@@ -487,11 +500,29 @@ const Game = {
         })),
     };
     G.s = s;
+    Game.adoptLegacyHunt(s);
+
+    Econ.topUpHerds(s);
     G.cache = Game.freshCache();
     Grid.genTerrain(s);
     Grid.rebuild(s);
     if (window.Rend && Rend.invalidateTerrain) Rend.invalidateTerrain();
     return true;
+  },
+
+  adoptLegacyHunt(s) {
+    const h = s.legacyHunt;
+    s.legacyHunt = null;
+    if (!h) return;
+    const camps = s.buildings.filter(b => DEF(b.type) && DEF(b.type).huntBase);
+    const host = camps.find(b => b.type === h.camp) || camps[0];
+    if (host) {
+      host.hunt = Object.assign({}, h, { campId: host.id });
+    } else {
+
+      const tmp = { hunt: Object.assign({}, h), id: 0, type: null };
+      Econ.resolveHunt(s, tmp);
+    }
   },
 
   archiveAndRestart() {

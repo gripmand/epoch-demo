@@ -1311,14 +1311,20 @@ const Rend = {
   CITIZEN_CAP: 240,
 
   syncCitizens(s, time) {
-    if (!Rend._citGeo) {
-      Rend._citGeo = Shapes.citizenGeo();
+    const rung = rungOf(s.era);
 
-      Rend._citMat = Gfx.mat(0xffffff, { vertexColors: true, cache: false });
-      Rend._citM = new THREE.Matrix4();
-      Rend._citV = new THREE.Vector3();
-      Rend._citQ = new THREE.Quaternion();
-      Rend._citS = new THREE.Vector3();
+    if (!Rend._citGeo || Rend._citGeoRung !== rung) {
+      if (Rend._citGeo) Rend._citGeo.dispose();
+      Rend._citGeo = Shapes.citizenGeo(rung);
+      Rend._citGeoRung = rung;
+
+      if (!Rend._citMat) Rend._citMat = Gfx.mat(0xffffff, { vertexColors: true, cache: false });
+      Rend._citM = Rend._citM || new THREE.Matrix4();
+      Rend._citV = Rend._citV || new THREE.Vector3();
+      Rend._citQ = Rend._citQ || new THREE.Quaternion();
+      Rend._citS = Rend._citS || new THREE.Vector3();
+
+      if (Rend.citizens) { Rend.scene.remove(Rend.citizens); Rend.citizens = null; }
     }
     if (!Rend.citizens) {
       Rend.citizens = new THREE.InstancedMesh(Rend._citGeo, Rend._citMat, Rend.CITIZEN_CAP);
@@ -1331,41 +1337,88 @@ const Rend = {
       Rend.scene.add(Rend.citizens);
     }
 
-    if (Rend._citKey !== s.buildings.length + ':' + s.era) {
-      Rend._citKey = s.buildings.length + ':' + s.era;
+    if (Rend._citDirty || Rend._citKey !== s.buildings.length + ':' + s.era + ':' + (G.cache.workersUsed | 0)) {
+      Rend._citDirty = false;
+      Rend._citKey = s.buildings.length + ':' + s.era + ':' + (G.cache.workersUsed | 0);
       Rend._homes = [];
       Rend._works = [];
+      let hall = null;
       for (const b of s.buildings) {
         const d = DEF(b.type);
         if (!d || b.type === 'road' || b.done === false) continue;
         const c = [b.x + d.w / 2, b.y + d.h / 2];
-        if (d.cap) Rend._homes.push(c);
-        if (d.workers || d.sells || d.fixed) Rend._works.push(c);
+        if (d.fixed) hall = c;
+
+        if (d.cap) for (let i = 0; i < (b.residents || 0); i++) Rend._homes.push(c);
+
+        if (b.staff > 0 && !b.mothballed) for (let i = 0; i < b.staff; i++) Rend._works.push(c);
+      }
+
+      if (hall) {
+        const crew = Game.totalResidents(s) - Game.housedResidents(s);
+        for (let i = 0; i < crew; i++) Rend._homes.push(hall);
+        if (!Rend._works.length) Rend._works.push(hall);
       }
     }
     const homes = Rend._homes, works = Rend._works;
     const pop = Math.min(Rend.CITIZEN_CAP, Game.totalResidents(s));
     const M = Rend._citM, V = Rend._citV, Q = Rend._citQ, S = Rend._citS;
     let n = 0;
-    if (homes.length && pop > 0) {
-      for (let i = 0; i < pop; i++) {
-        const h = homes[i % homes.length];
-        const w = works.length ? works[(i * 7 + 3) % works.length] : h;
 
-        const speed = 0.055 + (i % 13) * 0.006;
+    const walk = (h, w, i, spd, prog) => {
+
+      let raw, dir;
+      if (prog === undefined) {
+        const speed = spd || (0.055 + (i % 13) * 0.006);
         const ph = (i * 0.618) % 1;
-        const raw = (time * speed + ph) % 2;
-        const t = raw > 1 ? 2 - raw : raw;
-        const ease = t * t * (3 - 2 * t);
-        const x = h[0] + (w[0] - h[0]) * ease;
-        const z = h[1] + (w[1] - h[1]) * ease;
+        raw = (time * speed + ph) % 2;
+        dir = raw > 1 ? -1 : 1;
+      } else {
 
-        const dir = raw > 1 ? -1 : 1;
-        Q.setFromAxisAngle(Rend._up, Math.atan2((w[0] - h[0]) * dir, (w[1] - h[1]) * dir));
+        raw = prog * 2;
+        dir = raw > 1 ? -1 : 1;
+      }
+      const t = raw > 1 ? 2 - raw : raw;
+      const ease = t * t * (3 - 2 * t);
+      const x = h[0] + (w[0] - h[0]) * ease;
+      const z = h[1] + (w[1] - h[1]) * ease;
 
-        const bob = Math.abs(Math.sin(time * 6 + i)) * 0.012;
-        M.compose(V.set(x, Rend.groundY(x, z) + bob, z), Q, S.setScalar(1));
-        Rend.citizens.setMatrixAt(n++, M);
+      Q.setFromAxisAngle(Rend._up, Math.atan2((w[0] - h[0]) * dir, (w[1] - h[1]) * dir));
+
+      const bob = Math.abs(Math.sin(time * 6 + i)) * 0.012;
+      M.compose(V.set(x, Rend.groundY(x, z) + bob, z), Q, S.setScalar(1));
+      Rend.citizens.setMatrixAt(n++, M);
+    };
+
+    let outOnHunt = 0;
+    if (s.herds) {
+      const total = Math.max(1, TUNE.HUNT.ticks);
+      for (const camp of s.buildings) {
+        if (!camp.hunt) continue;
+        const herd = s.herds.find(h => h.id === camp.hunt.herdId);
+        const cd = DEF(camp.type);
+        if (!herd || !cd) continue;
+        const from = [camp.x + cd.w / 2, camp.y + cd.h / 2];
+        const to = [herd.x, herd.y];
+        const prog = Math.min(1, Math.max(0, 1 - (camp.hunt.left || 0) / total));
+        const n2 = Math.min(camp.hunt.party || 0, Rend.CITIZEN_CAP - n);
+        for (let i = 0; i < n2; i++) {
+
+          const off = (i - (n2 - 1) / 2) * 0.22;
+          walk([from[0] + off, from[1]], [to[0] + off, to[1]], i + 91 + camp.id * 7,
+               0, Math.min(0.999, prog * 0.5 + (i % 3) * 0.004));
+        }
+        outOnHunt += n2;
+      }
+    }
+
+    if (homes.length && pop > 0) {
+      const inTown = Math.max(0, Math.min(pop, Rend.CITIZEN_CAP - n) - outOnHunt);
+      for (let i = 0; i < inTown; i++) {
+        const h = homes[i % homes.length];
+
+        const w = works.length ? works[i % works.length] : h;
+        walk(h, w, i);
       }
     }
     const stale = Math.max(Rend.citCount || 0, n);
@@ -1528,6 +1581,7 @@ const Rend = {
         Rend.ghost = null;
       }
       if (Rend.ring) { Rend.scene.remove(Rend.ring); Rend.ring = null; }
+      if (Rend.ring2) { Rend.scene.remove(Rend.ring2); Rend.ring2 = null; }
       return;
     }
     const type = tool.mode === 'move' ? tool.payload.type : tool.type;
@@ -1555,8 +1609,13 @@ const Rend = {
     Rend.ghost.position.set(cx, Rend.groundY(cx, cz) + 0.02, cz);
     Rend.ghost.rotation.y = (Input.rot || 0) * Math.PI / 2;
 
-    let rad = 0, ringCol = 0x5aaae6;
-    if (d.waterRadius) { rad = d.waterRadius; ringCol = 0x5aaae6; }
+    let rad = 0, ringCol = 0x5aaae6, rad2 = 0, ring2Col = 0x5aaae6;
+    if (d.warmRadius) {
+      rad = d.warmRadius; ringCol = 0xff8a3d;
+      if (d.waterRadius) { rad2 = d.waterRadius; ring2Col = 0x5aaae6; }
+    }
+    else if (d.rockRadius) { rad = d.rockRadius; ringCol = 0x9aa0a8; }
+    else if (d.waterRadius) { rad = d.waterRadius; ringCol = 0x5aaae6; }
     else if (d.keepsTally && TUNE.SCRIBE) { rad = TUNE.SCRIBE.radius; ringCol = 0xd8c9a0; }
     else if (d.fuelKeeper && TUNE.FIREKEEPER) { rad = TUNE.FIREKEEPER.radius; ringCol = 0xff8a3d; }
     else if (type === 'woolbureau' && TUNE.WOOL) { rad = TUNE.WOOL.radius; ringCol = 0xd8d8e0; }
@@ -1585,6 +1644,18 @@ const Rend = {
       }
       Rend.ring.position.set(cx, Rend.groundY(cx, cz) + 0.1, cz);
     } else if (Rend.ring) { Rend.scene.remove(Rend.ring); Rend.ring = null; }
+
+    if (rad2) {
+      const key2 = ring2Col + ':' + gsz.w + 'x' + gsz.h + ':' + rad2;
+      if (!Rend.ring2 || Rend.ring2.userData.key !== key2) {
+        if (Rend.ring2) { Rend.scene.remove(Rend.ring2); Rend.ring2.geometry.dispose(); }
+        Rend.ring2 = new THREE.Mesh(Rend.auraBandGeo(gsz.w, gsz.h, rad2, 0.35),
+          Gfx.unlit(ring2Col, { transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false }));
+        Rend.ring2.userData.key = key2;
+        Rend.scene.add(Rend.ring2);
+      }
+      Rend.ring2.position.set(cx, Rend.groundY(cx, cz) + 0.1, cz);
+    } else if (Rend.ring2) { Rend.scene.remove(Rend.ring2); Rend.ring2 = null; }
   },
 
   auraBandGeo(w, h, rad, thick) {
@@ -1686,7 +1757,8 @@ const Rend = {
 
   invalidateTerrain() { Rend.layerDirty = true; Rend._worldDirty = true; },
   repaintChunk() { Rend._overlayDirty = true; Rend.miniDirty = true; },
-  onWorldChange() { Rend._worldDirty = true; Rend._roadsDirty = true; Rend.miniDirty = true; },
+
+  onWorldChange() { Rend._worldDirty = true; Rend._roadsDirty = true; Rend.miniDirty = true; Rend._citDirty = true; },
 
   _ray: null,
   pick(clientX, clientY) {

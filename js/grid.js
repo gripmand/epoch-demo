@@ -46,6 +46,8 @@ const Grid = {
 
   genTerrain(s) {
     const W = TUNE.WORLD, t = G.cache.terrain;
+
+    Grid.forestChanged();
     t.fill(TERRAIN.GRASS);
     const rnd = Util.mulberry32(s.seed);
     const c = W / 2;
@@ -337,10 +339,15 @@ const Grid = {
     return hit;
   },
 
+  forestChanged() { if (G.cache) G.cache.forestDirty = true; },
+
+  rockChanged() { if (G.cache) G.cache.rockVer = (G.cache.rockVer || 0) + 1; },
+
   clearTree(s, x, y) {
     const k = Grid.key(x, y);
     if (s.planted && s.planted[k]) delete s.planted[k];
     s.cleared[k] = 1;
+    Grid.forestChanged();
   },
 
   terraform(s, kind, x, y) {
@@ -369,9 +376,15 @@ const Grid = {
       G.cache.terrain[k] = T;
       s.terraEdits[k] = T;
       if (s.planted && s.planted[k]) delete s.planted[k];
-      if (T !== TERRAIN.GRASS) s.cleared[k] = 1;
+
+      if (T === TERRAIN.ROCK) s.rockSpent[k] = TUNE.ROCK_YIELD;
+      s.cleared[k] = 1;
     }
     s.money -= cost;
+
+    Grid.forestChanged();
+    Grid.rockChanged();
+
     Rend.invalidateTerrain();
     return true;
   },
@@ -418,6 +431,7 @@ const Grid = {
     if (s.rockSpent[k] >= TUNE.ROCK_YIELD && G.cache.terrain[k] === TERRAIN.ROCK) {
       G.cache.terrain[k] = TERRAIN.GRASS;
       s.terraEdits[k] = TERRAIN.GRASS;
+      Grid.rockChanged();
       return true;
     }
     return false;
@@ -675,10 +689,13 @@ const Grid = {
 
     C.ratesDirty = true;
 
-    C.forestLeft = 0;
-    for (let y = 0; y < TUNE.WORLD; y++)
-      for (let x = 0; x < TUNE.WORLD; x++)
-        if (Grid.treeAt(s, x, y)) C.forestLeft += Grid.woodAt(s, x, y);
+    if (C.forestLeft === undefined || C.forestDirty) {
+      C.forestLeft = 0;
+      for (let y = 0; y < TUNE.WORLD; y++)
+        for (let x = 0; x < TUNE.WORLD; x++)
+          if (Grid.treeAt(s, x, y)) C.forestLeft += Grid.woodAt(s, x, y);
+      C.forestDirty = false;
+    }
     C.occ.fill(-1); C.road.fill(0); C.byId.clear();
     C.ownedSet = new Set(s.owned);
 
@@ -778,7 +795,7 @@ const Grid = {
     for (const b of s.buildings) {
       const d = DEF(b.type);
 
-      if (d.waterRadius) Grid.stampRadiusCircle(C.water, b, d.waterRadius + rankRadiusBonus(b));
+      if (d.waterRadius && !b.mothballed) Grid.stampRadiusCircle(C.water, b, d.waterRadius + rankRadiusBonus(b));
     }
   },
 
@@ -817,11 +834,8 @@ const Grid = {
     }
     if (d.nearWater) return Grid.waterWithin(b.x, b.y, sz, d.nearWater);
     if (d.nearTrees) return Grid.treesWithin(s, b.x, b.y, sz, 3) >= d.nearTrees;
-    if (d.dryLand) {
-      let wet = 0;
-      Grid.tilesOf(b, (x, y) => { if (Grid.inB(x, y) && G.cache.terrain[Grid.key(x, y)] === TERRAIN.WATER) wet++; });
-      return wet === 0;
-    }
+
+    if (d.dryLand) return Grid.isDryLand(b.x, b.y, Grid.dimsOf(b));
     return false;
   },
 

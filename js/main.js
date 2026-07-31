@@ -99,15 +99,18 @@ const Main = {
       };
       setTimeout(askName, 4000);
 
-      UI.toast(TUNE.FOUNDING_GRANT
-        ? 'ERA 1 — ANUNNAKI. The sky-teachers hand you a founding village and ' +
-          Util.fmtMoney(TUNE.FOUNDING.purse) + ' of grain rations — spend the ' +
-          Util.fmtMoney(TUNE.START_MONEY) + ' in your treasury on a CRAFT CHAIN, because the rations run out ' +
-          'and the food chain will not make you rich. Press G for the guide.'
-        : 'ERA 1 — ANUNNAKI. Bare ground, your Hall, and ' + Util.fmtMoney(TUNE.START_MONEY) + ' — ' +
-          'no village, no rations, an EMPTY granary. Build a Well, 2-3 Farms, a Mill touching a Farm, ' +
-          'then Houses and a Market. Food before people: houses with nothing milled go hungry. ' +
-          'Press G for the guide.', 16000);
+      const eraName = (ERAS[G.s.era - 1] || {}).name || 'A NEW AGE';
+      const g = (typeof ERA_GUIDES !== 'undefined' && ERA_GUIDES[rungOf(G.s.era)]) || null;
+
+      const opener = g && g.firstSteps && g.firstSteps.length ? g.firstSteps[0] : '';
+      UI.toast(eraName.toUpperCase() + '. ' + (TUNE.FOUNDING_GRANT
+        ? 'You are handed a founding village and ' + Util.fmtMoney(TUNE.FOUNDING.purse) +
+          ' in rations — spend the ' + Util.fmtMoney(TUNE.START_MONEY) +
+          ' in your treasury on a CRAFT CHAIN, because the rations run out and the food chain ' +
+          'will not make you rich. '
+        : 'Bare ground, your ' + anchorFor(G.s.era).name + ', and ' +
+          Util.fmtMoney(TUNE.START_MONEY) + ' — no village, no rations, an EMPTY store. ') +
+        opener + ' Press G for the guide.', 16000);
     } else if (Game.migratedFrom) {
 
       setTimeout(() => {

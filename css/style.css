@@ -214,6 +214,20 @@ body[data-era-theme="cosmic"]    { --chip-bg: rgba(16, 10, 28, 0.92); --chip-bor
 .pal-lockbtn:hover:not(:disabled) { color: #fff; border-color: rgba(255,255,255,0.3); }
 .pal-lockbtn.on { background: rgba(70,110,160,0.5); border-color: rgba(140,190,240,0.5); color: #fff; }
 .pal-lockbtn:disabled { opacity: 0.4; cursor: default; }
+/* ★ the Keep-placing toggle. Same chrome as the lock button so the filter row
+   reads as one control strip, but it uses .active (not .on) because that is
+   what every other stateful button in this file uses — .on exists only here. */
+.pal-keepbtn {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+  color: #b9c2cc; border-radius: 7px;
+  padding: 5px 10px; font-size: 10px; font-weight: 600;
+  cursor: pointer; font-family: inherit; white-space: nowrap;
+}
+.pal-keepbtn:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
+.pal-keepbtn.active {
+  background: rgba(200,140,60,0.42); border-color: rgba(240,190,120,0.55); color: #fff;
+}
 #palette { max-width: min(920px, calc(100% - 20px)); }
 .pal-btn {
   display: flex; flex-direction: column; align-items: center; gap: 1px;

@@ -26,13 +26,13 @@ const TUNE = {
                  sesame: 0, oil: 0, dyedcloth: 0, mudbrick: 0,
                  water: 0, cacao: 0, chocolate: 0, honey: 0,
 
-                 deadwood: 45, charcoal: 0, game: 0, pemmican: 24,
+                 deadwood: 45, charcoal: 0, game: 0, pemmican: 24, forage: 0,
                  hide: 0, parka: 0, flint: 0, blades: 0,
                  bone: 0, ochre: 0, carvings: 0, ivory: 0 },
 
   FOUNDING_CREW: 10,
 
-  ERA_STARTER: { 1: 'deadwoodcutter', 4: 'farm', 5: 'farm', 14: 'milpa' },
+  ERA_STARTER: { 1: 'deadwoodcutter', 4: 'farm', 5: 'emmerfield', 14: 'milpa' },
 
   MIGRATION: {
     perMinute: 8,
@@ -62,7 +62,7 @@ const TUNE = {
 
   CACAO_CAP: 40, CHOCOLATE_CAP: 25, HONEY_CAP: 35,
 
-  DEADWOOD_CAP: 50, CHARCOAL_CAP: 30, GAME_CAP: 60, PEMMICAN_CAP: 40,
+  DEADWOOD_CAP: 50, CHARCOAL_CAP: 30, GAME_CAP: 60, PEMMICAN_CAP: 40, FORAGE_CAP: 35,
   HIDE_CAP: 40, PARKA_CAP: 25, FLINT_CAP: 50, BLADES_CAP: 30,
   BONE_CAP: 40, OCHRE_CAP: 40, CARVINGS_CAP: 25, IVORY_CAP: 20,
   PRICES: { grain: 0.5, flour: 2, stone: 1, blocks: 4,
@@ -72,14 +72,14 @@ const TUNE = {
 
             water: 0, cacao: 9, chocolate: 24, honey: 2.4,
 
-            deadwood: 0.6, charcoal: 3, game: 0.5, pemmican: 2,
+            deadwood: 0.6, charcoal: 3, game: 0.5, pemmican: 2, forage: 1.1,
             hide: 1.2, parka: 7, flint: 0.6, blades: 4,
             bone: 1.2, ochre: 1.5, carvings: 13, ivory: 18 },
 
   NO_EXPORT: { water: 1 },
 
   FOODS: [ { kind: 'flour', eff: 1.0 }, { kind: 'pemmican', eff: 1.0 },
-           { kind: 'dates', eff: 1.0 },
+           { kind: 'dates', eff: 1.0 }, { kind: 'forage', eff: 0.8 },
            { kind: 'fish', eff: 0.75 }, { kind: 'honey', eff: 0.6 } ],
   LAND_BASE: 150,
   LAND_EXP: 1.35,
@@ -133,9 +133,15 @@ const TUNE = {
   FUEL_RESERVE_MIN: 2,
 
   HERDS: {
-    counts: { mammoth: 6, bison: 8, rhino: 2, sabertooth: 3 },
+    counts: { mammoth: 8, bison: 22, rhino: 4, sabertooth: 5 },
     speed: { mammoth: 0.09, bison: 0.13, rhino: 0.10, sabertooth: 0.17 },
     standoff: 24,
+
+    seedRing: [28, 100],
+
+    returnRing: [45, 85],
+
+    returnEvery: { bison: 180, sabertooth: 900, rhino: 1500, mammoth: 3600 },
   },
   HUNT: {
     party: 6,
@@ -151,7 +157,8 @@ const TUNE = {
     rest: 45,
     autoMinOdds: 0.50,
     autoSpare: 4,
-    autoSkipCat: true,
+
+    autoMinRoom: 0.6,
 
     haul: {
       mammoth:    { game: 90, hide: 30, bone: 60, ivory: 8 },
@@ -536,9 +543,11 @@ const BUILDINGS = {
 
     icon: '\u{1FA93}', color: '#8a7355', workers: 2,
     out: { deadwood: 1.6 },
-    desc: 'Fells and splits 1.6 deadwood a minute from the dead stands within 6 tiles. Put it anywhere ' +
-      'near standing timber. It eats 500 from every tile it works, and a spent tile is ASH forever. ' +
-      'Four tiles is 125 minutes of work. Plan where the next one goes before you build this one.',
+
+    desc: 'Fells and splits 1.6 deadwood a minute from the nearest dead stands, at any distance — put ' +
+      'it anywhere and the cutting front grows outward. It eats 500 from every tile it works, and a ' +
+      'spent tile is ASH forever. Four tiles is 125 minutes of work. Plan where the next one goes ' +
+      'before you build this one.',
   },
   reindeerdrive: {
     name: 'Reindeer Drive', tier: 'food', era: 1, w: 2, h: 2, cost: 100, upkeep: 0.15,
@@ -557,18 +566,21 @@ const BUILDINGS = {
   },
   flintquarry: {
     name: 'Flint Quarry', tier: 'food', era: 1, w: 2, h: 2, cost: 110, upkeep: 0.15,
-    icon: '\u{1FAA8}', color: '#8f939c', workers: 2, onRock: true, rockRadius: 6, industry: true,
+    icon: '\u{1FAA8}', color: '#8f939c', workers: 2, onRock: true, rockRadius: 20, industry: true,
 
     out: { flint: 1.6 },
-    desc: 'Nodules broken out of the chert on the moraine ridge: 1.6 flint a minute. It works the rock ' +
-      'within 6 tiles — put it anywhere near an outcrop — and the ridge does not grow back.',
+    desc: 'Nodules broken out of the chert on the moraine ridge: 1.6 flint a minute. It works every ' +
+      'outcrop within 20 tiles, nearest first — put it anywhere within reach of rock, and stand it ON ' +
+      'the rock for +50%. The ridge does not grow back: a worked-out tile stops being rock forever.',
   },
   boneyard: {
     name: 'Mammoth Boneyard', tier: 'food', era: 1, w: 2, h: 2, cost: 120, upkeep: 0.12,
     icon: '\u{1F9B4}', color: '#cfc4ae', workers: 2, onSalt: true,
     out: { bone: 1.0 },
-    desc: 'A bend in the river where the bones pile up: 1 bone a minute. Burn it when the wood runs ' +
-      'out, or carve it and become the sort of people who carve things. Bonebeds are 1.5% of this map.',
+
+    desc: 'A bend in the river where the bones pile up: 1 bone a minute, and +50% standing on a white ' +
+      'bonebed. Burn it when the wood runs out, or send it to a CARVER\'S LODGE for carvings — the ' +
+      'Painted Cave wants 1,000 of them. Bonebeds are 1.5% of this map.',
   },
   ochrepit: {
     name: 'Ochre Bank', tier: 'food', era: 1, w: 2, h: 2, cost: 100, upkeep: 0.10,
@@ -576,7 +588,19 @@ const BUILDINGS = {
     icon: '\u{1F7E5}', color: '#b5502f', workers: 2, nearWater: 5,
     out: { ochre: 1.2 },
     desc: 'Red iron oxide cut open by the river: 1.2 ochre a minute, from a bank within 5 tiles of the ' +
-      'ice. Nearly worthless to sell. The Painted Cave will want 900 of it.',
+
+      'ice. Nearly worthless to sell. The Painted Cave will want 9,000 of it — that is the real bill, ' +
+      'and it is why this is not an optional building.',
+  },
+
+  foragecamp: {
+    name: 'Forage Ground', tier: 'food', era: 1, w: 2, h: 2, cost: 90, upkeep: 0.12,
+    icon: '\u{1F33F}', color: '#7a8a6a', workers: 2, nearTrees: 3,
+    out: { forage: 1.2 },
+
+    desc: 'Cloudberries, crowberries, roots dug from under the moss, and lichen boiled soft: 1.2 forage ' +
+      'a minute, eaten at 80% of dried meat. It works anywhere and is worth 50% more standing in scrub. ' +
+      'It needs no herd, no river and NO FIRE — when the hearths go dark this is the only food left.',
   },
 
   charclamp: {
@@ -637,8 +661,9 @@ const BUILDINGS = {
     icon: '\u{1F9B4}', color: '#c9b491', workers: 3, needsRoad: true, needsWater: true, needsWarm: true, warm: 0.15,
     procIn: 'bone', procRate: 2.0, procOut: 'carvings', procRatio: 0.5,
     sells: 'carvings', sellRate: 0.4, sellPrice: 13, custRadius: 6, custMin: 6,
-    desc: 'Carves 2 bone a minute into figures and beads and sells 0.4 at $13. It makes 1 — the rest ' +
-      'goes to the Cave. This is the first building in the game whose product does nothing at all.',
+    desc: 'Carves 2 bone a minute into figures and beads and sells 0.4 at $13. It makes 1, so ONE LODGE ' +
+      'EATS TWO BONEYARDS — and it sells 40% of what it carves, so only the rest reaches the Cave, ' +
+      'which wants 1,000. This is the first building in the game whose product does nothing at all.',
   },
   furhall: {
     name: 'Fur Hall', tier: 'commerce', era: 1, w: 2, h: 2, cost: 360, upkeep: 0.32,
@@ -656,6 +681,52 @@ const BUILDINGS = {
     desc: 'Sells whatever raw you have most of — ochre, bone, hide, flint, wood, ivory — at 80% of ' +
       'list, 1.5 a minute. First income the minute the first camp runs. Knowing when to demolish it is ' +
       'the real decision.',
+  },
+
+  tendedground: {
+    name: 'Tended Ground', tier: 'food', era: 1, w: 2, h: 2, cost: 210, upkeep: 0.20,
+    icon: '\u{1F33F}', color: '#8a9a72', workers: 3, nearTrees: 3,
+    out: { forage: 2.4 },
+
+    desc: 'The good patches, cleared of competitors and burned back to bring on the fruit, and returned ' +
+      'to every season. 2.4 forage a minute — double the wild ground — for one more pair of hands. ' +
+      'Still needs no herd, no river and no fire.',
+  },
+  smokelodge: {
+    name: 'Smoke Lodge', tier: 'food', era: 1, w: 2, h: 2, cost: 420, upkeep: 0.34,
+    icon: '\u{1F356}', color: '#8a4432', workers: 4, needsWater: true, needsWarm: true, warm: 0.18,
+    industry: true, grainMill: true,
+    procIn: 'game', procRate: 4.2, procOut: 'pemmican', procRatio: 0.84,
+    desc: 'The racks, closed in under hide and kept at a slow smoke for days instead of hours. 4.2 game ' +
+      'a minute into 3.5 dried — more meat AND more of each carcass surviving the process. It still ' +
+      'needs the fire, and it needs more of it.',
+  },
+  pressurefloor: {
+    name: 'Pressure-Flake Floor', tier: 'food', era: 1, w: 2, h: 2, cost: 430, upkeep: 0.34,
+    icon: '\u{1FAA8}', color: '#6a6f78', workers: 4, needsWater: true, needsWarm: true, warm: 0.18,
+    industry: true,
+    procIn: 'flint', procRate: 2.8, procOut: 'blades', procRatio: 0.62,
+
+    desc: 'Blades pressed off with an antler tine rather than struck. 2.8 flint a minute into 1.7 ' +
+      'bundles — and the ridge is finite, so getting more out of every nodule is worth more than ' +
+      'cutting faster.',
+  },
+  deepcache: {
+    name: 'Deep Cache', tier: 'infra', era: 1, w: 1, h: 1, cost: 200, upkeep: 0.09,
+    icon: '\u{1F9CA}', color: '#93aab5', storeGame: 65, storePemmican: 40, warm: 0.04,
+    desc: 'Cut further down, through to the permanently frozen ground, and lidded with stone and turf. ' +
+      '+650 game and +400 dried meat, still with no workers and no road. The larder that does not eat, ' +
+      'twice over.',
+  },
+  tradering: {
+    name: 'Trade Ring', tier: 'commerce', era: 1, w: 1, h: 2, cost: 300, upkeep: 0.26,
+    icon: '\u{1F6F7}', color: '#c9a271', workers: 2, needsRoad: true, needsWater: true, needsWarm: true,
+    warm: 0.12,
+    sellsRaw: ['ochre', 'bone', 'hide', 'flint', 'deadwood', 'ivory', 'forage'], sellRate: 3.0,
+    custRadius: 9, custMin: 4,
+
+    desc: 'Not a bigger stall — a place on a route. Flint in this age travelled hundreds of miles, and ' +
+      'this is the camp that other camps walk to. Sells 3 raw a minute at 80% of list, out to 9 tiles.',
   },
 
   hunterscamp: {
@@ -1632,6 +1703,8 @@ const RP_WEIGHT = {
 
   hearth: 0.1, longfire: 0.15, icehole: 0.1, cache: 0.2, storepit: 0.6, sleddogpost: 0.3,
   deadwoodcutter: 1.0, reindeerdrive: 1.0, iceweir: 1.0, flintquarry: 1.0, boneyard: 1.0, ochrepit: 1.0,
+  foragecamp: 1.0, tendedground: 1.3,
+  smokelodge: 2.0, pressurefloor: 2.0, deepcache: 0.4, tradering: 1.8,
   charclamp: 1.6, dryrack: 1.6, tannery: 1.8, knapfloor: 1.6,
   meatstall: 2.4, fuelstack: 2.4, bladestall: 2.6, carverlodge: 2.2, furhall: 2.8, tradepost: 1.2,
   hunterscamp: 0.8, hidetent: 0.3, bonelodge: 0.3,
@@ -1672,16 +1745,28 @@ const RANK = {
   outPerRank: 0.35,
   upkeepPerRank: 0.25,
   radiusPerRank: 1,
+
+  storePerRank: 0.5,
   costBase: 1.0,
   costGrowth: 1.8,
   numerals: ['', '', ' II', ' III', ' IV'],
 };
 
+function rankStoreMult(b) { return 1 + RANK.storePerRank * (rankOf(b) - 1); }
+function hasStore(d) {
+  return !!(d.storeGrain || d.storeFlour || d.storeCraft || d.storeWater ||
+            d.storeGame || d.storePemmican || d.depot);
+}
+
 function rankUpgradable(d) {
   if (!d) return false;
   if (d.fixed || d.monument) return false;
-  if (d.tier === 'civic' || d.tier === 'beauty') return false;
+  if (d.tier === 'beauty') return false;
   if (d.cap) return false;
+
+  if (hasStore(d)) return true;
+  if (d.tier === 'civic') return !!(d.capRadius || d.amenityRadius || d.soilRadius ||
+                                    d.keepsTally || d.fuelKeeper);
 
   return !!(d.out || d.procIn || d.sells || d.waterRadius || d.warmRadius || d.soilRadius || d.threshing);
 }
@@ -1705,20 +1790,26 @@ function rankUpCost(d, fromRank) {
 const UPGRADES = {
 
   well:      { to: 'cistern',    cost: 160, era: 4, label: 'Cistern' },
-  farm:      { to: 'estate',     cost: 280, era: 5, label: 'Estate Farm' },
-  house:     { to: 'villa',      cost: 220, era: 5, label: 'Villa' },
-  market:    { to: 'bazaar',     cost: 320, era: 5, label: 'Bazaar' },
+  farm:      { to: 'estate',     cost: 280, era: 5, label: 'Estate Farm', legacy: true },
+  house:     { to: 'villa',      cost: 220, era: 5, label: 'Villa', legacy: true },
+  market:    { to: 'bazaar',     cost: 320, era: 5, label: 'Bazaar', legacy: true },
 
-  cistern:   { to: 'canalwell',  cost: 140, era: 5, label: 'Canal Well' },
-  villa:     { to: 'stonehouse', cost: 320, era: 14, label: 'Stone House' },
-  canalwell: { to: 'aqueduct',   cost: 260, era: 14, label: 'Aqueduct' },
-  estate:    { to: 'farm2',      cost: 400, era: 30, label: 'Steam Farm' },
+  cistern:   { to: 'canalwell',  cost: 140, era: 5, label: 'Canal Well', legacy: true },
+  villa:     { to: 'stonehouse', cost: 320, era: 14, label: 'Stone House', legacy: true },
+  canalwell: { to: 'aqueduct',   cost: 260, era: 14, label: 'Aqueduct', legacy: true },
+  estate:    { to: 'farm2',      cost: 400, era: 30, label: 'Steam Farm', legacy: true },
 
   emmerfield: { to: 'estate',    cost: 400, era: 5, label: 'Estate Farm' },
 
   catchment: { to: 'aguada',     cost: 1150, era: 14, label: 'Aguada Reservoir' },
 
   hearth:   { to: 'longfire',  cost: 160, era: 1, label: 'Longfire & Melt Row' },
+
+  foragecamp: { to: 'tendedground',  cost: 190, era: 1, label: 'Tended Ground' },
+  dryrack:    { to: 'smokelodge',    cost: 260, era: 1, label: 'Smoke Lodge' },
+  knapfloor:  { to: 'pressurefloor', cost: 250, era: 1, label: 'Pressure-Flake Floor' },
+  cache:      { to: 'deepcache',     cost: 150, era: 1, label: 'Deep Cache' },
+  tradepost:  { to: 'tradering',     cost: 210, era: 1, label: 'Trade Ring' },
 
   hunterscamp:   { to: 'spearlodge',   cost: 260, era: 1, label: 'Spear Lodge' },
   spearlodge:    { to: 'mammothblind', cost: 400, era: 1, label: 'Mammoth Blind' },
@@ -1809,3 +1900,73 @@ function DEF(type) { return BUILDINGS[type]; }
 })();
 
 function gateMult() { return TUNE.TEMPO / TUNE.SPEEDUP; }
+
+const FOOD_EFF = (function () {
+  const m = Object.create(null);
+  for (const f of TUNE.FOODS) m[f.kind] = f.eff;
+  return m;
+})();
+function foodEff(kind) { return FOOD_EFF[kind] || 0; }
+
+const FOOD_CHAIN = (function () {
+  const m = Object.create(null);
+  for (const k in FOOD_EFF) m[k] = 1;
+  for (const key in BUILDINGS) {
+    const d = BUILDINGS[key];
+    if (d.procIn && foodEff(d.procOut) > 0) m[d.procIn] = 1;
+  }
+  return m;
+})();
+function inFoodChain(kind) { return !!kind && !!FOOD_CHAIN[kind]; }
+
+(function auditDataTables() {
+  const bad = [];
+  const say = m => bad.push(m);
+
+  for (const rung in TUNE.ERA_STARTER) {
+    const k = TUNE.ERA_STARTER[rung], d = BUILDINGS[k];
+    if (!d) say('ERA_STARTER[' + rung + '] = "' + k + '" is not a building');
+    else if ((d.era || 1) !== +rung)
+      say('ERA_STARTER[' + rung + '] = "' + k + '" is era ' + (d.era || 1) +
+          ' — a rung-' + rung + ' city can never build it, so the crew is held forever');
+  }
+
+  for (const k in TUNE.PRICES)
+    if (!(k in TUNE.START_STOCK)) say('good "' + k + '" is in PRICES but not START_STOCK (NaN on first addStock)');
+  for (const k in TUNE.START_STOCK)
+    if (!(k in TUNE.PRICES)) say('good "' + k + '" is in START_STOCK but has no price');
+
+  for (const key in BUILDINGS) {
+    const d = BUILDINGS[key];
+    if (d.sells && !(d.sellPrice > 0) && !TUNE.PRICES[d.sells])
+      say(key + ' sells "' + d.sells + '" with no sellPrice and no list price — income would be NaN');
+    if (d.sells && !(d.sellRate > 0)) say(key + ' declares sells but no sellRate');
+    if (d.procIn && !(d.procRate > 0 && d.procOut && d.procRatio > 0))
+      say(key + ' declares procIn but is missing procRate/procOut/procRatio');
+    if (d.out) for (const g in d.out) if (!(g in TUNE.PRICES)) say(key + ' outputs unpriced good "' + g + '"');
+  }
+
+  for (const from in UPGRADES) {
+    const u = UPGRADES[from], a = BUILDINGS[from], b = BUILDINGS[u.to];
+    if (!a) { say('UPGRADES has no source building "' + from + '"'); continue; }
+    if (!b) { say('UPGRADES["' + from + '"] targets missing building "' + u.to + '"'); continue; }
+
+    if (a.w !== b.w || a.h !== b.h)
+      say(from + ' -> ' + u.to + ' RESIZES ' + a.w + 'x' + a.h + ' -> ' + b.w + 'x' + b.h +
+          ' (structural rule 5: an upgrade must not demand ground you did not commit)');
+
+    if (!u.legacy && (u.era || 1) !== (a.era || 1))
+      say(from + ' (era ' + (a.era || 1) + ') -> ' + u.to + ' is tagged era ' + (u.era || 1) +
+          ' — under the prestige turn this upgrade can never fire');
+  }
+
+  if (bad.length) {
+    console.warn('EPOCH DATA INTEGRITY — ' + bad.length + ' problem(s):');
+    for (const m of bad) console.warn('  · ' + m);
+  }
+  return bad;
+})();
+
+const ERA_FOOD_LABEL = { 1: 'Food put by this age', 4: 'Flour milled this age',
+                         5: 'Flour milled this age', 14: 'Food ground this age' };
+function eraFoodLabel(era) { return ERA_FOOD_LABEL[rungOf(era)] || 'Food produced this age'; }

@@ -117,12 +117,13 @@ const Econ = {
       .sort((a, b) => a.placed - b.placed);
 
     if (s.hunger >= TUNE.HUNGER_WARN) {
+
       const foodFirst = b => {
         const d = DEF(b.type);
-        return (d.out && (d.out.grain || d.out.dates || d.out.fish || d.out.game)) ||
-          d.procOut === 'flour' || d.sells === 'flour' ||
-          d.procOut === 'pemmican' || d.sells === 'pemmican' ||
-          b.type === 'breadoven' || b.type === 'templeGranary' ? 0 : 1;
+        if (!d) return 1;
+        const raws = d.out ? Object.keys(d.out) : [];
+        return (raws.some(inFoodChain) || inFoodChain(d.procOut) || inFoodChain(d.sells) ||
+          b.type === 'breadoven' || b.type === 'templeGranary') ? 0 : 1;
       };
       byPlaced.sort((a, b) => foodFirst(a) - foodFirst(b) || a.placed - b.placed);
     }
@@ -302,30 +303,36 @@ const Econ = {
       b.lastStaffEff = staffEff;
       if (b.staff === 0) { b.status = 'no_staff'; b.rate = 0; continue; }
 
-      let made = 0;
+      let made = 0, outKind = null;
       if (d.out.grain) {
 
         b.soil = Grid.soilUnder(b);
         const soilMult = TUNE.SOIL.minYield + (1 - TUNE.SOIL.minYield) * b.soil;
 
         const oxen = (b.oxNear || []).some(id => C.fedByres.has(id)) ? TUNE.OX.bonus : 0;
+
         const mult = (1 + TUNE.FERTILE_BONUS * (b.fertile || 0)) *
-                     (1 + (b.adjBoost || 0)) * (1 + oxen) * soilMult * rankOutMult(b);
+                     (1 + (b.adjBoost || 0)) * (1 + oxen) * soilMult * rankOutMult(b) *
+                     Econ.groundMult(b);
 
         made = d.out.grain * staffEff * mult * Econ.M * (1 + C.beerBonus) * (C.nileMult || 1);
         Econ.addStock(s, 'grain', made);
+        outKind = 'grain';
       } else if (d.out.clay || d.out.wool) {
 
         const kind = d.out.clay ? 'clay' : 'wool';
         const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b) * Econ.groundMult(b);
         made = d.out[kind] * staffEff * mult * Econ.M * (1 + C.beerBonus);
         Econ.addStock(s, kind, made);
-      } else if (d.out.dates || d.out.fish || d.out.salt || d.out.reeds || d.out.sesame) {
+        outKind = kind;
+      } else if (d.out.dates || d.out.fish || d.out.salt || d.out.reeds || d.out.sesame ||
+                 d.out.forage) {
 
         const kind = Object.keys(d.out)[0];
 
         const oxen = (b.oxNear || []).some(id => C.fedByres.has(id)) ? TUNE.OX.bonus : 0;
-        let mult = (1 + (b.adjBoost || 0)) * (1 + oxen) * rankOutMult(b);
+
+        let mult = (1 + (b.adjBoost || 0)) * (1 + oxen) * rankOutMult(b) * Econ.groundMult(b);
         if (d.saltProof) {
           b.soil = Grid.soilUnder(b);
           if (b.soil < 0.3) mult *= 1.5;
@@ -335,6 +342,7 @@ const Econ = {
         }
         made = d.out[kind] * staffEff * mult * Econ.M * (1 + C.beerBonus);
         Econ.addStock(s, kind, made);
+        outKind = kind;
       } else if (d.out.deadwood) {
 
         const left = Econ.cutterWoodLeft(b);
@@ -362,6 +370,7 @@ const Econ = {
         const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b) * Econ.groundMult(b);
         made = d.out[kind] * staffEff * mult * Econ.M * (1 + C.beerBonus);
         Econ.addStock(s, kind, made);
+        outKind = kind;
       } else if (d.out.stone || d.out.flint) {
 
         const good = d.out.stone ? 'stone' : 'flint';
@@ -369,7 +378,8 @@ const Econ = {
         b.stoneLeft = left;
 
         const rf = d.out.stone ? (0.5 + 0.5 * (b.rockFrac || 0)) : 1;
-        const mult = rf * (1 + (b.adjBoost || 0)) * rankOutMult(b);
+
+        const mult = rf * (1 + (b.adjBoost || 0)) * rankOutMult(b) * Econ.groundMult(b);
         made = left > 0 ? d.out[good] * staffEff * mult * Econ.M * (1 + C.beerBonus) : 0;
 
         made = Math.min(made, Math.max(0, Econ.capOf(s, good) - s.stock[good]));
@@ -383,6 +393,8 @@ const Econ = {
         b.status = left <= 0 ? 'stand_spent' : (staffEff < 1 ? 'understaffed' : 'ok');
         continue;
       }
+
+      if (outKind && made > 0) Econ.noteFood(s, outKind, made);
       b.rate = made;
       b.status = staffEff < 1 ? 'understaffed' : 'ok';
     }
@@ -412,7 +424,9 @@ const Econ = {
       }
       const made = use * d.procRatio;
       Econ.addStock(s, d.procOut, made);
+
       if (d.procOut === 'flour') { flourMade += made; s.cum.flour += made; }
+      if (made > 0) Econ.noteFood(s, d.procOut, made);
       b.rate = made;
 
       b.prodRate = made;
@@ -504,7 +518,7 @@ const Econ = {
       }
     }
 
-    if (s.hunger >= 1 && s.tick % 10 === 0) Econ.removeResident(s, houses);
+    if (s.hunger >= 1 && s.tick % 10 === 0) Econ.removeResident(s, houses, 'famine');
     if (s.tick % 6 === 0) {
 
       const blocked = houses.find(h => h.block && h.residents > 0);
@@ -576,8 +590,10 @@ const Econ = {
 
         const fuelKeep = (TUNE.FUEL[d.sells] && Econ.hearthActive(s))
           ? Econ.warmDemand(s) * TUNE.TEMPO * TUNE.FUEL_RESERVE_MIN / TUNE.FUEL[d.sells] : 0;
-        const keep = (d.sells === 'flour'
-          ? residents * TUNE.FLOUR_PER_RESIDENT * TUNE.TEMPO * reserveMin : 0) +
+
+        const sellEff = foodEff(d.sells);
+        const keep = (sellEff > 0
+          ? residents * TUNE.FLOUR_PER_RESIDENT * TUNE.TEMPO * reserveMin / sellEff : 0) +
           fuelKeep + (monRes[d.sells] || 0);
         sell = Math.min(d.sellRate * throughput,
                         Math.max(0, s.stock[d.sells] - keep));
@@ -868,6 +884,8 @@ const Econ = {
       });
       return out;
     }
+    const ver = (G.cache.rockVer || 0);
+    if (b._rockV === ver && b._rockT) return b._rockT;
     const dm = Grid.dimsOf(b);
     const cx = b.x + (dm.w - 1) / 2, cy = b.y + (dm.h - 1) / 2;
     for (let ty = Math.floor(cy - R); ty <= Math.ceil(cy + R); ty++)
@@ -877,7 +895,9 @@ const Econ = {
         if (dx * dx + dy * dy > R * R) continue;
         if (G.cache.terrain[Grid.key(tx, ty)] === TERRAIN.ROCK) out.push([tx, ty]);
       }
+
     out.sort((p, q) => ((p[0]-cx)**2 + (p[1]-cy)**2) - ((q[0]-cx)**2 + (q[1]-cy)**2));
+    b._rockV = ver; b._rockT = out;
     return out;
   },
   quarryStoneLeft(b) {
@@ -979,6 +999,10 @@ const Econ = {
       if (h.block) { blocked++; continue; }
       open += Math.max(0, (h.cap || 0) - (h.residents || 0));
     }
+
+    let away = 0;
+    for (const b of s.buildings) if (b.hunt) away += b.hunt.party || 0;
+    if (away > 0) open = Math.max(0, open - away);
     C.openHousing = open;
 
     let why = 'ok';
@@ -1053,7 +1077,8 @@ const Econ = {
   },
 
   EVOLVE_TICKS: 40,
-  NEIGHBOURS_FOR_RUNG2: 2,
+
+  NEIGHBOURS_FOR_RUNG2: 1,
 
   houseWant(s, h) {
     const floor = h.bought || 1;
@@ -1265,6 +1290,24 @@ const Econ = {
 
   nextEra(s) { return nextWrittenEra(s.era); },
 
+  noteFood(s, kind, made) {
+    const eff = foodEff(kind);
+    if (eff > 0) s.cum.food = (s.cum.food || 0) + made * eff;
+  },
+
+  cumFood(s) { return s.cum.food != null ? s.cum.food : (s.cum.flour || 0); },
+  baseFood(base) {
+    if (!base) return 0;
+    return base.food != null ? base.food : (base.flour || 0);
+  },
+
+  foodRate() {
+    const T = G.cache.tally || {};
+    let r = 0;
+    for (const f of TUNE.FOODS) r += ((T[f.kind] && T[f.kind].made) || 0) * f.eff;
+    return r;
+  },
+
   eraReady(s) {
     const next = Econ.nextEra(s);
     if (!next) return false;
@@ -1273,7 +1316,7 @@ const Econ = {
     const base = s.eraBase || {};
 
     return Game.housedResidents(s) >= r.pop && s.money >= r.money &&
-           (s.cum.flour - (base.flour || 0)) >= r.food &&
+           (Econ.cumFood(s) - Econ.baseFood(base)) >= r.food &&
            (s.cum.stone - (base.stone || 0)) >= r.stone &&
            Econ.monumentDone(s, s.era);
   },
@@ -1373,6 +1416,8 @@ const Econ = {
 
     s.hallLevel = Math.min(s.era, 4); s.hallJob = null;
     s.hunger = 0; s.settlerAcc = 0; s.festival = null;
+
+    s.founded = false;
     s.stock = Game.startStock(true);
     s.foundingLeft = TUNE.FOUNDING.purse;
 
@@ -1465,7 +1510,7 @@ const Econ = {
 
     s.era = Econ.nextEra(s);
 
-    s.eraBase = { flour: s.cum.flour, stone: s.cum.stone };
+    s.eraBase = { flour: s.cum.flour, food: Econ.cumFood(s), stone: s.cum.stone };
     const era = ERAS[s.era - 1];
 
     Econ.log(s, '\u{1F30D}', 'The age turned: Era ' + s.era + ' — ' + era.name +
@@ -1534,27 +1579,78 @@ const Econ = {
   HERD_NAMES: { mammoth: 'woolly mammoth', bison: 'steppe bison', rhino: 'woolly rhinoceros', sabertooth: 'sabertooth' },
   HERD_ICON: { mammoth: '\u{1F9A3}', bison: '\u{1F9AC}', rhino: '\u{1F98F}', sabertooth: '\u{1F405}' },
 
+  herdSpot(rnd, ring) {
+    const C = TUNE.WORLD / 2;
+    const a = rnd() * Math.PI * 2;
+
+    const lo = ring[0], hi = ring[1];
+    const r = Math.sqrt(lo * lo + rnd() * (hi * hi - lo * lo));
+    return { x: C + Math.cos(a) * r, y: C + Math.sin(a) * r };
+  },
+
   seedHerds(s) {
-    const W = TUNE.WORLD, C = W / 2;
     const rnd = Util.mulberry32((s.seed ^ 0x5EED) >>> 0);
     const herds = [];
     let id = 1;
+
+    const ring = TUNE.HERDS.seedRing || [28, 100];
     for (const kind in TUNE.HERDS.counts) {
       for (let i = 0; i < TUNE.HERDS.counts[kind]; i++) {
-        let x, y, tries = 0;
 
-        if (i === 0) {
-          const a = rnd() * Math.PI * 2, r = 30 + rnd() * 15;
-          x = C + Math.cos(a) * r; y = C + Math.sin(a) * r;
-        } else {
-          do {
-            x = 20 + rnd() * (W - 40); y = 20 + rnd() * (W - 40); tries++;
-          } while (Math.hypot(x - C, y - C) < TUNE.HERDS.standoff + 10 && tries < 50);
-        }
-        herds.push({ id: id++, kind, x, y, heading: rnd() * Math.PI * 2 });
+        const p = Econ.herdSpot(rnd, i === 0 ? [30, 48] : ring);
+        herds.push({ id: id++, kind, x: p.x, y: p.y, heading: rnd() * Math.PI * 2, turn: 0 });
       }
     }
     return herds;
+  },
+
+  topUpHerds(s) {
+    if (!Econ.hearthActive(s) || !s.herds) return 0;
+    const rnd = Util.mulberry32((s.seed ^ 0xA11E) >>> 0);
+    const ring = TUNE.HERDS.returnRing || [45, 85];
+    let id = 1, added = 0;
+    for (const h of s.herds) if (h.id >= id) id = h.id + 1;
+    for (const kind in TUNE.HERDS.counts) {
+      let have = 0;
+      for (const h of s.herds) if (h.kind === kind) have++;
+      for (let i = have; i < (TUNE.HERDS.counts[kind] | 0); i++) {
+        const p = Econ.herdSpot(rnd, ring);
+        s.herds.push({ id: id++, kind, x: p.x, y: p.y, heading: rnd() * Math.PI * 2, turn: 0 });
+        added++;
+      }
+    }
+    return added;
+  },
+
+  herdReturns(s) {
+    const R = TUNE.HERDS.returnEvery;
+    if (!R) return;
+    const W = TUNE.WORLD;
+    let kindIdx = 0;
+    for (const kind in TUNE.HERDS.counts) {
+      const every = R[kind] | 0;
+      kindIdx++;
+      if (every <= 0) continue;
+
+      if ((s.tick + kindIdx * 37) % every !== 0) continue;
+      const cap = TUNE.HERDS.counts[kind] | 0;
+      let have = 0;
+      for (const h of s.herds) if (h.kind === kind) have++;
+      if (have >= cap) continue;
+
+      const rnd = Util.mulberry32((s.seed ^ (s.tick * 2654435761) ^ (kindIdx * 0x9E37)) >>> 0);
+
+      const p = Econ.herdSpot(rnd, TUNE.HERDS.returnRing || [45, 85]);
+      const x = p.x, y = p.y;
+      let id = 1;
+      for (const h of s.herds) if (h.id >= id) id = h.id + 1;
+      s.herds.push({ id, kind, x, y, heading: rnd() * Math.PI * 2, turn: 0 });
+
+      if (kind === 'mammoth' || kind === 'rhino') {
+        Econ.log(s, Econ.HERD_ICON[kind] || '\u{1F43E}',
+          'A ' + Econ.HERD_NAMES[kind] + ' has come onto the range from the far country.');
+      }
+    }
   },
 
   herdTick(s, offline) {
@@ -1580,24 +1676,50 @@ const Econ = {
       }
       h.x = nx; h.y = ny;
     }
+    Econ.herdReturns(s);
 
-    if (s.hunt) {
-      s.hunt.left -= 1;
-      if (s.hunt.left <= 0) Econ.resolveHunt(s);
-    } else {
+    for (const b of s.buildings) {
+      if (!DEF(b.type).huntBase || b.done === false) continue;
+      if (!b.hunt) continue;
+      b.hunt.left -= 1;
+      if (b.hunt.left <= 0) Econ.resolveHunt(s, b);
+    }
+    {
 
       for (const b of s.buildings) {
 
         if (!DEF(b.type).huntBase || b.done === false || b.mothballed) continue;
+        if (b.hunt) continue;
         if (b.autoHunt === false) continue;
         if (b.huntRest > 0) { b.huntRest--; continue; }
         const t = Econ.nearestHerd(s, b);
         if (!t) continue;
 
         if (Econ.huntOdds(s, t.herd, t.dist, b) < TUNE.HUNT.autoMinOdds) continue;
-        if (Econ.launchHunt(s, b) === null) { b.huntRest = TUNE.HUNT.rest; break; }
+
+        if (Econ.huntHaulRoom(s, t.herd.kind) < TUNE.HUNT.autoMinRoom) continue;
+
+        if (Econ.launchHunt(s, b) === null) b.huntRest = TUNE.HUNT.rest;
       }
     }
+  },
+
+  huntedHerdIds(s) {
+    const out = new Set();
+    for (const b of s.buildings) if (b.hunt) out.add(b.hunt.herdId);
+    return out;
+  },
+
+  huntHaulRoom(s, kind) {
+    const haul = (TUNE.HUNT.haul || {})[kind];
+    if (!haul) return 1;
+    let want = 0, fits = 0;
+    for (const k in haul) {
+      const room = Math.max(0, Econ.capOf(s, k) - (s.stock[k] || 0));
+      want += haul[k];
+      fits += Math.min(haul[k], room);
+    }
+    return want > 0 ? fits / want : 1;
   },
 
   nearestHerd(s, b) {
@@ -1606,9 +1728,12 @@ const Econ = {
     const cx = b.x + d.w / 2, cy = b.y + d.h / 2;
 
     const kinds = DEF(b.type).huntKinds || null;
+
+    const taken = Econ.huntedHerdIds(s);
     let best = null, bd = Infinity;
     for (const h of s.herds) {
       if (kinds && kinds.indexOf(h.kind) === -1) continue;
+      if (taken.has(h.id) && !(b.hunt && b.hunt.herdId === h.id)) continue;
       const dist = Math.hypot(h.x - cx, h.y - cy);
       if (dist < bd) { bd = dist; best = h; }
     }
@@ -1630,7 +1755,9 @@ const Econ = {
 
   launchHunt(s, camp) {
     if (!Econ.hearthActive(s)) return 'not this age';
-    if (s.hunt) return 'a hunt is already out';
+
+    if (!camp) return 'no camp';
+    if (camp.hunt) return 'this camp already has a party out';
     const t = Econ.nearestHerd(s, camp);
     if (!t) return 'no herd within reach — watch the steppe';
     const party = TUNE.HUNT.party;
@@ -1639,26 +1766,31 @@ const Econ = {
       return 'the camp cannot spare ' + party + ' hunters';
 
     const houses = s.buildings.filter(b => DEF(b.type).cap);
-    for (let i = 0; i < party; i++) Econ.removeResident(s, houses);
-    s.hunt = {
+    for (let i = 0; i < party; i++) Econ.removeResident(s, houses, 'hunt');
+
+    camp.hunt = {
       herdId: t.herd.id, kind: t.herd.kind, party,
       left: TUNE.HUNT.ticks, dist: Math.round(t.dist),
       odds: Econ.huntOdds(s, t.herd, t.dist, camp),
-      camp: camp.type,
+      camp: camp.type, campId: camp.id,
       cat: Econ.sabertoothNear(s, t.herd),
-      seed: (s.seed ^ s.tick ^ 0xBEEF) >>> 0,
+
+      seed: (s.seed ^ s.tick ^ (camp.id * 2654435761) ^ 0xBEEF) >>> 0,
     };
-    Econ.log(s, '\u{1F3F9}', party + ' hunters walked out after the ' +
-      Econ.HERD_NAMES[t.herd.kind] + ', ' + Math.round(t.dist) + ' tiles onto the steppe.');
-    UI.toast('\u{1F3F9} THE HUNT IS OUT — ' + party + ' hunters tracking the ' +
-      Econ.HERD_NAMES[t.herd.kind] + '. They are gone from your labour pool until they return. ' +
-      'Odds ' + Math.round(s.hunt.odds * 100) + '%' + (s.hunt.cat ? ' — and a sabertooth is shadowing the herd.' : '.'), 12000);
+    const h = camp.hunt;
+    Econ.log(s, '\u{1F3F9}', party + ' hunters walked out from the ' + DEF(camp.type).name +
+      ' after the ' + Econ.HERD_NAMES[t.herd.kind] + ', ' + Math.round(t.dist) + ' tiles onto the steppe.');
+    UI.toast('\u{1F3F9} THE HUNT IS OUT — ' + party + ' hunters from the ' + DEF(camp.type).name +
+      ' tracking the ' + Econ.HERD_NAMES[t.herd.kind] +
+      '. They are gone from your labour pool until they return. ' +
+      'Odds ' + Math.round(h.odds * 100) + '%' + (h.cat ? ' — and a sabertooth is shadowing the herd.' : '.'), 12000);
     return null;
   },
 
-  resolveHunt(s) {
-    const hunt = s.hunt;
-    s.hunt = null;
+  resolveHunt(s, camp) {
+
+    const hunt = camp ? camp.hunt : null;
+    if (camp) camp.hunt = null;
     if (!hunt) return;
     const rnd = Util.mulberry32(hunt.seed);
     const success = rnd() < hunt.odds;
@@ -1674,6 +1806,8 @@ const Econ = {
       const room = houses.find(h => (h.residents || 0) < (h.cap || 0));
       if (room) { room.residents = (room.residents || 0) + 1; seated++; }
     }
+
+    const homeless = back - seated;
     if (success) {
       const haul = TUNE.HUNT.haul[hunt.kind] || {};
       const got = [];
@@ -1689,16 +1823,21 @@ const Econ = {
       s.herds = (s.herds || []).filter(h => h.id !== hunt.herdId);
       Econ.log(s, '\u{1F3F9}', 'THE HUNT CAME HOME: the ' + Econ.HERD_NAMES[hunt.kind] +
         ' is taken — ' + got.join(', ') + '.' +
-        (lost ? ' ' + lost + ' hunter' + (lost === 1 ? '' : 's') + ' did not come back.' : ' Nobody was lost.'));
+        (lost ? ' ' + lost + ' hunter' + (lost === 1 ? '' : 's') + ' did not come back.'
+              : (homeless ? '' : ' Nobody was lost.')) +
+        (homeless ? ' ' + homeless + ' came home to no bed and left the camp.' : ''));
       UI.toast('\u{1F3F9} THE HUNT CAME HOME — ' + got.join(', ') + '.' +
-        (lost ? ' \u{1FAA6} ' + lost + ' hunter' + (lost === 1 ? '' : 's') + ' died on the steppe.' : ' Everyone came back.'), 14000);
+        (lost ? ' \u{1FAA6} ' + lost + ' hunter' + (lost === 1 ? '' : 's') + ' died on the steppe.'
+              : (homeless ? '' : ' Everyone came back.')) +
+        (homeless ? ' \u{1F3E0} ' + homeless + ' found no bed and walked on — build housing before you hunt.' : ''), 14000);
       if (window.Sfx) Sfx.play('bell');
     } else {
       Econ.log(s, '\u{1F3F9}', 'The hunt FAILED — the ' + Econ.HERD_NAMES[hunt.kind] + ' broke away.' +
         (lost ? ' ' + lost + ' hunter' + (lost === 1 ? '' : 's') + ' did not come back.' : ''));
       UI.toast('\u{1F3F9} The hunt failed — the ' + Econ.HERD_NAMES[hunt.kind] + ' broke away' +
         (lost ? ', and \u{1FAA6} ' + lost + ' hunter' + (lost === 1 ? '' : 's') + ' died out there' : '') +
-        '. The animal is still on the map. So are you.', 12000);
+        '. The animal is still on the map. So are you.' +
+        (homeless ? ' \u{1F3E0} ' + homeless + ' found no bed and walked on.' : ''), 12000);
     }
     if (s.records) s.records.hunts = (s.records.hunts || 0) + 1;
   },
@@ -1811,7 +1950,7 @@ const Econ = {
 
     if (!offline && (s.chill || 0) >= 1 && s.tick % 10 === 0) {
       const houses = s.buildings.filter(b => DEF(b.type).cap);
-      Econ.removeResident(s, houses);
+      Econ.removeResident(s, houses, 'freeze');
     }
   },
 
@@ -1964,7 +2103,7 @@ const Econ = {
               water: 'WATER_CAP', cacao: 'CACAO_CAP',
               chocolate: 'CHOCOLATE_CAP', honey: 'HONEY_CAP',
               deadwood: 'DEADWOOD_CAP', charcoal: 'CHARCOAL_CAP',
-              game: 'GAME_CAP', pemmican: 'PEMMICAN_CAP',
+              game: 'GAME_CAP', pemmican: 'PEMMICAN_CAP', forage: 'FORAGE_CAP',
               hide: 'HIDE_CAP', parka: 'PARKA_CAP', flint: 'FLINT_CAP',
               blades: 'BLADES_CAP', bone: 'BONE_CAP', ochre: 'OCHRE_CAP',
               carvings: 'CARVINGS_CAP', ivory: 'IVORY_CAP' },
@@ -1974,7 +2113,9 @@ const Econ = {
                 'cacao', 'chocolate',
 
                 'deadwood', 'charcoal', 'hide', 'parka', 'flint', 'blades',
-                'bone', 'ochre', 'carvings', 'ivory'],
+                'bone', 'ochre', 'carvings', 'ivory',
+
+                'forage'],
 
   capOf(s, kind) {
     const m = subTier(s).storageMult;
@@ -1989,7 +2130,8 @@ const Econ = {
 
         if (!d || !d[key] || b.done === false || b.mothballed || (d.needsRoad && !b.conn)) continue;
         if (d.needsWater && !Grid.covered(G.cache.water, b)) continue;
-        extra += d[key];
+
+        extra += d[key] * rankStoreMult(b);
       }
       return Math.round(m * (base + extra));
     }
@@ -2000,7 +2142,7 @@ const Econ = {
         const d = DEF(b.type);
         if (!d || !d.storeWater || b.done === false) continue;
         if (d.needsRoad && !b.conn) continue;
-        extra += d.storeWater;
+        extra += d.storeWater * rankStoreMult(b);
       }
       return Math.round(m * (base + extra));
     }
@@ -2011,7 +2153,7 @@ const Econ = {
         const d = DEF(b.type);
         if (!d || !d.storeCraft || b.done === false || !b.conn || b.mothballed) continue;
         if (b.staff !== undefined && d.workers && b.staff === 0) continue;
-        extra += d.storeCraft;
+        extra += d.storeCraft * rankStoreMult(b);
       }
       return Math.round(m * (base + extra));
     }
@@ -2189,16 +2331,28 @@ const Econ = {
     return sum;
   },
 
-  removeResident(s, houses) {
+  removeResident(s, houses, reason) {
     const occupied = houses.filter(h => h.residents > 0)
       .sort((a, b) => (a.level || 1) - (b.level || 1) || b.placed - a.placed);
     if (!occupied.length) return;
     const h = occupied[0];
     h.residents--;
-    if (s.records) s.records.lostFamine = (s.records.lostFamine || 0) + 1;
+    reason = reason || 'famine';
+    if (s.records) {
+      const key = reason === 'freeze' ? 'lostFreeze' : reason === 'hunt' ? 'huntDrafted' : 'lostFamine';
+      s.records[key] = (s.records[key] || 0) + 1;
+    }
     Econ.floater(h, '-1');
-    UI.firstToast('starve', 'Residents are leaving. The city has been hungry for ' + TUNE.STARVE_MINUTES +
-      ' minutes — build a Farm, and a Mill to grind its grain into flour.');
+
+    if (reason === 'famine') {
+      UI.firstToast('starve', 'Residents are leaving. The city has been hungry for ' + TUNE.STARVE_MINUTES +
+        ' minutes — ' + (Econ.hearthActive(s)
+          ? 'get a Forage Ground and a Drying Rack running, fish the ice, or send a hunt.'
+          : 'build a Farm, and a Mill to grind its grain into flour.'));
+    } else if (reason === 'freeze') {
+      UI.firstToast('freezeout', 'People are freezing out of the camp. This is not hunger — the fires ' +
+        'are dark and the homes are cold. Fuel first; food will not fix it.');
+    }
   },
 
   floater(b, txt) {

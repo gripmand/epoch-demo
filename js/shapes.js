@@ -400,15 +400,17 @@ const Shapes = {
   },
 
   ROCK_TINT: {
-    1: 0xbd9967,
-    2: 0xdcc196,
-    3: 0xcfd0c2,
-    4: 0x9a9a8c,
-    5: 0xe0dcd0,
-    6: 0xc9b9a2,
-    7: 0xa8a49a,
-    9: 0x6e6459,
-    12: 0xb0aaa2,
+    1:  0x8d949b,
+
+    4:  0xbd9967,
+    5:  0xdcc196,
+    10: 0xe0dcd0,
+    13: 0xc9b9a2,
+    14: 0xcfd0c2,
+    22: 0xa8a49a,
+    26: 0x9a9a8c,
+    30: 0x6e6459,
+    35: 0xb0aaa2,
   },
 
   rockTint(era) {
@@ -798,7 +800,8 @@ const Shapes = {
       g.add(pit);
       for (let i = 0; i < 3; i++) {
         const hh = Util.hash2(i + 3, i);
-        const heap = new THREE.Mesh(new THREE.IcosahedronGeometry(0.15 + hh * 0.05, 0), Shapes.m('earth'));
+
+        const heap = new THREE.Mesh(new THREE.IcosahedronGeometry(0.15 + hh * 0.05, 0), Shapes.m('timber'));
         heap.scale.set(1.3, 0.62, 1.3);
         heap.position.set(w * (0.16 + i * 0.08), 0.05, (hh - 0.5) * dp * 0.5);
         g.add(heap);
@@ -1278,6 +1281,248 @@ const Shapes = {
       const band = Shapes.cyl(0.155, 0.1, 'trim', 10);
       band.position.set(w * 0.3, 2.05, -dp * 0.28);
       g.add(band);
+      return g;
+    },
+
+    longHearth(d) {
+      const g = new THREE.Group();
+
+      const HW = 1.10, HD = 1.15;
+
+      const trench = Shapes.box(0.30, 0.04, HD * 1.7, 'charcoal');
+      trench.position.set(0, 0.02, 0.05);
+      g.add(trench);
+      const coals = Shapes.box(0.20, 0.05, HD * 1.5, 'emberDim');
+      coals.position.set(0, 0.05, 0.05);
+      g.add(coals);
+
+      const fh = [0.30, 0.46, 0.26];
+      for (let i = 0; i < 3; i++) {
+        const fl = Shapes.cone(0.13, fh[i], 'ember', 6);
+        fl.position.set(0, 0.07, (i - 1) * 0.60 + 0.05);
+        g.add(fl);
+      }
+
+      const WALL = 0.52, R = 0.72;
+      for (const sx of [-1, 1]) {
+        const wall = Shapes.box(0.10, WALL, 1.30, 'hideDark');
+        wall.position.set(sx * R, 0, -0.42);
+        g.add(wall);
+      }
+      const roof = new THREE.Mesh(
+        new THREE.CylinderGeometry(R, R, 1.90, 9, 1, false, 0, Math.PI),
+        Shapes.m('hide'));
+      roof.rotation.z = Math.PI / 2;
+      roof.rotation.y = Math.PI / 2;
+      roof.position.set(0, WALL, -0.42);
+      g.add(roof);
+
+      for (let i = -2; i <= 2; i++) {
+        const rib = new THREE.Mesh(
+          new THREE.TorusGeometry(R + 0.025, 0.026, 4, 9, Math.PI),
+          Shapes.m('boneDim'));
+        rib.rotation.y = Math.PI / 2;
+        rib.position.set(i * 0.42, WALL, -0.42);
+        g.add(rib);
+      }
+
+      for (const sx of [-1, 1]) {
+        const base = Shapes.cyl(0.055, 0.74, 'bone', 6);
+        base.position.set(sx * 0.80, 0, 0.62);
+        base.rotation.z = sx * -0.20;
+        g.add(base);
+        const curve = new THREE.Mesh(
+          new THREE.TorusGeometry(0.30, 0.045, 4, 8, Math.PI * 0.8),
+          Shapes.m('bone'));
+        curve.position.set(sx * 0.62, 0.72, 0.62);
+        curve.rotation.set(Math.PI / 2, 0, sx > 0 ? 0.35 : Math.PI - 0.35);
+        g.add(curve);
+      }
+
+      for (const sx of [-1, 1]) {
+        const bench = Shapes.box(0.34, 0.11, 1.10, 'fur');
+        bench.position.set(sx * 0.44, 0, -0.42);
+        g.add(bench);
+      }
+
+      const post = Shapes.cyl(0.05, 0.46, 'timberCold', 5);
+      post.position.set(0.92, 0, 0.98);
+      g.add(post);
+      const blade = Shapes.box(0.05, 0.34, 0.26, 'bone');
+      blade.position.set(0.92, 0.42, 0.98);
+      g.add(blade);
+      for (let i = 0; i < 4; i++) {
+        const notch = Shapes.box(0.062, 0.022, 0.20, 'charcoal');
+        notch.position.set(0.92, 0.50 + i * 0.07, 0.98);
+        g.add(notch);
+      }
+
+      const mark = Shapes.box(0.34, 0.10, 0.04, 'ochreRaw');
+      mark.position.set(-0.24, WALL + R * 0.55, 0.50);
+      g.add(mark);
+      return g;
+    },
+
+    forageGround(d) {
+      const g = new THREE.Group();
+      const w = d.w * 0.9, dp = d.h * 0.9;
+
+      for (let i = 0; i < 3; i++) {
+        const h = Util.hash2(i * 5 + 1, i);
+        const patch = new THREE.Mesh(new THREE.CircleGeometry(0.20 + h * 0.10, 9), Shapes.m('timberCold'));
+        patch.rotation.x = -Math.PI / 2;
+        patch.position.set((h - 0.5) * w * 0.8, 0.02, (Util.hash2(i, i * 3) - 0.5) * dp * 0.8);
+        g.add(patch);
+      }
+
+      for (const sx of [-1, 1]) {
+        const mat = Shapes.box(w * 0.34, 0.05, dp * 0.30, 'hidePale');
+        mat.position.set(sx * w * 0.26, 0.03, -dp * 0.22);
+        g.add(mat);
+        for (let i = 0; i < 5; i++) {
+          const b = new THREE.Mesh(new THREE.IcosahedronGeometry(0.035, 0), Shapes.m('ochreRaw'));
+          b.position.set(sx * w * 0.26 + (Util.hash2(i, i + 2) - 0.5) * w * 0.28,
+                         0.09, -dp * 0.22 + (Util.hash2(i + 4, i) - 0.5) * dp * 0.24);
+          g.add(b);
+        }
+      }
+
+      for (const sx of [-1, 1]) {
+        const basket = Shapes.cyl(0.14, 0.20, 'boneDim', 8);
+        basket.position.set(sx * w * 0.30, 0, dp * 0.28);
+        g.add(basket);
+        const rim = Shapes.cyl(0.155, 0.035, 'hideDark', 8);
+        rim.position.set(sx * w * 0.30, 0.19, dp * 0.28);
+        g.add(rim);
+      }
+
+      for (const [ox, rot] of [[-0.05, 0.28], [0.06, -0.22]]) {
+        const stick = Shapes.cyl(0.032, 0.62, 'timberCold', 5);
+        stick.position.set(ox, 0, dp * 0.05);
+        stick.rotation.z = rot;
+        g.add(stick);
+      }
+
+      const bush = new THREE.Mesh(new THREE.IcosahedronGeometry(0.22, 0), Shapes.m('spruce'));
+      bush.scale.set(1.2, 0.6, 1.2);
+      bush.position.set(w * 0.02, 0.10, -dp * 0.42);
+      g.add(bush);
+      return g;
+    },
+
+    tendedGround(d) {
+
+      const g = Shapes.RECIPES.forageGround(d);
+      const w = d.w * 0.9, dp = d.h * 0.9;
+      for (const sx of [-1, 1]) {
+        const bed = Shapes.box(w * 0.36, 0.06, dp * 0.22, 'timberCold');
+        bed.position.set(sx * w * 0.24, 0.03, dp * 0.06);
+        g.add(bed);
+
+        for (let i = 0; i < 4; i++) {
+          const stake = Shapes.cyl(0.022, 0.20 + (i % 2) * 0.06, 'spruce', 4);
+          stake.position.set(sx * w * 0.24 + (i - 1.5) * 0.10, 0.02, dp * 0.18);
+          g.add(stake);
+        }
+      }
+
+      const burn = new THREE.Mesh(new THREE.CircleGeometry(w * 0.22, 10), Shapes.m('charcoal'));
+      burn.rotation.x = -Math.PI / 2;
+      burn.position.set(-w * 0.02, 0.015, -dp * 0.26);
+      g.add(burn);
+      return g;
+    },
+
+    smokeLodge(d) {
+
+      const g = Shapes.RECIPES.dryingRack(d);
+      const w = d.w * 0.9, dp = d.h * 0.9;
+      const roof = new THREE.Mesh(
+        new THREE.CylinderGeometry(dp * 0.42, dp * 0.42, w * 0.86, 8, 1, false, 0, Math.PI),
+        Shapes.m('hideDark'));
+      roof.rotation.z = Math.PI / 2;
+      roof.rotation.y = Math.PI / 2;
+      roof.position.set(0, 0.44, 0);
+      g.add(roof);
+
+      const collar = Shapes.cyl(0.10, 0.10, 'timberCold', 7);
+      collar.position.set(0, dp * 0.42 + 0.42, 0);
+      g.add(collar);
+      for (let i = 0; i < 3; i++) {
+        const puff = new THREE.Mesh(new THREE.IcosahedronGeometry(0.09 + i * 0.03, 0), Shapes.m('snow'));
+        puff.position.set((i - 1) * 0.07, dp * 0.42 + 0.56 + i * 0.13, (i % 2 ? 0.05 : -0.04));
+        g.add(puff);
+      }
+      return g;
+    },
+
+    pressureFloor(d) {
+
+      const g = Shapes.RECIPES.knappingFloor(d);
+      const w = d.w * 0.9, dp = d.h * 0.9;
+      const bench = Shapes.box(w * 0.44, 0.14, dp * 0.20, 'timberCold');
+      bench.position.set(-w * 0.16, 0, dp * 0.26);
+      g.add(bench);
+
+      const block = Shapes.box(0.22, 0.10, 0.16, 'hideDark');
+      block.position.set(w * 0.30, 0, dp * 0.24);
+      g.add(block);
+      for (let i = 0; i < 4; i++) {
+        const tine = Shapes.cyl(0.020, 0.26 + (i % 2) * 0.07, 'bone', 5);
+        tine.position.set(w * 0.30 + (i - 1.5) * 0.055, 0.10, dp * 0.24);
+        tine.rotation.z = (i - 1.5) * 0.09;
+        g.add(tine);
+      }
+
+      for (let i = 0; i < 5; i++) {
+        const blade = Shapes.box(0.028, 0.012, 0.15, 'flint');
+        blade.position.set(-w * 0.16 + (i - 2) * 0.06, 0.15, dp * 0.26);
+        g.add(blade);
+      }
+      return g;
+    },
+
+    deepCache(d) {
+
+      const g = Shapes.RECIPES.frozenCache(d);
+      const collar = Shapes.cyl(0.30, 0.16, 'rockDark', 9);
+      collar.position.y = 0.02;
+      g.add(collar);
+      const lid = Shapes.cyl(0.34, 0.07, 'rockCold', 9);
+      lid.position.y = 0.18;
+      g.add(lid);
+      for (let i = 0; i < 5; i++) {
+        const a = i / 5 * Math.PI * 2;
+        const turf = new THREE.Mesh(new THREE.IcosahedronGeometry(0.10, 0), Shapes.m('spruce'));
+        turf.scale.set(1.2, 0.5, 1.2);
+        turf.position.set(Math.cos(a) * 0.34, 0.04, Math.sin(a) * 0.34);
+        g.add(turf);
+      }
+      return g;
+    },
+
+    tradeRing(d) {
+
+      const g = Shapes.RECIPES.tradePost(d);
+      const w = d.w * 0.9, dp = d.h * 0.9;
+
+      for (let i = 0; i < 4; i++) {
+        const stone = Shapes.rock(i * 5 + 2, 0.15 - i * 0.024, 0.75);
+        stone.position.set(w * 0.30, i * 0.16, -dp * 0.30);
+        g.add(stone);
+      }
+
+      const roles = ['ochreRaw', 'bone', 'flint', 'hide', 'boneDim'];
+      for (let i = 0; i < 5; i++) {
+        const a = i / 5 * Math.PI * 2 + 0.4;
+        const mat = new THREE.Mesh(new THREE.CircleGeometry(0.11, 8), Shapes.m('hidePale'));
+        mat.rotation.x = -Math.PI / 2;
+        mat.position.set(Math.cos(a) * w * 0.30, 0.02, Math.sin(a) * dp * 0.22);
+        g.add(mat);
+        const pile = new THREE.Mesh(new THREE.IcosahedronGeometry(0.06, 0), Shapes.m(roles[i]));
+        pile.position.set(Math.cos(a) * w * 0.30, 0.06, Math.sin(a) * dp * 0.22);
+        g.add(pile);
+      }
       return g;
     },
 
@@ -2033,6 +2278,42 @@ const Shapes = {
       return g;
     },
 
+    greatLodge(d) {
+      const g = Shapes.RECIPES.boneLodge(d);
+      const span = d.w * 0.58, len = d.h * 0.78, sill = d.w * 0.08;
+      const wallH = 0.30, roofH = 0.52;
+
+      const bay = Shapes.box(span * 0.66, wallH * 0.9, len * 0.30, 'hide');
+      bay.position.set(0, sill, -len * 0.56);
+      g.add(bay);
+      const bayRoof = Shapes.gable(span * 0.66, roofH * 0.62, len * 0.30, 'hide', 0.05);
+      bayRoof.position.set(0, sill + wallH * 0.9, -len * 0.56);
+      g.add(bayRoof);
+
+      for (const [ox, oz] of [[-0.20, 0.16], [0.22, -0.10], [-0.06, -0.30]]) {
+        const stone = Shapes.rock((ox * 97 + oz * 31) | 0, 0.075, 0.8);
+        stone.position.set(ox, sill + wallH + roofH * 0.52, oz * len);
+        g.add(stone);
+      }
+
+      const collar = Shapes.cyl(0.075, 0.09, 'boneDim', 7);
+      collar.position.set(0, sill + wallH + roofH - 0.02, len * 0.12);
+      g.add(collar);
+      for (let i = 0; i < 3; i++) {
+        const puff = new THREE.Mesh(new THREE.IcosahedronGeometry(0.055 + i * 0.022, 0), Shapes.m('snow'));
+        puff.position.set((i - 1) * 0.045, sill + wallH + roofH + 0.10 + i * 0.10, len * 0.12 + (i % 2 ? 0.03 : -0.02));
+        g.add(puff);
+      }
+
+      for (const sx of [-1, 1]) {
+        const tusk = Shapes.cyl(0.030, 0.42, 'bone', 6, 0.45);
+        tusk.position.set(sx * 0.34, 0, len * 0.42);
+        tusk.rotation.z = sx * 0.62;
+        g.add(tusk);
+      }
+      return g;
+    },
+
     boneLodge(d) {
       const g = new THREE.Group();
 
@@ -2204,24 +2485,47 @@ const Shapes = {
     return y0;
   },
 
-  citizenGeo() {
+  CITIZEN_DRESS: {
+    1:  { robe: 'fur',     torso: 'hideDark', head: 'hidePale', hood: 'fur', bulk: 1.22 },
+    4:  { robe: 'plaster', torso: 'mudPale',  head: 'timber',   bulk: 1 },
+    5:  { robe: 'plaster', torso: 'plaster',  head: 'timber',   bulk: 1 },
+    14: { robe: 'ware',    torso: 'mudPale',  head: 'timber',   bulk: 1 },
+  },
+
+  citizenDress(rung) {
+    const keys = Object.keys(Shapes.CITIZEN_DRESS).map(Number).sort((a, b) => a - b);
+    for (let i = keys.length - 1; i >= 0; i--)
+      if (keys[i] <= rung) return Shapes.CITIZEN_DRESS[keys[i]];
+    return Shapes.CITIZEN_DRESS[4];
+  },
+
+  citizenGeo(rung) {
+    const D = Shapes.citizenDress(rung || 4);
+    const k = D.bulk || 1;
     const g = new THREE.Group();
 
-    const skirt = new THREE.Mesh(new THREE.CylinderGeometry(0.030, 0.046, 0.085, 6),
-      Shapes.m('plaster'));
+    const skirt = new THREE.Mesh(new THREE.CylinderGeometry(0.030 * k, 0.046 * k, 0.085, 6),
+      Shapes.m(D.robe));
     skirt.position.y = 0.043;
     g.add(skirt);
-    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.031, 0.055, 6),
-      Shapes.m('mudPale'));
+    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.026 * k, 0.031 * k, 0.055, 6),
+      Shapes.m(D.torso));
     torso.position.y = 0.113;
     g.add(torso);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.027, 7, 5), Shapes.m('timber'));
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.027, 7, 5), Shapes.m(D.head));
     head.position.y = 0.163;
     g.add(head);
+
+    if (D.hood) {
+      const hood = new THREE.Mesh(new THREE.SphereGeometry(0.034, 7, 4, 0, Math.PI * 2, 0, Math.PI * 0.62),
+        Shapes.m(D.hood));
+      hood.position.y = 0.168;
+      g.add(hood);
+    }
     return Shapes.mergeGroup(g);
   },
 
-  LEDGER_SKINS: { 1: 'clayTablet' },
+  LEDGER_SKINS: { 1: 'boneTally', 4: 'clayTablet' },
 
   ledgerSkin(era) {
     const keys = Object.keys(Shapes.LEDGER_SKINS).map(Number).sort((a, b) => a - b);
@@ -2258,6 +2562,33 @@ const Shapes = {
       stylus.rotation.z = Math.PI / 2;
       stylus.position.set(0.04, 0.235, -0.13);
       g.add(stylus);
+    } else if (skin === 'boneTally') {
+
+      for (const sx of [-1, 1]) {
+        const stone = Shapes.rock(sx > 0 ? 7 : 13, 0.16, 0.8);
+        stone.position.set(sx * 0.26, 0, -0.02);
+        g.add(stone);
+      }
+
+      const tilt = 0.9;
+      const blade = Shapes.box(0.44, 0.025, 0.34, 'bone');
+      blade.position.set(0, 0.26, 0.02);
+      blade.rotation.x = tilt;
+      g.add(blade);
+      const off = 0.024;
+      const face = new THREE.Mesh(new THREE.PlaneGeometry(0.38, 0.28),
+        Gfx.unlit(0xffffff, { map: faceTex, transparent: false }));
+      face.position.set(0, 0.26 + off * Math.cos(tilt), 0.02 + off * Math.sin(tilt));
+      face.rotation.x = tilt - Math.PI / 2;
+      g.add(face);
+
+      const thong = Shapes.box(0.50, 0.03, 0.05, 'hideDark');
+      thong.position.set(0, 0.14, -0.06);
+      g.add(thong);
+      const crayon = Shapes.cyl(0.016, 0.18, 'ochreRaw', 5);
+      crayon.rotation.z = Math.PI / 2;
+      crayon.position.set(0.06, 0.055, -0.16);
+      g.add(crayon);
     }
     g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
     return g;
@@ -2405,6 +2736,87 @@ const Shapes = {
     return g;
   },
 
+  paintedCave(d) {
+    const g = new THREE.Group();
+    const w = d.w * 0.92, dp = d.h * 0.92;
+
+    const HX = 1.30;
+
+    const masses = [[-0.62, 2.05, 0.62], [0.10, 2.95, 0.74], [0.74, 1.70, 0.52]];
+    for (const [ox, hh, rr] of masses) {
+      const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(rr, 0), Shapes.m('rockCold'));
+      rock.scale.set(1.0, hh / rr * 0.5, 0.9);
+      rock.position.set(ox, hh * 0.5, -dp * 0.20);
+      rock.rotation.y = ox * 1.7;
+      g.add(rock);
+    }
+
+    for (const [ox, hh] of [[-0.34, 1.7], [0.44, 2.2]]) {
+      const seam = Shapes.box(0.05, hh, 0.10, 'rockDark');
+      seam.position.set(ox, 0.25, -dp * 0.20 + 0.60);
+      g.add(seam);
+    }
+
+    const cap = new THREE.Mesh(new THREE.DodecahedronGeometry(0.60, 0), Shapes.m('snow'));
+    cap.scale.set(1.5, 0.26, 1.0);
+    cap.position.set(0.06, 2.92, -dp * 0.22);
+    g.add(cap);
+    const cap2 = new THREE.Mesh(new THREE.DodecahedronGeometry(0.42, 0), Shapes.m('snow'));
+    cap2.scale.set(1.4, 0.24, 1.0);
+    cap2.position.set(-0.62, 2.02, -dp * 0.20);
+    g.add(cap2);
+    void HX;
+
+    const mouth = new THREE.Mesh(
+      new THREE.CylinderGeometry(w * 0.20, w * 0.24, 0.62, 9, 1, false, 0, Math.PI),
+      Shapes.m('charcoal'));
+    mouth.rotation.y = Math.PI;
+    mouth.position.set(-0.02 * w, 0.31, dp * 0.10);
+    g.add(mouth);
+    const lintel = Shapes.box(w * 0.52, 0.10, 0.16, 'rockDark');
+    lintel.position.set(-0.02 * w, 0.62, dp * 0.12);
+    g.add(lintel);
+
+    for (let i = 0; i < 4; i++) {
+      const t = i / 3;
+      const bowl = Shapes.cyl(0.055, 0.05, 'boneDim', 6);
+      bowl.position.set(-0.02 * w + (i % 2 ? 0.16 : -0.16), 0, dp * (0.34 - t * 0.30));
+      g.add(bowl);
+      const fl = Shapes.cone(0.038, 0.11, 'ember', 5);
+      fl.position.set(bowl.position.x, 0.05, bowl.position.z);
+      g.add(fl);
+    }
+
+    const PX = 0.84, PW = 0.40;
+    const panel = Shapes.box(PW * 2, 0.46, 0.05, 'hidePale');
+    panel.position.set(PX, 0.30, dp * 0.30);
+    panel.rotation.y = -0.30;
+    g.add(panel);
+
+    const body = Shapes.box(0.44, 0.09, 0.03, 'ochreRaw');
+    body.position.set(PX, 0.40, dp * 0.31);
+    body.rotation.y = -0.30;
+    g.add(body);
+    const head = Shapes.box(0.09, 0.07, 0.03, 'ochreRaw');
+    head.position.set(PX + 0.20, 0.35, dp * 0.28);
+    head.rotation.set(0, -0.30, 0.5);
+    g.add(head);
+    for (let i = 0; i < 4; i++) {
+      const leg = Shapes.box(0.028, 0.10, 0.03, 'ochreRaw');
+      leg.position.set(PX - 0.18 + i * 0.12, 0.31, dp * (0.325 - i * 0.017));
+      leg.rotation.y = -0.30;
+      g.add(leg);
+    }
+
+    for (let i = 0; i < 3; i++) {
+      const hand = new THREE.Mesh(new THREE.CircleGeometry(0.045, 6), Shapes.m('ochreRaw'));
+      hand.position.set(PX - 0.24 + i * 0.20, 0.16 + (i % 2) * 0.05, dp * (0.34 - i * 0.028));
+      hand.rotation.y = -0.30;
+      g.add(hand);
+    }
+    return g;
+  },
+
   genericMonument(d, era) {
     const g = new THREE.Group();
     let y = Shapes.plaza(g, d, 2);
@@ -2424,7 +2836,11 @@ const Shapes = {
 
   ERA_SKINS: {
 
-    1: { hearth: 'glacialHearth', longfire: 'longFire', icehole: 'meltPit',
+    1: { townhall: 'longHearth', foragecamp: 'forageGround',
+
+         tendedground: 'tendedGround', smokelodge: 'smokeLodge',
+         pressurefloor: 'pressureFloor', deepcache: 'deepCache', tradering: 'tradeRing',
+         hearth: 'glacialHearth', longfire: 'longFire', icehole: 'meltPit',
          cache: 'frozenCache', storepit: 'permafrostStore', sleddogpost: 'sledDogPost',
          deadwoodcutter: 'deadwoodCutter', reindeerdrive: 'reindeerDrive',
          iceweir: 'iceWeir', flintquarry: 'flintQuarry', boneyard: 'boneYard',
@@ -2448,6 +2864,10 @@ const Shapes = {
     14: { townhall: 'councilHouse', house: 'mayaHouse', villa: 'mayaHouse', stonehouse: 'mayaHouse',
          aqueduct: 'well', stoneyard: 'marketStalls' },
     30: { coal: 'coalPlant' },
+  },
+
+  LEVEL_SKINS: {
+    bonelodge: ['boneLodge', 'greatLodge'],
   },
 
   HOUSE_SKINS: {
@@ -2482,6 +2902,11 @@ const Shapes = {
     const d = BUILDINGS[type];
     const own = Shapes.eraSkin(type, e);
 
+    const own2 = Shapes.LEVEL_SKINS[type];
+    if (own2) {
+      const pick = own2[Math.max(0, Math.min(own2.length - 1, (level || 1) - 1))];
+      if (pick && Shapes.RECIPES[pick]) return pick;
+    }
     if (d && d.cap) {
       const hk = Object.keys(Shapes.HOUSE_SKINS).map(Number).sort((a, b) => a - b);
       let pick = hk[0];
@@ -2518,6 +2943,8 @@ const Shapes = {
       if (type === 'ziggurat') g = Shapes.ziggurat(d);
       else if (type === 'pyramid') g = Shapes.greatPyramid(d);
       else if (type === 'templePyr') g = Shapes.templePyramid(d);
+
+      else if (type === 'paintedcave') g = Shapes.paintedCave(d);
       else g = Shapes.genericMonument(d, d.era || e);
 
       if (frac !== undefined && frac < 0.999) Shapes.asSite(g, d, frac);
@@ -2550,6 +2977,26 @@ const Shapes = {
   },
 
   HEIGHT_BAND: { monument: [2.9, 3.7], house: [0.9, 1.45], townhall: [1.2, 2.2] },
+
+  auditSkins() {
+    const broken = [], gaps = {};
+    for (const rung in Shapes.ERA_SKINS)
+      for (const type in Shapes.ERA_SKINS[rung]) {
+        const rec = Shapes.ERA_SKINS[rung][type];
+        if (!Shapes.RECIPES[rec]) broken.push(rung + ':' + type + ' -> ' + rec + ' (no such recipe)');
+        if (!BUILDINGS[type]) broken.push(rung + ':' + type + ' is not a building');
+      }
+    for (const rung of (typeof WRITTEN_RUNGS !== 'undefined' ? WRITTEN_RUNGS : [1])) {
+      const miss = [];
+      for (const type in BUILDINGS) {
+        const d = BUILDINGS[type];
+        if ((d.era || 1) !== rung || d.monument || d.noBuild || type === 'road') continue;
+        if (!Shapes.eraSkin(type, rung)) miss.push(type);
+      }
+      gaps[rung] = miss;
+    }
+    return { broken, gaps };
+  },
 
   auditFootprints() {
     const bad = [];

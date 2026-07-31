@@ -198,6 +198,18 @@ const Gfx = {
   ERA_GRADE: {
 
     1: {
+      sky: ['#5b7fa8', '#9fb9cc', '#dfe8ee'],
+      hemi: [0xdfe9f2, 0x8fa4b5, 0.86],
+      sun: [0xfff2e2, 1.18], fog: 0xd9e4ec, fogN: 120, fogF: 400, expo: 0.80,
+      apron: 0xd3dde5,
+
+      sunDir: [-92, 58, -66],
+
+      water: { color: 0x3d6274, shallow: 0x8fb4c4, opacity: 0.93,
+               glint: 0xdcecf4, glintAmt: 0.26 },
+    },
+
+    4: {
       sky: ['#6f9dc0', '#b9c9cb', '#f2dcae'],
       hemi: [0x8ea8cc, 0xb08347, 0.78],
       sun: [0xffd995, 1.15],
@@ -210,25 +222,25 @@ const Gfx = {
       water: { color: 0x2f5049, shallow: 0x6d9086, opacity: 0.88,
                glint: 0xc8dcd6, glintAmt: 0.20 },
     },
-    2: {
+    5: {
       sky: ['#8fb2cf', '#cfd3c8', '#eadcc0'], hemi: [0xe6dcc6, 0xc0a173, 0.60],
       sun: [0xfff1d4, 1.35], fog: 0xe6dcc6, fogN: 95, fogF: 310, expo: 1.02,
       apron: 0xcbb894, sunDir: [-84, 52, -50],
       water: { color: 0x4f7f8e, opacity: 0.88, shininess: 30, specular: 0x1d3140 },
     },
-    3: {
+    14: {
       sky: ['#79aecb', '#bfd2c6', '#dfe0c4'], hemi: [0xdfe4cf, 0x8f9a63, 0.68],
       sun: [0xfff3dc, 1.20], fog: 0xdfe4cf, fogN: 100, fogF: 320, expo: 1.05,
       apron: 0xb9c4a0, sunDir: [-70, 76, -46],
       water: { color: 0x3f8f96, opacity: 0.86, shininess: 34, specular: 0x24404a },
     },
-    9: {
+    30: {
       sky: ['#8c9aa6', '#bcbdb6', '#d8cfc0'], hemi: [0xd6d4cc, 0x7a7468, 0.72],
       sun: [0xffeed2, 1.05], fog: 0xcfc9bd, fogN: 80, fogF: 280, expo: 1.05,
       apron: 0x9a958a, sunDir: [-72, 60, -48],
       water: { color: 0x4a5560, opacity: 0.90, shininess: 20, specular: 0x181d22 },
     },
-    12: {
+    35: {
       sky: ['#2b3a5c', '#5f7391', '#a9b6c4'], hemi: [0xbfd0e8, 0x5a6472, 0.70],
       sun: [0xffffff, 1.15], fog: 0xa9b6c4, fogN: 110, fogF: 340, expo: 1.08,
       apron: 0x7b8794, sunDir: [-80, 70, -40],

@@ -13,6 +13,14 @@ const Input = {
 
   rot: 0,
 
+  keepPlacing: (() => { try { return localStorage.getItem('epoch_keepplacing') === '1'; } catch (e) { return false; } })(),
+
+  setKeepPlacing(on) {
+    Input.keepPlacing = !!on;
+    try { localStorage.setItem('epoch_keepplacing', on ? '1' : '0'); } catch (e) {}
+    UI.reflectKeepPlacing();
+  },
+
   setTool(mode, type) {
     Input.tool = { mode, type: type || null, payload: null };
     if (mode !== 'select') { Input.selected = null; UI.hideInspector(); }
@@ -145,7 +153,10 @@ const Input = {
         Input.terraApply(s, p.x, p.y);
         break;
       case 'build':
-        if (p) Input.place(s, Input.tool.type, p.x, p.y);
+
+        if (p && Input.place(s, Input.tool.type, p.x, p.y) !== false && !Input.keepPlacing) {
+          Input.setTool('select');
+        }
         break;
       case 'relic': {
         if (!p) return;
@@ -492,6 +503,13 @@ const Input = {
       case 'g': case 'G': UI.togglePanel('guide-panel', UI.guideHTML); break;
       case 'o': case 'O': UI.toggleOverlays(); break;
 
+      case 'k': case 'K':
+        Input.setKeepPlacing(!Input.keepPlacing);
+        UI.toast(Input.keepPlacing
+          ? '\u{1F4CC} Keep placing ON — the tool stays armed after each building.'
+          : '\u{1F446} One at a time — your hand empties after each building.', 4000);
+        break;
+
       case 't': case 'T':
         if (UI.literate(G.s)) UI.togglePanel('tally-panel', UI.tallyHTML);
         else UI.toast('\u{1F4DC} Nobody in this city can write. Build a Scribe\'s House and the numbers appear.', 7000);
@@ -526,11 +544,11 @@ const Input = {
     const d = DEF(type);
     const dev = window.Dev && Dev.flags;
 
-    if (d.noBuild && !(dev && dev.freeBuild)) return;
-    if ((d.era || 1) > s.era && !(dev && dev.freeBuild)) return;
+    if (d.noBuild && !(dev && dev.freeBuild)) return false;
+    if ((d.era || 1) > s.era && !(dev && dev.freeBuild)) return false;
     if (d.unique && s.buildings.some(b => b.type === type) && !(dev && dev.freeBuild)) {
       UI.toast(d.name + ' is a monument — you may only raise one.');
-      return;
+      return false;
     }
 
     if (dev && dev.freeBuild) {
@@ -555,10 +573,10 @@ const Input = {
 
       if (window.Sfx) Sfx.play('deny');
       UI.toast('Can’t build the ' + d.name + ' there — ' + Grid.whyBlocked(s, type, x, y, useRot) + '.', 10000);
-      return;
+      return false;
     }
     if (!(dev && dev.freeBuild)) {
-      if (s.money < d.cost) { if (window.Sfx) Sfx.play('deny'); UI.toast('Not enough money — ' + d.name + ' costs $' + d.cost + '.'); return; }
+      if (s.money < d.cost) { if (window.Sfx) Sfx.play('deny'); UI.toast('Not enough money — ' + d.name + ' costs $' + d.cost + '.'); return false; }
       s.money -= d.cost;
     }
     if (window.Sfx) Sfx.play('place', { size: d.w * d.h });
@@ -658,6 +676,9 @@ const Input = {
     const refund = Math.floor((base != null ? base : 100) * TUNE.DEMOLISH_REFUND);
     G.s.money += refund;
     if (window.Sfx) Sfx.play('demolish');
+
+    const la = Input.lastAction;
+    if (la && (la.id === b.id || (la.ids || []).includes(b.id))) Input.lastAction = null;
     Grid.removeBuilding(G.s, b);
     Grid.rebuild(G.s);
     if (Input.selected === b) { Input.selected = null; UI.hideInspector(); }
