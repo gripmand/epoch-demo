@@ -82,7 +82,6 @@ const Main = {
     Rend.init(canvas);
     UI.init();
     Input.init(canvas);
-    if (window.Sfx) Sfx.init();
 
     let away = null;
     let healed = null;
@@ -152,8 +151,8 @@ const Main = {
           const d = DEF(b.type);
           if (d && d.needsWater && !Grid.covered(G.cache.water, b)) dry++;
         }
-        UI.toast('\u{1F3DB}️ Your city carried over — and the whole Era 1 update is now live: new buildings ' +
-          'and chains, Town Hall policies, the Chronicle (C), the salt map (O), and R to rotate. Press G for the guide.',
+        UI.toast('\u{1F3DB}\u{FE0F} Your city carried over. Your ' + anchorFor(G.s.era).name + ' still stands, and this ' +
+          'build adds the Chronicle (C), the overlays (O) and R to rotate. Press G for the guide to this age.',
           20000);
         if (dry) {
           UI.toast('⚠️ ' + dry + ' building' + (dry === 1 ? ' is' : 's are') + ' out of water. Coverage is now a ' +

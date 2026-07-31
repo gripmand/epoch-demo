@@ -128,7 +128,7 @@ const TUNE = {
     recover: 0.04,
   },
 
-  FIREKEEPER: { radius: 20, save: 0.15 },
+  FIREKEEPER: { save: 0.15 },
 
   FUEL_RESERVE_MIN: 2,
 
@@ -196,6 +196,9 @@ const TUNE = {
   ERA_IMPORT: {
     1: { kind: 'pemmican', price: 8, who: 'A passing band traded the camp', unit: 'bundle' },
     4: { kind: 'grain', price: 2, who: 'A caravan sold the city', unit: 'sack' },
+
+    5: { kind: 'grain', price: 2, who: 'A river barge sold the estate', unit: 'sack' },
+    14: { kind: 'grain', price: 2, who: 'A highland trader sold the city', unit: 'load' },
   },
 
   LARDER: { recoverMin: 5, migrateMin: 10 },
@@ -253,11 +256,24 @@ const TUNE = {
 };
 
 const HOUSE_RUNG_COST_MULT = [0.6, 1.0, 1.8, 3.0];
-function houseUpgradeCost(era, level) {
+
+const HOUSE_RUNG_REF = { 1: 'hidetent', 4: 'house', 5: 'villa', 14: 'stonehouse' };
+function houseRungRefCost(era) {
+  const rung = rungOf(era);
+  const keys = Object.keys(HOUSE_RUNG_REF).map(Number).sort((a, b) => a - b);
+  let pick = keys[0];
+  for (const k of keys) if (k <= rung) pick = k;
+  const ref = BUILDINGS[HOUSE_RUNG_REF[pick]];
+  return (ref && ref.cost) || 0;
+}
+
+function houseUpgradeCost(era, level, d) {
   const step = HOUSE_RUNG_COST_MULT[Util.clamp((level || 1) - 1, 0, HOUSE_RUNG_COST_MULT.length - 1)];
+  const refCost = houseRungRefCost(era);
+  const typeMult = (d && d.cost && refCost) ? d.cost / refCost : 1;
 
   return Math.round(TUNE.HOUSE_UPGRADE_COST *
-    Math.pow(TUNE.HOUSE_UPGRADE_ERA_MULT, (era || 1) - 4) * step / 10) * 10;
+    Math.pow(TUNE.HOUSE_UPGRADE_ERA_MULT, (era || 1) - 4) * step * typeMult / 10) * 10;
 }
 
 function buildMinutes() { return 0; }
@@ -726,7 +742,7 @@ const BUILDINGS = {
     custRadius: 9, custMin: 4,
 
     desc: 'Not a bigger stall — a place on a route. Flint in this age travelled hundreds of miles, and ' +
-      'this is the camp that other camps walk to. Sells 3 raw a minute at 80% of list, out to 9 tiles.',
+      'this is the camp that other camps walk to. Sells 3 raw a minute at 80% of list, to the whole city.',
   },
 
   hunterscamp: {
@@ -772,6 +788,8 @@ const BUILDINGS = {
 
     name: 'Mammoth-Bone Lodge', tier: 'housing', era: 1, w: 2, h: 2, cost: 300, upkeep: 0.10,
 
+    levels: ['Bone Frame', 'Mammoth-Bone Lodge', 'Long Lodge', 'Clan Longhouse',
+             'Great Longhouse', 'Elder Longhouse'],
     icon: '\u{1F3D5}\u{FE0F}', color: '#d8cdb5', cap: 16, needsRoad: true, needsWater: true, needsWarm: true, warm: 0.13,
     desc: 'A ridge of arched tusks and mammoth rib, walled in stacked jaws and lashed over with hide: ' +
       'the longhouse of the age. Homes 8 when it goes up and 16 once it has earned a rung, on ONE fire — under half a tent\'s fuel a head. The building ' +
@@ -794,7 +812,7 @@ const BUILDINGS = {
     name: "Firekeeper's Lodge", tier: 'civic', era: 1, w: 2, h: 3, cost: 500, upkeep: 0.45,
     icon: '\u{1F6E1}\u{FE0F}', color: '#c98a5a', workers: 4, needsWarm: true, warm: 0.06, fuelKeeper: true,
     desc: 'Four people whose entire job is that the fire does not go out: banked, screened, fed ' +
-      'correctly. Every hearth within 20 tiles burns 15% less. Worth nothing at one chain and worth ' +
+      'correctly. NOT a radius — every fire in the CITY burns 15% less, wherever this stands. Worth nothing at one chain and worth ' +
       'eight parcels at three.',
   },
   handprint: {
@@ -809,7 +827,7 @@ const BUILDINGS = {
     universal: true,
     name: 'Road', tier: 'infra', w: 1, h: 1, cost: 10, upkeep: 0,
     icon: '\u{1F6E4}️', color: '#8a7a5c',
-    desc: 'Connects buildings to the Town Hall. Every building needs road access. $10 a tile to lay, and nothing to keep — drag to paint.',
+    desc: 'Carries people and goods. Only SOME buildings need one — each says so on its own panel; fields, camps, wells and quarries never do. $10 a tile to lay, and nothing to keep — drag to paint.',
   },
   well: {
     name: 'Well', tier: 'infra', era: 4, w: 1, h: 1, cost: 60, upkeep: 0.10,
@@ -1521,7 +1539,7 @@ function houseMaxLevel(s) {
 }
 
 const HOUSE_LEVELS = {
-  1: ['Windbreak', 'Hide Tent', 'Sunken Hut', 'Bone-Frame Lodge', 'Clan Longhouse', 'Elder Longhouse'],
+  1: ['Windbreak', 'Hide Tent', 'Banked Tent', 'Sunken Hut', 'Winter Hut', "Elder's Hut"],
 
   4: ['Reed Hut', 'Mudbrick House', 'Courtyard House', 'Two-Storey House', "Merchant's Compound", 'Anunnaki Hall'],
   5: ['Mud Hut', 'Mudbrick Villa', 'Columned Villa', 'Garden Villa', "Nomarch's House", 'Temple Villa'],
@@ -1537,12 +1555,15 @@ const HOUSE_NEEDS = [
   { key: 'amenity', label: 'Park or temple nearby' },
 ];
 
-function houseLevelName(era, level) {
+function houseLevelName(era, level, d) {
   const rung = rungOf(era);
-  const keys = Object.keys(HOUSE_LEVELS).map(Number).sort((a, b) => a - b);
-  let pick = keys[0];
-  for (const k of keys) if (k <= rung) pick = k;
-  const row = HOUSE_LEVELS[pick];
+  let row = d && d.levels;
+  if (!row) {
+    const keys = Object.keys(HOUSE_LEVELS).map(Number).sort((a, b) => a - b);
+    let pick = keys[0];
+    for (const k of keys) if (k <= rung) pick = k;
+    row = HOUSE_LEVELS[pick];
+  }
 
   return row[Util.clamp((level || 1) - 1, 0, row.length - 1)];
 }
@@ -1612,11 +1633,11 @@ const ERA_ROAD = {
 
   1: { flavour: 'Snow Track', color: 0x6d6459, hw: 0.31,
        desc: 'Snow trodden through to the frozen loess beneath, staked out with markers so it can be ' +
-             'found after a blow. Connects buildings to the Great Hearth — every building needs road ' +
-             'access. $10 a tile, nothing to keep.' },
+             'found after a blow. Only SOME buildings need one — homes, stalls and stores must reach the ' +
+             'Long Hearth; camps, cutters and weirs never do. $10 a tile, nothing to keep.' },
   4: { flavour: 'Beaten Track', color: 0x8a6a3f, hw: 0.30,
-       desc: 'Earth packed hard by feet and sledges. Connects buildings to the ' +
-             'seat of power — every building needs road access. $10 a tile, nothing to keep.' },
+       desc: 'Earth packed hard by feet and sledges. Only SOME buildings need one — homes, ' +
+             'markets and stores must reach the seat of power; fields, mills, wells and quarries never do. $10 a tile, nothing to keep.' },
 
   5: { flavour: 'Processional Way', color: 0xf0e8dc, hw: 0.34,
        desc: 'Dressed limestone laid flat and swept white. Egypt built roads to move stone and ' +
@@ -1816,6 +1837,18 @@ const UPGRADES = {
   mammothblind:  { to: 'catlodge',     cost: 620, era: 1, label: 'Sabretooth Lodge' },
 };
 
+const UPGRADE_TARGETS = (function () {
+  const t = new Set();
+  for (const from in UPGRADES) {
+    const u = UPGRADES[from], a = BUILDINGS[from], b = BUILDINGS[u.to];
+    if (!a || !b || u.legacy) continue;
+    if ((a.era || 1) !== (b.era || 1)) continue;
+    t.add(u.to);
+    b.noBuild = true;
+  }
+  return t;
+})();
+
 const TERRA_TOOLS = [
   { kind: 'grass',    icon: '\u{1F331}', name: 'Grass' },
   { kind: 'fertile',  icon: '\u{1F33E}', name: 'Fertile' },
@@ -1836,6 +1869,29 @@ const PALETTE_TABS = [
   { key: 'civic',    name: 'Civic',    items: ['park', 'scribe', 'templeGranary', 'temple'] },
 
 ];
+
+function upgradeSourceOf(type) {
+  let legacySrc = null;
+  for (const from in UPGRADES) {
+    if (UPGRADES[from].to !== type) continue;
+    if (!UPGRADES[from].legacy) return from;
+    if (!legacySrc) legacySrc = from;
+  }
+  return legacySrc;
+}
+function paidCost(type) {
+  const seen = new Set([type]);
+  let cur = type, sum = 0;
+  while (BUILDINGS[cur] && BUILDINGS[cur].noBuild) {
+    const src = upgradeSourceOf(cur);
+    if (!src || seen.has(src)) break;
+    sum += UPGRADES[src].cost || 0;
+    seen.add(src);
+    cur = src;
+  }
+  const base = BUILDINGS[cur] && BUILDINGS[cur].cost;
+  return (base != null ? base : 100) + sum;
+}
 
 function DEF(type) { return BUILDINGS[type]; }
 
@@ -1958,6 +2014,48 @@ function inFoodChain(kind) { return !!kind && !!FOOD_CHAIN[kind]; }
     if (!u.legacy && (u.era || 1) !== (a.era || 1))
       say(from + ' (era ' + (a.era || 1) + ') -> ' + u.to + ' is tagged era ' + (u.era || 1) +
           ' — under the prestige turn this upgrade can never fire');
+
+    if (!u.legacy && (a.era || 1) === (b.era || 1) && !b.noBuild)
+      say(from + ' -> ' + u.to + ' is an in-era upgrade target but is still PURCHASABLE ' +
+          '(noBuild not set) — it can be bought outright instead of earned');
+  }
+
+  const nrm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+  {
+    const byName = {};
+    for (const key in BUILDINGS) {
+      const n = nrm(BUILDINGS[key].name);
+      if (!n) continue;
+      (byName[n] = byName[n] || []).push(key);
+    }
+    for (const n in byName)
+      if (byName[n].length > 1)
+        say('display name "' + BUILDINGS[byName[n][0]].name + '" is shared by ' +
+            byName[n].join(' and ') + ' — two buildings cannot answer to one name');
+  }
+
+  {
+    const homesOf = {};
+    for (const key in BUILDINGS) {
+      const d = BUILDINGS[key];
+      if (!d.cap) continue;
+      (homesOf[d.era || 1] = homesOf[d.era || 1] || []).push(key);
+    }
+    for (const era in homesOf) {
+      const shared = homesOf[era].filter(k => !BUILDINGS[k].levels);
+      if (homesOf[era].length > 1 && shared.length > 1)
+        say('era ' + era + ' housing ' + shared.join(' + ') + ' share ONE HOUSE_LEVELS ' +
+            'ladder — each will be renamed into the other as it climbs its rungs. ' +
+            'Give all but one its own `levels` row.');
+    }
+  }
+
+  for (const from in UPGRADES) {
+    const t = BUILDINGS[UPGRADES[from].to], a = BUILDINGS[from];
+    if (a && t && nrm(a.name) === nrm(t.name))
+      say(from + ' -> ' + UPGRADES[from].to + ' produces a building with the SAME ' +
+          'name "' + a.name + '"');
   }
 
   if (bad.length) {
@@ -1970,3 +2068,128 @@ function inFoodChain(kind) { return !!kind && !!FOOD_CHAIN[kind]; }
 const ERA_FOOD_LABEL = { 1: 'Food put by this age', 4: 'Flour milled this age',
                          5: 'Flour milled this age', 14: 'Food ground this age' };
 function eraFoodLabel(era) { return ERA_FOOD_LABEL[rungOf(era)] || 'Food produced this age'; }
+
+const ERA_VOICE = {
+  1: {
+
+    settlers: ['Flint-Hand', 'Antler', 'Ochre', 'Ash-Foot', 'Long-Shadow', 'Cold-Water'],
+    place: 'camp',
+    mill: 'Drying Rack',
+    tally: "Shaman's Tent",
+    tallyLine: 'The count is cut into bone. The shaman keeps the tally of the season — and now ' +
+      'you can read your own numbers.',
+    ration: 'The founding stores are finished — the last of the dried meat is issued.',
+
+    saltName: 'ground worked out from under you',
+    saltAnswers: 'or leave it to lie until it comes back on its own',
+  },
+  4: {
+    settlers: ['Enheduanna', 'Ur-Nammu', 'Ninlil', 'Gilgamesh', 'Shulgi', 'Kubaba'],
+    place: 'city',
+    mill: 'Mill',
+    tally: "Scribe's House",
+    tallyLine: 'The scribes have begun the tally. Writing was invented here to count grain — and ' +
+      'now you can see your own numbers.',
+    ration: 'The Anunnaki ration is finished — the last of the founding grain is issued.',
+    saltName: "Sumer's oldest enemy",
+    saltAnswers: 'a MIDDEN or SHADUF in range (×3 recovery), or convert to Date Palms, ' +
+      'which thrive on ruined ground',
+  },
+  5: {
+
+    settlers: ['Ahmose', 'Merit', 'Khay', 'Senet', 'Ipuy', 'Nefret'],
+    place: 'city',
+    mill: 'Quern House',
+    tally: 'House of Books',
+    tallyLine: 'The per-medjat is open and the accounts are kept — the scribes can tell you what ' +
+      'the estate is actually worth.',
+    ration: "The nomarch's issue is finished — the last of the founding grain is handed out.",
+    saltName: 'the black land going white',
+    saltAnswers: 'a SILT SPREAD in range (×3 recovery), or a PALM GROVE, which ignores the salt ' +
+      'clock entirely — and the flood renews whatever it reaches',
+  },
+  14: {
+
+    settlers: ['Yax Bahlam', 'Sak Nik', 'Chan Ek', 'Ix Kanil', 'Muwan', 'Ix Nab'],
+    place: 'city',
+    mill: 'Nixtamal House',
+    tally: 'House of Codices',
+    tallyLine: 'The codex is opened and the count begins — bark paper, lime plaster, and a scribe ' +
+      'who can read it back.',
+    ration: 'The founding tribute is finished — the last of the stored maize is handed out.',
+    saltName: 'what swidden maize does to its own ground',
+    saltAnswers: 'or an ASH SPREAD in range (×3 recovery) — and note that this age has NO ' +
+      'salt-proof crop, so a plot worked out is a plot you move',
+  },
+};
+
+function eraVoice(era) {
+  const rung = rungOf(era);
+  const keys = Object.keys(ERA_VOICE).map(Number).sort((a, b) => a - b);
+  let pick = keys[0];
+  for (const k of keys) if (k <= rung) pick = k;
+  return ERA_VOICE[pick];
+}
+
+function settlerName(s) {
+  const names = eraVoice(s.era).settlers;
+  return names[(s.seed || 0) % names.length];
+}
+
+const ERA_STAPLE = {
+  0: {
+    raw: 'grain', cooked: 'flour',
+    rawIcon: '\u{1F33E}', cookedIcon: '\u{1F35E}',
+    rawName: 'Raw food', cookedName: 'Prepared food',
+    cookedVerb: 'prepared', rawFrom: 'the land', rawNote: '',
+    shortNote: 'Every chain you add brings mouths and no food — grow the food chain before you grow anything that eats.',
+    hungerFix: 'grow this age’s food chain',
+    goodNames: null,
+  },
+  1: {
+    raw: 'game', cooked: 'pemmican',
+    rawIcon: '\u{1F98C}', cookedIcon: '\u{1F356}',
+    rawName: 'Game', cookedName: 'Dried meat',
+    cookedVerb: 'dried', rawFrom: 'the drives and the hunts',
+    rawNote: 'the Drying Rack and the Hide Frames both draw on it, and only one of them feeds anyone',
+    shortNote: 'Every chain adds mouths and no meat — add Reindeer Drives and a Drying Rack, or fish the ice.',
+    hungerFix: 'put up a Forage Ground, get a Drying Rack smoking, fish the ice, or send a hunt',
+    goodNames: null,
+  },
+  4: {
+    raw: 'grain', cooked: 'flour',
+    rawIcon: '\u{1F33E}', cookedIcon: '\u{1F35E}',
+    rawName: 'Grain', cookedName: 'Flour',
+    cookedVerb: 'milled', rawFrom: 'the fields',
+    rawNote: 'mills always draw before breweries',
+    shortNote: 'Each craft chain adds ~7 mouths and no flour — add farms and a mill, or food from dates and fish.',
+    hungerFix: 'build a Farm and a Mill',
+    goodNames: null,
+  },
+  5: {
+    raw: 'grain', cooked: 'flour',
+    rawIcon: '\u{1F33E}', cookedIcon: '\u{1F35E}',
+    rawName: 'Emmer', cookedName: 'Flour',
+    cookedVerb: 'milled', rawFrom: 'the emmer fields',
+    rawNote: 'the quern houses draw on it before anything else',
+    shortNote: 'Each chain adds mouths and no flour — sow more Emmer Fields and a Quern House, or feed them from the palm groves and the fishery.',
+    hungerFix: 'sow an Emmer Field and set a Quern House grinding',
+    goodNames: { grain: 'Emmer' },
+  },
+  14: {
+    raw: 'grain', cooked: 'flour',
+    rawIcon: '\u{1F33D}', cookedIcon: '\u{1F32E}',
+    rawName: 'Maize', cookedName: 'Masa',
+    cookedVerb: 'ground', rawFrom: 'the milpas',
+    rawNote: 'the nixtamal houses draw on it before anything else',
+    shortNote: 'Each chain adds mouths and no masa — clear more Milpa Plots and a Nixtamal House, or hang a Melipona Apiary in the forest.',
+    hungerFix: 'clear a Milpa Plot and set a Nixtamal House grinding',
+    goodNames: { grain: 'Maize', flour: 'Masa' },
+  },
+};
+function eraStaple(era) { return ERA_STAPLE[rungOf(era)] || ERA_STAPLE[0]; }
+
+function goodLabel(era, key) {
+  const a = eraStaple(era).goodNames;
+  return (a && a[key]) || (key.charAt(0).toUpperCase() + key.slice(1));
+}

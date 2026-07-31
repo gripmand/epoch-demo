@@ -54,45 +54,157 @@ function anchorFor(era) {
   return ERA_ANCHOR[0];
 }
 
+const ERA_RECORD = {
+  0:  { icon: '\u{1F4DC}', tally: 'The Tally', tallyBtn: 'Tally',
+        tallySub: 'What this city keeps count of.',
+        chronicle: 'The Chronicle', chronBtn: 'Chronicle',
+        chronSub: 'Set down as it happened. The record keeps the last 200 entries.',
+        keeper: 'whoever keeps this city’s records' },
+  1:  { icon: '\u{1F9B4}', tally: 'The Bone Tally', tallyBtn: 'Bone Tally',
+        tallySub: 'Notches cut into bone beside the fire.',
+        chronicle: 'The Winter Count', chronBtn: 'Winter Count',
+        chronSub: 'One mark cut for each thing worth remembering. The count keeps the last 200.',
+        keeper: 'a Shaman’s Tent' },
+  4:  { icon: '\u{1F4DC}', tally: 'The Scribe’s Tally', tallyBtn: 'Tally',
+        tallySub: 'Reckoned in the temple, in wet clay.',
+        chronicle: 'The Clay Tablet Chronicle', chronBtn: 'Chronicle',
+        chronSub: 'Pressed into clay as it happened. The tablets keep the last 200 entries.',
+        keeper: 'a Scribe’s House' },
+  5:  { icon: '\u{1F4DC}', tally: 'The Papyrus Tally', tallyBtn: 'Tally',
+        tallySub: 'Reed pen on papyrus, in the nomarch’s own hand.',
+        chronicle: 'The Papyrus Annals', chronBtn: 'Annals',
+        chronSub: 'Written in ink as it happened. The rolls keep the last 200 entries.',
+        keeper: 'a House of Books' },
+  14: { icon: '\u{1F4D6}', tally: 'The Codex Tally', tallyBtn: 'Codex Tally',
+        tallySub: 'Painted on bark paper, against the day-count.',
+        chronicle: 'The Long Count', chronBtn: 'Long Count',
+        chronSub: 'Painted into the codices as it happened. They keep the last 200 entries.',
+        keeper: 'a House of Codices' },
+};
+function eraRecord(era) {
+  const e = Math.max(0, rungOf(era));
+  for (let i = e; i >= 0; i--) if (ERA_RECORD[i]) return ERA_RECORD[i];
+  return ERA_RECORD[0];
+}
+
+const ERA_FOUNDING = {
+  0:  { icon: '\u{1F3DB}\u{FE0F}', title: 'Name Your City',
+        sub: 'It needs a name before anyone can speak of it.',
+        placeholder: '', ok: 'Found the city', skip: 'It needs no name yet',
+        founded: ' was founded.',
+        toast: ' is founded. May its tally always run positive.' },
+  1:  { icon: '\u{1F525}', title: 'Name Your Camp',
+        sub: 'The band needs a word for this place — the word they will use when they are somewhere else.',
+        placeholder: 'Long-Hearth-by-the-Ford', ok: 'Name the camp', skip: 'It needs no name yet',
+        founded: ' was named, and the fire was carried to it.',
+        toast: ' is named. May the fire never go out.' },
+  4:  { icon: '\u{1F3DB}\u{FE0F}', title: 'Name Your City',
+        sub: 'The scribes need something to carve on the founding tablet.',
+        placeholder: 'Uruk-by-the-River', ok: 'Found the city', skip: 'It needs no name yet',
+        founded: ' was founded on the banks of the great river.',
+        toast: ' is founded. May its tally always run positive.' },
+  5:  { icon: '\u{1F3DB}\u{FE0F}', title: 'Name Your Nome',
+        sub: 'The nomarch’s scribes will cut it into the boundary stela.',
+        placeholder: 'Per-Hapi', ok: 'Found the nome', skip: 'It needs no name yet',
+        founded: ' was founded on the black land, between the flood and the desert.',
+        toast: ' is founded. May the river rise kindly on it.' },
+  14: { icon: '\u{1F3DB}\u{FE0F}', title: 'Name Your City',
+        sub: 'The scribes will paint it on the first stela, with the day it was raised.',
+        placeholder: 'Three-Cenote', ok: 'Found the city', skip: 'It needs no name yet',
+        founded: ' was founded above the water in the stone.',
+        toast: ' is founded. May its tanks reach the rains.' },
+};
+function eraFounding(era) {
+  const e = Math.max(0, rungOf(era));
+  for (let i = e; i >= 0; i--) if (ERA_FOUNDING[i]) return ERA_FOUNDING[i];
+  return ERA_FOUNDING[0];
+}
+
+const ERA_SITE = {
+  0: {
+    roadYes: '<b>housing, the places that sell, the places that store and the age’s monument</b>',
+    roadNo: 'Fields, workshops and the things that work the land where the land is',
+    water: 'Most buildings must sit inside this age’s water coverage. Press <b>O</b> to see it.',
+    extra: [],
+  },
+  1: {
+    roadYes: '<b>Hide Tents, Mammoth-Bone Lodges, the Permafrost Store, the Sled Dog Post, the Meat Stall, ' +
+      'the Fuel Stack, the Blade Trader, the Carver’s Lodge, the Fur Hall, the Trade Post, the Trade Ring ' +
+      'and the Painted Cave</b>',
+    roadNo: 'The Great Hearth, Melt Pits, Deadwood Cutters, Reindeer Drives, Ice Weirs, the Flint Quarry, ' +
+      'the Boneyard, the Ochre Bank, Forage Grounds, the Charcoal Clamp, the Drying Rack, the Hide Frames ' +
+      'and the Knapping Floor',
+    water: 'Most sheltered buildings must stand inside a <b>Melt Pit’s</b> five-tile circle — that is ' +
+      'where water comes from here, and it goes anywhere; there is no river to find. Press <b>O</b> to see it.',
+    extra: [
+      '<b>Warmth.</b> Anything that houses or employs people must also stand inside a hearth circle, and ' +
+      'those fires burn fuel every minute. If the fuel cannot cover the draw, every fire goes dark at once — ' +
+      'though your outdoor camps keep working through it. Watch the \u{1F525} chip.',
+    ],
+  },
+  4: {
+    roadYes: '<b>Houses, the Market, the Temple Granary, the Bread Oven, the Raw Goods Stall, the Weigh-House, ' +
+      'the Runner Post, the Tablet House, the Craft Storehouse, the Basket Weaver, the Oil Press, the Dye Works, ' +
+      'the Wool Bureau and the Ziggurat</b>',
+    roadNo: 'Farms, mills, wells, middens, threshing floors, clay pits, kilns, sheepfolds, weavers, breweries — ' +
+      'and, less obviously, the Pottery Stall, the Cloth Hall and the Tavern',
+    water: 'Most buildings must sit inside a <b>Well’s</b> five tiles, or a <b>Cistern’s</b> eight. ' +
+      'Press <b>O</b> to see it.',
+    extra: [],
+  },
+  5: {
+    roadYes: '<b>Villas, the Bazaar, the Granary, the Nomarch’s Granary, the Temple, the Scroll Market, ' +
+      'the Brick Wharf, the Block Wharf and the Great Pyramid</b>',
+    roadNo: 'Emmer Fields, Estate Farms, Quern Houses, papyrus marshes, the clay beds, the Desert Quarry, ' +
+      'palm groves, the fishery, the Scriptorium, the Brick Field, the Masons’ Yard, the House of Books ' +
+      'and the Canal Well',
+    water: 'Most buildings must sit inside a <b>Canal Well’s</b> eight tiles, or an ' +
+      '<b>Inundation Basin’s</b> eleven. Press <b>O</b> to see it.',
+    extra: [],
+  },
+  14: {
+    roadYes: '<b>Stone Houses, the Tortilla Plaza, the Stone Yard, the Vase Market, the Chocolate House, ' +
+      'the Tribute Storehouse and the Temple-Pyramid</b>',
+    roadNo: 'The Cenote Steps, Catchment Courts, Aguadas, Chultuns, Aqueducts, Milpas, Raised Fields, ' +
+      'the Nixtamal House, the Apiary, the Limestone Quarry, the Stonecutter’s Lodge, the Marl Pit, ' +
+      'the Polychrome Kiln, the cacao groves, the Grinding House and the Market Plaza',
+    water: 'Most buildings must sit inside an <b>Aqueduct’s</b> eleven tiles — and the aqueduct only ' +
+      'runs while the city’s tank has water in it. Press <b>O</b> to see it.',
+    extra: [
+      '<b>The tank.</b> Water is a GOOD here, not a free circle. Everything that needs it goes dark the ' +
+      'moment the tank hits zero, so buy storage before you buy industry. Watch the \u{1F4A7} chip.',
+    ],
+  },
+};
+function eraSite(era) { return ERA_SITE[rungOf(era)] || ERA_SITE[0]; }
+
 const ERA_GUIDES = {
   1: {
     headline: 'Keep the fire alive. Everything else is detail.',
-    mechanic: 'Warmth is a utility you MAKE. ONE Great Hearth warms an 18-tile circle — the whole ' +
-      'camp — so place it centrally, build outward, and forget about it. What matters is the BILL: ' +
-      'everything inside that circle — homes, workshops, counters — draws fuel every minute from your ' +
-      'stock (wood ×1, bone ×1, charcoal ×3). If the fuel cannot cover the draw, EVERY fire goes dark ' +
-      'at once and the whole camp stops. Your outdoor camps — Cutters, Drives, Weirs, Quarries — keep ' +
-      'working through it. And the fuel is the map: every tree tile holds 500 deadwood, and a spent ' +
-      'tile is ASH forever. The forest does not grow back. Watch the \u{1F525} chip: it shows your ' +
-      'warmth and the seconds of fire left at the current draw.',
-    chain: [
-      'Great Hearth + Melt Pit  ·  the warmth and the water. Nothing warm-blooded runs without both',
-      'Reindeer Drive ×3 → Drying Rack → Meat Stall  ·  ~$31/min. The food chain — three Drives feed one Rack exactly',
-      'Deadwood Cutter → Charcoal Clamp → Fuel Stack  ·  ~$48/min — and every bag sold is 3 warmth your hearths do not get',
-      'Reindeer Drive ×2 → Hide Frames → Fur Hall  ·  ~$78/min, the top of the age — and it eats the carcasses dinner wanted',
-      'Flint Quarry → Knapping Floor → Blade Trader  ·  ~$58/min on the moraine ridge, far from everything',
-      'Mammoth Boneyard → Carver\'s Lodge  ·  ~$52/min — or burn the bone as fuel. The fork is the point',
-      'Forage Ground  ·  1.2 forage/min, eaten at 80%, ANYWHERE. Berries, roots and lichen owe nothing to the herd, the river or the fire — the one food that keeps coming when the hearths go dark',
-      'Ice Weir  ·  fish, eaten at 75%. Needs no fire, no herd, no wood — the food nothing can take from you',
-      'Ochre Bank  ·  nearly worthless to sell. The Painted Cave wants 900 of it',
-    ],
-    firstSteps: [
-      'Place the GREAT HEARTH first, and place it where you want the middle of your camp. Its 18-tile circle is big enough to hold the whole age, so you only ever need one — everything that houses or employs people goes inside it. Outside it, nothing warm-blooded runs.',
 
-      'A DEADWOOD CUTTER second — before any tent. THIS IS WHERE FUEL COMES FROM: it fells dead stands and turns them into deadwood, which is what your fires burn. Its reach has no limit, so put it anywhere — it always works the nearest standing timber and the cutting front grows outward from there. It eats 500 from each tile it works and a spent tile is ASH forever, so the forest retreats — plan the next Cutter before this one runs dry.',
-      'A MELT PIT for water. It goes anywhere — no river needed — and covers 5 tiles, so drop one wherever a workshop cluster grows. Later the Longfire upgrade gives warmth and water from the same object.',
-      'A FORAGE GROUND next, and put it where there is scrub for the +50%. It is the cheapest food in the age and the only one that needs no herd, no river and NO FIRE — when the hearths go dark everything else stops and this does not. One food is how a camp dies; two is how it survives a mistake.',
-      'A road from the Hearth, then Hide Tents inside the circle, then TWO OR THREE Reindeer Drives anywhere on the open steppe and a Drying Rack. Pemmican is bread here — but remember the Drying Rack and the Hide Frames eat the SAME carcasses, 4.6 a minute between them against 1 from each Drive. That competition is the age\'s central squeeze, and forage is how you survive losing it.',
-      'The Charcoal Clamp is how fire becomes money: 2 wood in, 1 charcoal out — 50% more warmth from the same tree, or $6.80 a bag at the Fuel Stack. Every bag you sell is warmth you no longer have. That choice never stops being asked.',
-      'Watch the steppe. Mammoth herds drift past — a HUNTERS\' CAMP can send 6 hunters after the nearest one. A good hunt is meat, hide, bone and ivory; a bad one buries people. The odds are on the button.',
-      'The Boneyard (on the white bonebeds by the river) gives you the era\'s question in one good: burn the bone, or carve it at the Lodge for $13. Carving wins by 15% — and the Cave will want 100 carvings.',
-      'When the fuel chip turns amber: mothball a workshop (it stops drawing warmth entirely), stop the Fuel Stack, burn bone. Mothball is your thermostat here, not your bankruptcy tool.',
-      'The Painted Cave is the exit. Its bill is ochre, charcoal and carvings — the paint, the light, and the things you did not burn. You raise it by being colder, on purpose.',
+    mechanic: 'Warmth is a utility you MAKE. One Great Hearth warms 18 tiles — the whole camp — but ' +
+      'everything inside it burns fuel every minute (wood ×1, bone ×1, charcoal ×3). Run out and every ' +
+      'fire dies at once; only outdoor camps keep working. Watch the \u{1F525} chip.',
+
+    chain: [
+      'Great Hearth + Melt Pit  ·  warmth and water. Nothing warm-blooded runs without both',
+      'Reindeer Drive ×3 → Drying Rack → Meat Stall  ·  ~$31/min. Dinner',
+      'Deadwood Cutter → Charcoal Clamp → Fuel Stack  ·  ~$48/min. Fuel, and money',
+      'Reindeer Drive ×2 → Hide Frames → Fur Hall  ·  ~$78/min, the richest thing here',
+      'Flint Quarry → Knapping Floor → Blade Trader  ·  ~$58/min. Bone carves for ~$52/min',
     ],
-    mistake: 'Selling too much charcoal. The Fuel Stack pays $47.60 a real minute, which makes it the ' +
-      'most profitable way there is to freeze: exactly half of what your fire chain makes goes out its ' +
-      'door, and your margin over the hearths\' draw is ~12%. One extra tent, one cold snap, one greedy ' +
-      'minute — and the fires go dark. Grow the fire chain BEFORE you grow anything that draws on it.',
+
+    firstSteps: [
+      'GREAT HEARTH first, dead centre: its 18-tile circle holds the whole camp, so you only need one.',
+
+      'A DEADWOOD CUTTER second, before any tent — it reaches any distance, eats 500 a tree tile, and leaves ash.',
+      'Then a MELT PIT: water goes anywhere here, 5 tiles, no river to find.',
+      'Then a FORAGE GROUND on scrub (+50%) — it needs no fire, so it feeds you when the hearths die.',
+      'Then road out from the Hearth, raise Hide Tents, and work toward the Painted Cave: 900 ochre, 100 carvings.',
+    ],
+
+    mistake: 'Selling charcoal. The Fuel Stack pays $47.60 a real minute — about half your fire — and ' +
+      'the Painted Cave wants 300 of it.',
   },
   4: {
 

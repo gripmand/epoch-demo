@@ -901,9 +901,9 @@ const Grid = {
         }) ? TUNE.ADJ_BONUS : 0;
       } else if (d.cap) {
 
-        const nearPark = parks.some(o => within(b, o, DEF(o.type).capRadius || 1));
+        const nearPark = parks.some(o => within(b, o, (DEF(o.type).capRadius || 1) + rankRadiusBonus(o)));
 
-        const nearShrine = shrines.some(o => within(b, o, DEF(o.type).amenityRadius));
+        const nearShrine = shrines.some(o => within(b, o, DEF(o.type).amenityRadius + rankRadiusBonus(o)));
         const nearTemple = temples.some(o => within(b, o, 2));
         const nearInd = industry.some(o => Grid.adjacent(b, o));
 
@@ -921,7 +921,7 @@ const Grid = {
       }
 
       if (d.sells || d.sellsRaw) {
-        b.scribed = scribes.some(o => within(b, o, TUNE.SCRIBE.radius));
+        b.scribed = scribes.some(o => within(b, o, TUNE.SCRIBE.radius + rankRadiusBonus(o)));
         b.weighedBy = weighs.filter(o => within(b, o, TUNE.WEIGH.radius)).map(o => o.id);
 
         b.bureauBy = (d.sells === 'cloth' || d.sells === 'dyedcloth')

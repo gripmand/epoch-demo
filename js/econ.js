@@ -145,7 +145,7 @@ const Econ = {
       if (b.resting) {
         if (Grid.soilUnder(b) >= 0.999) {
           b.resting = false;
-          if (!offline) UI.toast('\u{1F33E} ' + d.name + ' is back at full soil and has resumed cropping on its own.', 8000);
+          if (!offline) UI.toast((d.icon || '\u{1F331}') + ' ' + d.name + ' is back at full soil and has resumed cropping on its own.', 8000);
         } else { b.block = null; continue; }
       }
       b.block = Econ.blockOf(b);
@@ -235,8 +235,8 @@ const Econ = {
           income += draw;
           if (s.foundingLeft <= 0 && !offline) {
             s.foundingLeft = 0;
-            UI.toast('\u{1F33E} The Anunnaki ration is finished — the last of the founding grain is issued. ' +
-              'Your city stands on its own economy now.', 11000);
+            UI.toast('\u{1F4E6} ' + eraVoice(s.era).ration + ' ' +
+              'Your ' + eraVoice(s.era).place + ' stands on its own economy now.', 11000);
           }
         }
 
@@ -503,8 +503,8 @@ const Econ = {
       if (s.hunger <= 0.001) { C.h25Told = 0; C.h50Told = 0; C.famineLogged = 0; }
       if (s.hunger >= TUNE.MIGRATION.hungerStop && !C.h25Told) {
         C.h25Told = 1;
-        UI.toast('\u{1F35E} The city is going hungry — newcomers are turning away. Check the Tally (T): ' +
-          'is the Mill starving, or are there simply too many mouths?', 10000);
+        UI.toast('\u{1F37D}\u{FE0F} Your ' + eraVoice(s.era).place + ' is going hungry — newcomers are turning away. Check the Tally (T): ' +
+          'is the ' + eraVoice(s.era).mill + ' starving, or are there simply too many mouths?', 10000);
       }
       if (s.hunger >= TUNE.HUNGER_WARN && !C.h50Told) {
         C.h50Told = 1;
@@ -619,7 +619,6 @@ const Econ = {
       if (!offline && gain > 0 && s.tick % 60 === b.id % 60) {
         Econ.floater(b, '+$' + Math.round(gain * 60));
 
-        if (window.Sfx) Sfx.play('coin', { price: d.sellPrice || (b.rawKind ? TUNE.PRICES[b.rawKind] : 5) });
       }
     }
 
@@ -638,7 +637,7 @@ const Econ = {
     C.net = C.ratesDirty ? flow : C.net * 0.9 + flow * 0.1;
     C.tickMonSpend = monDrawn;
 
-    if (!offline && s.money < 0) UI.firstToast('broke', 'Out of money. Upkeep still runs — mothball or demolish something, import nothing, and wait on Town Hall income. A mothballed building costs a fifth of its upkeep.');
+    if (!offline && s.money < 0) UI.firstToast('broke', 'Out of money. Upkeep still runs — mothball or demolish something, import nothing, and wait on the trickle from your ' + anchorFor(s.era).name + '. A mothballed building costs a fifth of its upkeep.');
 
     if (!offline) {
       const perMin = C.net * 60;
@@ -647,7 +646,6 @@ const Econ = {
       else { C.posTicks = 0; C.negTicks = 0; }
       if (C.posTicks === 60 && !s.firsts.breakeven) {
         s.firsts.breakeven = 1;
-        if (window.Sfx) Sfx.play('bell');
         UI.toast('\u{1F514} YOUR CITY PAYS FOR ITSELF. Net has held positive a full minute — from here, ' +
           'time itself earns you money. Build the next chain.', 12000);
         Econ.log(s, '\u{1F514}', 'The city broke even — it pays for itself now.');
@@ -831,9 +829,9 @@ const Econ = {
       if (!s.firsts.saltcrisis && Grid.soilUnder(b) < 0.5) {
         s.firsts.saltcrisis = 1;
         if (window.Rend && Rend.focusOn) Rend.focusOn(b);
-        UI.toast('\u{1F9C2} THE LAND IS SALTING — Sumer\'s oldest enemy. This field is under half soil ' +
-          'and fading. Three answers: REST it (its own panel), a MIDDEN or SHADUF in range (×3 recovery), ' +
-          'or convert to Date Palms, which thrive on ruined ground. Press O twice for the salt overlay.', 16000);
+        UI.toast('\u{1F9C2} THE LAND IS SALTING — ' + eraVoice(s.era).saltName + '. This field is under half soil ' +
+          'and fading. The answers: REST it (its own panel), ' + eraVoice(s.era).saltAnswers +
+          '. Press O twice for the salt overlay.', 16000);
         Econ.log(s, '\u{1F9C2}', 'The first field fell below half soil — the salt has begun.');
       }
     }
@@ -1018,10 +1016,7 @@ const Econ = {
       C.migrateRate = 0;
 
       s.settlerAcc = Math.min(s.settlerAcc || 0, 0.6);
-      if (!offline && why === 'full' && s.tick > 30)
-        UI.firstToast('housingfull', 'Every house is full. Build more housing — residents are what staff your buildings.');
-      if (!offline && why === 'blocked')
-        UI.firstToast('housingblocked', 'Your housing has no road or no water, so nobody will move in. Check the red markers.');
+
       return;
     }
 
@@ -1048,8 +1043,6 @@ const Econ = {
       s.settlerAcc -= 1;
       if (s.records) s.records.settlers = (s.records.settlers || 0) + 1;
 
-      if (!offline && window.Sfx && s.records && s.records.settlers % 20 === 1) Sfx.play('settle');
-
       if (s.festival && s.festival.left > 0) {
         s.festival.left--;
         if (s.festival.left <= 0) {
@@ -1063,14 +1056,16 @@ const Econ = {
 
         if (!s.firsts.firstsettler) {
           s.firsts.firstsettler = 1;
-          const NAMES = ['Enheduanna', 'Ur-Nammu', 'Ninlil', 'Gilgamesh', 'Shulgi', 'Kubaba'];
-          const name = NAMES[(s.seed || 0) % NAMES.length];
+
+          const name = settlerName(s);
           if (window.Rend && Rend.focusOn) Rend.focusOn(beds[i]);
-          UI.toast('\u{1F3E0} ' + name + ' has settled in your city — the first of many. ' +
+          UI.toast('\u{1F3E0} ' + name + ' has settled in your ' + eraVoice(s.era).place + ' — the first of many. ' +
             'Residents staff your buildings and eat your food: grow both together.', 12000);
           Econ.log(s, '\u{1F3E0}', name + ' arrived — the first settler.');
         } else {
-          UI.firstToast('movein', 'A settler moved in. Residents staff your buildings — and eat your flour, so grow the food before you grow the town.');
+
+          UI.firstToast('movein', 'A settler moved in. Residents staff your buildings — and eat your ' +
+            eraStaple(s.era).cookedName.toLowerCase() + ', so grow the food before you grow the town.');
         }
       }
     }
@@ -1096,7 +1091,7 @@ const Econ = {
 
       return { blocked: 'neighbours', need: Econ.NEIGHBOURS_FOR_RUNG2, have: h.nearHomes || 0 };
     }
-    return { level: lvl + 1, cost: houseUpgradeCost(s.era, lvl), name: houseLevelName(s.era, lvl + 1) };
+    return { level: lvl + 1, cost: houseUpgradeCost(s.era, lvl, DEF(h.type)), name: houseLevelName(s.era, lvl + 1, DEF(h.type)) };
   },
 
   buyHouseUpgrade(s, h) {
@@ -1122,10 +1117,11 @@ const Econ = {
           h.level++; h.evolve = 0;
           G.cache.dirty = true;
           if (!offline) {
-            if (window.Sfx) Sfx.play('evolve');
-            Econ.floater(h, '▲ ' + houseLevelName(s.era, h.level) + ' · +' +
-              Math.max(0, houseCap(DEF(h.type), h) - houseCap(DEF(h.type), { level: h.level - 1 })) + ' beds');
-            UI.firstToast('evolve', 'Standing among neighbours, a hut has become a Mudbrick House. Build homes close together and they improve on their own — anything grander than this you buy, from the house\'s own panel.');
+
+            const hd = DEF(h.type);
+            Econ.floater(h, '▲ ' + houseLevelName(s.era, h.level, hd) + ' · +' +
+              Math.max(0, houseCap(hd, h) - houseCap(hd, { level: h.level - 1 })) + ' beds');
+            UI.firstToast('evolve', 'Standing among neighbours, a ' + houseLevelName(s.era, h.level - 1, hd) + ' has become a ' + houseLevelName(s.era, h.level, hd) + '. Build homes close together and they improve on their own — anything grander than this you buy, from the house\'s own panel.');
           }
         }
       } else if (want < h.level) {
@@ -1279,7 +1275,6 @@ const Econ = {
           Econ.log(s, gift.icon, gift.log);
         }
         if (!offline) {
-          if (window.Sfx) Sfx.play('drum');
           UI.toast('\u{1F3DB}️ THE ' + d.name.toUpperCase() + ' IS FINISHED. It begins earning at once — ' +
             'and it is the single largest contributor to your real rent in this age.', 12000);
         }
@@ -1830,7 +1825,6 @@ const Econ = {
         (lost ? ' \u{1FAA6} ' + lost + ' hunter' + (lost === 1 ? '' : 's') + ' died on the steppe.'
               : (homeless ? '' : ' Everyone came back.')) +
         (homeless ? ' \u{1F3E0} ' + homeless + ' found no bed and walked on — build housing before you hunt.' : ''), 14000);
-      if (window.Sfx) Sfx.play('bell');
     } else {
       Econ.log(s, '\u{1F3F9}', 'The hunt FAILED — the ' + Econ.HERD_NAMES[hunt.kind] + ' broke away.' +
         (lost ? ' ' + lost + ' hunter' + (lost === 1 ? '' : 's') + ' did not come back.' : ''));
@@ -1852,9 +1846,13 @@ const Econ = {
       sum += d.warm;
     }
 
-    const keeper = s.buildings.some(b => DEF(b.type).fuelKeeper && !b.mothballed &&
-      b.done !== false && (b.staff || 0) > 0);
-    return sum * (keeper ? 1 - TUNE.FIREKEEPER.save : 1);
+    let best = 0;
+    for (const b of s.buildings) {
+      if (!DEF(b.type).fuelKeeper || b.mothballed || b.done === false) continue;
+      if (!(b.staff || 0)) continue;
+      best = Math.max(best, TUNE.FIREKEEPER.save * (1 + 0.5 * (rankOf(b) - 1)));
+    }
+    return sum * (1 - Math.min(0.9, best));
   },
 
   fuelEquiv(s) {
@@ -1931,7 +1929,6 @@ const Econ = {
       }
       if (s.chill >= TUNE.COLD.warnAt && !C.cold40Told) {
         C.cold40Told = 1;
-        if (window.Sfx) Sfx.play('bell');
         UI.toast('\u{1F9CA} FREEZING. People will hold on for roughly ' +
           Math.round(TUNE.COLD.freezeMinutes * (1 - s.chill)) + ' more minutes. Feed the fires — ' +
           'cut wood, burn bone, stop selling charcoal — or mothball what you can spare.', 12000);
@@ -2084,7 +2081,6 @@ const Econ = {
       if ((s.stock.water || 0) > want * 3) C.dryTold = 0;
       if ((s.stock.water || 0) <= 0 && !C.dryTold) {
         C.dryTold = 1;
-        if (window.Sfx) Sfx.play('bell');
         Econ.log(s, '\u{1F4A7}', 'The tank ran dry and the city browned out.');
         UI.toast('\u{1F4A7} THE TANK IS EMPTY — every aqueduct has gone dark, and with it everything ' +
           'that needs water. Your Milpas and Quarries keep working; nothing else does. MOTHBALL the ' +
@@ -2240,8 +2236,8 @@ const Econ = {
       if (Econ.blockOf(b)) continue;
       s.literate = 1;
       if (!offline) {
-        UI.toast('\u{1F4DC} The scribes have begun the tally. Writing was invented here to count grain — ' +
-          'and now you can see your own numbers. Press T for what the city actually produces.', 12000);
+        UI.toast('\u{1F4DC} ' + eraVoice(s.era).tallyLine +
+          ' Press T for what this age actually produces.', 12000);
       }
       return;
     }
@@ -2384,7 +2380,9 @@ const Econ = {
     s.stock[imp.kind] += stored;
     const overflow = TUNE.IMPORT_GRAIN.units - stored;
     if (overflow > 0) s.money += overflow * TUNE.PRICES[imp.kind] * TUNE.EXPORT_MULT;
-    Econ.log(s, '\u{1F6B6}', imp.who + ' ' + TUNE.IMPORT_GRAIN.units + ' ' + imp.kind +
+
+    Econ.log(s, '\u{1F6B6}', imp.who + ' ' + TUNE.IMPORT_GRAIN.units + ' ' +
+      goodLabel(s.era, imp.kind).toLowerCase() +
       ' at $' + imp.price + ' a ' + imp.unit + ' — four times the fair price.');
     return cost;
   },

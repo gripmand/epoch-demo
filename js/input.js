@@ -512,7 +512,7 @@ const Input = {
 
       case 't': case 'T':
         if (UI.literate(G.s)) UI.togglePanel('tally-panel', UI.tallyHTML);
-        else UI.toast('\u{1F4DC} Nobody in this city can write. Build a Scribe\'s House and the numbers appear.', 7000);
+        else UI.toast('\u{1F4DC} Nobody here keeps the count yet. Build a ' + eraVoice(G.s.era).tally + ' and the numbers appear.', 7000);
         break;
       case 'c': case 'C': UI.togglePanel('chron-panel', UI.chronicleHTML); break;
       case 'p': case 'P': UI.photoMode(); break;
@@ -526,7 +526,6 @@ const Input = {
         const rt = Input.tool.mode === 'move' ? Input.tool.payload.type : Input.tool.type;
         const rs = Grid.dims(rt, Input.rot);
         Rend._overlayDirty = true;
-        if (window.Sfx) Sfx.play('road');
         UI.toast('↻ ' + DEF(rt).name + ' turned ' + (Input.rot * 90) + '° — footprint ' +
           rs.w + '×' + rs.h + '.', 2500);
         break;
@@ -571,15 +570,13 @@ const Input = {
     const useRot = (Input.rot | 0) & 3;
     if (!Grid.canPlace(s, type, x, y, undefined, useRot)) {
 
-      if (window.Sfx) Sfx.play('deny');
       UI.toast('Can’t build the ' + d.name + ' there — ' + Grid.whyBlocked(s, type, x, y, useRot) + '.', 10000);
       return false;
     }
     if (!(dev && dev.freeBuild)) {
-      if (s.money < d.cost) { if (window.Sfx) Sfx.play('deny'); UI.toast('Not enough money — ' + d.name + ' costs $' + d.cost + '.'); return false; }
+      if (s.money < d.cost) { UI.toast('Not enough money — ' + d.name + ' costs $' + d.cost + '.'); return false; }
       s.money -= d.cost;
     }
-    if (window.Sfx) Sfx.play('place', { size: d.w * d.h });
     const nb = Grid.addBuilding(s, type, x, y, useRot);
     Grid.rebuild(s);
 
@@ -628,10 +625,9 @@ const Input = {
       Input.stroke.tiles.push(rb.id);
       Input.stroke.cost += DEF('road').cost;
     }
-    if (window.Sfx) Sfx.play('road');
     Grid.rebuild(s);
-    UI.firstToast('road', 'Roads connect buildings to the Town Hall. $10 a tile, and NO upkeep — ' +
-      'so lay them out properly; a good layout costs you nothing to keep.');
+    UI.firstToast('road', 'Roads carry people and goods, and only SOME buildings need one — each says so ' +
+      'on its own panel. Fields, camps, wells and quarries never do, and every road runs back to your ' + anchorFor(s.era).name + '. $10 a tile, and NO upkeep.');
   },
 
   clearTree(s, x, y) {
@@ -657,7 +653,7 @@ const Input = {
   },
 
   demolish(b) {
-    if (DEF(b.type).fixed) { UI.toast('The Town Hall is permanent — it’s the anchor everything connects to.'); return; }
+    if (DEF(b.type).fixed) { UI.toast('The ' + anchorFor(G.s.era).name + ' is permanent — it’s the anchor everything connects to.'); return; }
 
     if (DEF(b.type).monument && !b.complete && Object.keys(b.delivered || {}).length) {
       const p = Econ.monumentProgress(G.s, b);
@@ -671,11 +667,11 @@ const Input = {
       }
     }
     Input.confirmRaze = null;
-    const base = b.type === 'farm2' ? DEF('estate').cost + UPGRADES.estate.cost : DEF(b.type).cost;
+
+    const base = paidCost(b.type);
 
     const refund = Math.floor((base != null ? base : 100) * TUNE.DEMOLISH_REFUND);
     G.s.money += refund;
-    if (window.Sfx) Sfx.play('demolish');
 
     const la = Input.lastAction;
     if (la && (la.id === b.id || (la.ids || []).includes(b.id))) Input.lastAction = null;

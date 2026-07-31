@@ -2990,7 +2990,9 @@ const Shapes = {
       const miss = [];
       for (const type in BUILDINGS) {
         const d = BUILDINGS[type];
-        if ((d.era || 1) !== rung || d.monument || d.noBuild || type === 'road') continue;
+
+        if ((d.era || 1) !== rung || d.monument || type === 'road') continue;
+        if (d.noBuild && !(typeof UPGRADE_TARGETS !== 'undefined' && UPGRADE_TARGETS.has(type))) continue;
         if (!Shapes.eraSkin(type, rung)) miss.push(type);
       }
       gaps[rung] = miss;
