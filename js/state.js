@@ -294,9 +294,129 @@ const Game = {
     });
   },
 
+  SNAPS: [
+    { key: 'epoch_snap_a', ms: 3 * 60 * 1000 },
+    { key: 'epoch_snap_b', ms: 20 * 60 * 1000 },
+    { key: 'epoch_snap_c', ms: 3 * 60 * 60 * 1000 },
+  ],
+
+  snapshot() {
+    if (typeof Main !== 'undefined' && Main.saveBlocked) return;
+    let cur = null;
+    try { cur = localStorage.getItem(SAVE_KEY); } catch (e) { return; }
+    if (!cur || cur.length < 40) return;
+    const now = Date.now();
+    for (let i = 0; i < Game.SNAPS.length; i++) {
+      const slot = Game.SNAPS[i];
+      let stampedAt = 0;
+      try { stampedAt = +localStorage.getItem(slot.key + '_t') || 0; } catch (e) {}
+
+      if (!stampedAt && i > 0) {
+        try { localStorage.setItem(slot.key + '_t', String(now)); } catch (e) {}
+        continue;
+      }
+      if (now - stampedAt < slot.ms) continue;
+      try {
+        localStorage.setItem(slot.key, cur);
+        localStorage.setItem(slot.key + '_t', String(now));
+      } catch (e) {
+
+        try { localStorage.removeItem(Game.SNAPS[Game.SNAPS.length - 1].key); } catch (e2) {}
+        return;
+      }
+      break;
+    }
+  },
+
+  snapshotList() {
+    const out = [];
+    const add = (key, label, t) => {
+      let v = null;
+      try { v = localStorage.getItem(key); } catch (e) {}
+      if (!v) return;
+      let info = { key, label, bytes: v.length, at: t || 0, era: null, buildings: null, money: null };
+      try {
+        const d = JSON.parse(v);
+        info.era = d.era; info.buildings = (d.buildings || []).length;
+        info.money = Math.round(d.money || 0);
+        info.pop = (d.buildings || []).reduce((a, b) => a + (b.residents || 0), 0);
+        info.name = d.cityName || '';
+      } catch (e) { info.corrupt = true; }
+      out.push(info);
+    };
+    for (const slot of Game.SNAPS) {
+      let t = 0; try { t = +localStorage.getItem(slot.key + '_t') || 0; } catch (e) {}
+      add(slot.key, 'auto-backup', t);
+    }
+    add(ARCHIVE_KEY, 'archived city (era call)', 0);
+
+    try {
+      for (const k of Object.keys(localStorage))
+        if (k.indexOf('epoch_rescue_') === 0) add(k, 'RESCUED — a save that would not load', +k.slice(13) || 0);
+    } catch (e) {}
+    return out.sort((a, b) => b.at - a.at);
+  },
+
+  restoreSnapshot(key) {
+    let v = null;
+    try { v = localStorage.getItem(key); } catch (e) {}
+    if (!v) return false;
+    try { JSON.parse(v); } catch (e) { return false; }
+    try {
+      const cur = localStorage.getItem(SAVE_KEY);
+      if (cur) {
+        localStorage.setItem('epoch_snap_prerestore', cur);
+        localStorage.setItem('epoch_snap_prerestore_t', String(Date.now()));
+      }
+      localStorage.setItem(SAVE_KEY, v);
+    } catch (e) { return false; }
+    if (typeof Main !== 'undefined') Main.saveBlocked = false;
+    return true;
+  },
+
   save() {
+
+    if (typeof Main !== 'undefined' && Main.saveBlocked) return false;
+
+    Game.snapshot();
     try { localStorage.setItem(SAVE_KEY, Game.serialize(G.s)); return true; }
     catch (e) { return false; }
+  },
+
+  exportSave() {
+    let blob = null;
+    try { blob = Game.serialize(G.s); } catch (e) { return false; }
+    const s = G.s;
+    const name = (s.cityName || 'epoch-city').replace(/[^a-z0-9\-_]+/gi, '-').toLowerCase();
+    const d = new Date();
+    const p = n => String(n).padStart(2, '0');
+    const stamp = d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '-' + p(d.getHours()) + p(d.getMinutes());
+    const file = name + '_era' + s.era + '_' + stamp + '.json';
+    try {
+      const url = URL.createObjectURL(new Blob([blob], { type: 'application/json' }));
+      const a = document.createElement('a');
+      a.href = url; a.download = file;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      return file;
+    } catch (e) { return false; }
+  },
+
+  importSave(text) {
+    let d = null;
+    try { d = JSON.parse(text); } catch (e) { return 'that file is not a saved city'; }
+    if (!d || d.version !== 1 || !Array.isArray(d.buildings)) return 'that file is not an EPOCH save';
+    if (!d.buildings.some(b => b.type === 'townhall')) return 'that save has no Town Hall — it would not load';
+    try {
+      const cur = localStorage.getItem(SAVE_KEY);
+      if (cur) {
+        localStorage.setItem('epoch_snap_preimport', cur);
+        localStorage.setItem('epoch_snap_preimport_t', String(Date.now()));
+      }
+      localStorage.setItem(SAVE_KEY, text);
+    } catch (e) { return 'this browser refused to store it (out of space?)'; }
+    if (typeof Main !== 'undefined') Main.saveBlocked = false;
+    return null;
   },
 
   rawSave() {
@@ -500,10 +620,11 @@ const Game = {
         })),
     };
     G.s = s;
+
+    G.cache = Game.freshCache();
     Game.adoptLegacyHunt(s);
 
     Econ.topUpHerds(s);
-    G.cache = Game.freshCache();
     Grid.genTerrain(s);
     Grid.rebuild(s);
     if (window.Rend && Rend.invalidateTerrain) Rend.invalidateTerrain();

@@ -46,8 +46,32 @@ const Main = {
     if (wantsFresh && window.history && history.replaceState) {
       history.replaceState(null, '', location.pathname);
     }
-    let loaded = fresh ? false : Game.load();
-    if (!loaded) Game.newGame();
+
+    let loaded = false, loadErr = null;
+    if (!fresh) {
+      try { loaded = Game.load(); }
+      catch (e) { loadErr = e; loaded = false; console.error('EPOCH: load() threw —', e); }
+    }
+    if (!loaded) {
+      let rawHeld = null;
+      try { rawHeld = fresh ? null : Game.rawSave(); } catch (e) {}
+      if (rawHeld) {
+
+        Main.rescued = null;
+        try {
+          const key = 'epoch_rescue_' + Date.now();
+          localStorage.setItem(key, rawHeld);
+          Main.rescued = localStorage.getItem(key) === rawHeld ? key : null;
+        } catch (e) { Main.rescued = null; }
+
+        Main.saveBlocked = true;
+        Game.newGame();
+        Main.loadFailure = { key: Main.rescued, bytes: rawHeld.length,
+                             why: loadErr ? String(loadErr.message || loadErr) : 'the save did not pass its own checks' };
+      } else {
+        Game.newGame();
+      }
+    }
 
     let recalled = false;
     if (loaded && ERA1_CALL > 0 && (G.s.era1Call | 0) !== ERA1_CALL) {
@@ -74,6 +98,15 @@ const Main = {
 
     if (recalled) {
       setTimeout(() => UI.recallNotice(recalled), 600);
+    }
+
+    if (Main.loadFailure) {
+      const f = Main.loadFailure;
+      setTimeout(() => UI.toast('\u{26A0}\u{FE0F} YOUR SAVED CITY COULD NOT BE READ, so this is a new one — ' +
+        'but your city was NOT deleted. Its ' + f.bytes.toLocaleString() + ' bytes are kept' +
+        (f.key ? ' under "' + f.key + '"' : '') + ', and AUTOSAVE IS OFF so nothing can overwrite it. ' +
+        'Reason: ' + f.why + '. Send that line and the key to whoever builds this — it is recoverable.',
+        600000), 400);
     }
     if (away) {
       if (away.hours >= 0.5) setTimeout(() => UI.showAway(away), 500);

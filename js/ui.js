@@ -35,6 +35,7 @@ const UI = {
     on('btn-reset', UI.promptReset);
 
     on('btn-save', UI.saveNow);
+    on('btn-backups', () => UI.togglePanel('backups-panel', UI.backupsHTML));
     on('btn-chron', () => UI.togglePanel('chron-panel', UI.chronicleHTML));
 
     const snd = on('btn-sound', () => {
@@ -307,6 +308,83 @@ const UI = {
       const type = t.mode === 'road' ? 'road' : t.type;
       const btn = UI.els.palBody.querySelector('.pal-btn[data-type="' + type + '"]');
       if (btn) btn.classList.add('active');
+    }
+  },
+
+  backupsHTML() {
+    const list = Game.snapshotList();
+    const ago = t => {
+      if (!t) return 'unknown age';
+      const m = Math.max(0, Math.round((Date.now() - t) / 60000));
+      if (m < 1) return 'just now';
+      if (m < 60) return m + ' min ago';
+      const h = Math.floor(m / 60);
+      return h + 'h ' + (m % 60) + 'm ago';
+    };
+    let h = '<h2>\u{1F5C4}\u{FE0F} Backups</h2>' +
+      '<div class="panel-sub">Your city lives in THIS BROWSER, at THIS address. It is not in the ' +
+      'cloud and it is not in the code — clearing site data, a new browser or another machine will not ' +
+      'find it. <b>The downloaded file is the only copy that outlives any of that.</b></div>';
+
+    h += '<div class="adv-btns" style="margin:10px 0">' +
+      '<button id="bk-export" class="btn-gold">\u{2B07}\u{FE0F} Download my city</button>' +
+      '<button id="bk-import" class="btn-primary">\u{2B06}\u{FE0F} Load from a file</button></div>' +
+      '<input type="file" id="bk-file" accept="application/json,.json" style="display:none">';
+
+    h += '<div class="panel-title2">Automatic backups in this browser</div>';
+    if (!list.length) {
+      h += '<div class="panel-sub">None yet — the first one is taken within a few minutes of play.</div>';
+    } else {
+      h += '<table class="tally"><tr><th>What</th><th>Age</th><th>City</th><th></th></tr>';
+      for (const b of list) {
+        const desc = b.corrupt ? '<span class="bad">unreadable</span>'
+          : 'era ' + b.era + ' · ' + b.buildings + ' buildings · ' + b.pop + ' pop';
+        h += '<tr><td>' + UI.esc(b.label) + (b.name ? ' <span class="gold-dim">' + UI.esc(b.name) + '</span>' : '') +
+          '</td><td class="gold-dim">' + ago(b.at) + '</td><td>' + desc + '</td>' +
+          '<td>' + (b.corrupt ? '' : '<button class="bk-restore" data-key="' + UI.esc(b.key) +
+            '">Restore</button>') + '</td></tr>';
+      }
+      h += '</table>';
+      h += '<div class="panel-sub">Restoring reloads the page. The city you are in now is backed up ' +
+        'first, so a restore is itself undoable.</div>';
+    }
+    if (typeof Main !== 'undefined' && Main.saveBlocked) {
+      h += '<div class="panel-sub bad">\u{26A0}\u{FE0F} AUTOSAVE IS OFF because a save could not be read on ' +
+        'this page load. Nothing is being written over it. Restore one of the entries above, or download ' +
+        'the rescued file, before you play on.</div>';
+    }
+    return h;
+  },
+
+  wireBackupsPanel(p) {
+    const ex = p.querySelector('#bk-export');
+    if (ex) ex.onclick = () => {
+      const f = Game.exportSave();
+      UI.toast(f ? '\u{2B07}\u{FE0F} Saved to your downloads as ' + f + '. That file is the copy nothing here can touch.'
+                 : 'Could not build the file — this browser is blocking downloads.', 10000);
+    };
+    const im = p.querySelector('#bk-import'), file = p.querySelector('#bk-file');
+    if (im && file) {
+      im.onclick = () => file.click();
+      file.onchange = () => {
+        const f = file.files && file.files[0];
+        if (!f) return;
+        const r = new FileReader();
+        r.onload = () => {
+          const err = Game.importSave(String(r.result));
+          if (err) { UI.toast('\u{26A0}\u{FE0F} ' + err, 10000); return; }
+          UI.toast('\u{2705} Loaded. Reloading…', 4000);
+          setTimeout(() => location.reload(), 700);
+        };
+        r.readAsText(f);
+      };
+    }
+    for (const b of p.querySelectorAll('.bk-restore')) {
+      b.onclick = () => {
+        if (!Game.restoreSnapshot(b.dataset.key)) { UI.toast('That backup could not be restored.', 8000); return; }
+        UI.toast('\u{2705} Restored. Reloading…', 4000);
+        setTimeout(() => location.reload(), 700);
+      };
     }
   },
 
@@ -1851,6 +1929,7 @@ const UI = {
     document.body.appendChild(p);
     p.querySelector('.panel-close').onclick = () => p.remove();
     UI.wireEraPanel(p);
+    UI.wireBackupsPanel(p);
   },
 
   tallyHTML() {
