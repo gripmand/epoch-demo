@@ -27,6 +27,10 @@ const Grid = {
          beyond: 'GRASS', saltAt: 0.99, rockAt: 0.80, peakR: 3,
          iceWall: 8, bonebeds: true },
 
+    2: { trunkW: 2.6, trunkW2: 2.4, branch: 0, secondW: 0, wander: 0.34,
+         fertileTo: 2, dryFrom: 4, edgeJitter: 1.6,
+         beyond: 'SALT', saltAt: 0.62, rockAt: 0.54, peakR: 4 },
+
     4: { trunkW: 3.4, trunkW2: 3.2, branch: 2, secondW: 2.2, wander: 0.42,
          fertileTo: 5, dryFrom: 16, edgeJitter: 5,
          beyond: 'SALT', saltAt: 0.54, rockAt: 0.80 },
@@ -867,11 +871,13 @@ const Grid = {
   goodGround(s, b) {
     const d = DEF(b.type);
     const sz = Grid.dimsOf(b);
-    if (d.onRock) return Grid.rockFrac(b) * sz.w * sz.h >= 2;
+
+    const want = Math.min(2, sz.w * sz.h);
+    if (d.onRock) return Grid.rockFrac(b) * sz.w * sz.h >= want;
     if (d.onSalt) {
       let n = 0;
       Grid.tilesOf(b, (x, y) => { if (Grid.inB(x, y) && G.cache.terrain[Grid.key(x, y)] === TERRAIN.SALT) n++; });
-      return n >= 2;
+      return n >= want;
     }
     if (d.nearWater) return Grid.waterWithin(b.x, b.y, sz, d.nearWater);
     if (d.nearTrees) return Grid.treesWithin(s, b.x, b.y, sz, 3) >= d.nearTrees;
@@ -909,6 +915,8 @@ const Grid = {
     const weighs = s.buildings.filter(b => DEF(b.type).weighRadius);
     const bureaus = s.buildings.filter(b => DEF(b.type).woolBureau);
     const byres = s.buildings.filter(b => DEF(b.type).oxTeam);
+
+    const lamps = s.buildings.filter(b => DEF(b.type).lampRadius);
 
     const scribes = s.buildings.filter(b => DEF(b.type).keepsTally && b.done !== false);
 
@@ -980,6 +988,11 @@ const Grid = {
 
       if (d.plowed) {
         b.oxNear = byres.filter(o => within(b, o, TUNE.OX.radius)).map(o => o.id);
+      }
+
+      if (d.mines) {
+        b.lampNear = lamps.filter(o =>
+          within(b, o, DEF(o.type).lampRadius + rankRadiusBonus(o))).map(o => o.id);
       }
 
       if (d.procIn === 'wool') {

@@ -71,6 +71,11 @@ const ERA_RECORD = {
         chronicle: 'The Winter Count', chronBtn: 'Winter Count',
         chronSub: 'One mark cut for each thing worth remembering. The count keeps the last 200.',
         keeper: 'a Shaman’s Tent' },
+  2:  { icon: '\u{1FAA8}', tally: 'The Notched Tally', tallyBtn: 'Tally',
+        tallySub: 'Cut into standing rock, where anyone can check it.',
+        chronicle: 'The Overseers’ Record', chronBtn: 'Record',
+        chronSub: 'Kept by the masters, in their own hand. It keeps the last 200 entries.',
+        keeper: 'a Tally Stone' },
   4:  { icon: '\u{1F4DC}', tally: 'The Scribe’s Tally', tallyBtn: 'Tally',
         tallySub: 'Reckoned in the temple, in wet clay.',
         chronicle: 'The Clay Tablet Chronicle', chronBtn: 'Chronicle',
@@ -110,6 +115,11 @@ const ERA_FOUNDING = {
         placeholder: 'Long-Hearth-by-the-Ford', ok: 'Name the camp', skip: 'It needs no name yet',
         founded: ' was named, and the fire was carried to it.',
         toast: ' is named. May the fire never go out.' },
+  2:  { icon: '\u{26CF}\u{FE0F}', title: 'Name Your Camp',
+        sub: 'The overseers need something to head the tally with.',
+        placeholder: 'Ninth-Gallery', ok: 'Name the camp', skip: 'It needs no name yet',
+        founded: ' was entered on the tally, under the ridge.',
+        toast: ' is named. May the count come out even.' },
   4:  { icon: '\u{1F3DB}\u{FE0F}', title: 'Name Your City',
         sub: 'The scribes need something to carve on the founding tablet.',
         placeholder: 'Uruk-by-the-River', ok: 'Found the city', skip: 'It needs no name yet',
@@ -172,6 +182,29 @@ const ERA_SITE = {
       '<b>Warmth.</b> Anything that houses or employs people must also stand inside a hearth circle, and ' +
       'those fires burn fuel every minute. If the fuel cannot cover the draw, every fire goes dark at once — ' +
       'though your outdoor camps keep working through it. Watch the \u{1F525} chip.',
+    ],
+  },
+  2: {
+    roadYes: '<b>Reed-Roof Shelters, the Ration Shed, the Raw Goods Barrow, the Goldsmith\'s Bench, the ' +
+      'Copper Furnace, the Turf Clamp, the Pitch Boilery, the Hair-Cloth Shed, the Block Yard, the Tribute ' +
+      'Yard, the Ore Heap, the Overseer\'s Post, the Tally Stone and the Levelled Court</b>',
+    roadNo: 'Prospect Pits, Adits, Malachite Cuts, Limestone Cuts, Timber Camps, Goat Pens, Bitumen Seep ' +
+      'Works, Terrace Plots, Quern Sheds, Washing Floors, Smelting Hearths, Dressing Sheds, Lamp Houses, ' +
+      'wells, the Ash Heap — and, less obviously, the Gathering Ground and the Gorge Fish Trap, which need ' +
+      'nothing at all',
+    water: 'Most buildings in the CAMP must sit inside a <b>Rock-Cut Well\'s</b> five tiles, or a ' +
+      '<b>Cistern\'s</b> eight. ★ The gorge waters NOTHING — it washes ore and it feeds the fish trap, and ' +
+      'that is all it does. Press <b>O</b> to see the rings.',
+    extra: [
+      '<b>The levy.</b> Every ' + TUNE.TRIBUTE.periodMin + ' minutes the masters count, and every count is ' +
+      Math.round((TUNE.TRIBUTE.growth - 1) * 100) + '% larger than the last. ' +
+      Math.round(TUNE.TRIBUTE.share * 100) + '% of your gold is taken as it is poured — build the ' +
+      '<b>Tribute Yard</b> or none of it counts toward the quota. Watch the ⚖️ chip.',
+      '<b>The ridge is finite.</b> Adits, Malachite Cuts and Limestone Cuts all eat the same rock, 20 tiles ' +
+      'around them, and a worked-out tile stops being rock forever. You cannot paint more — the ROCK brush ' +
+      'is locked in this age. Plan the second working before you build the first.',
+      '<b>Everything up the hill is over the free carting radius.</b> An <b>Overseer\'s Post</b> is not ' +
+      'optional infrastructure here, it is the second thing you place.',
     ],
   },
   4: {
@@ -267,6 +300,35 @@ const ERA_GUIDES = {
 
     mistake: 'Selling charcoal. The Fuel Stack pays $47.60 a real minute — about half your fire — and ' +
       'the Painted Cave wants 300 of it.',
+  },
+  2: {
+    headline: 'A share of what you dig is not yours. The share is fixed; the quota is not.',
+    mechanic: 'PAY THE LEVY. Every ' + TUNE.TRIBUTE.periodMin + ' minutes the masters count what they are ' +
+      'owed, and every count is ' + Math.round((TUNE.TRIBUTE.growth - 1) * 100) + '% larger than the last ' +
+      '— forever, on a curve no camp outgrows. ' + Math.round(TUNE.TRIBUTE.share * 100) + '% of all gold ' +
+      'is taken as it is poured, and that is what the quota is paid from. Watch the ⚖️ chip. Miss three ' +
+      'counts and the picks go down.',
+    chain: [
+      'Terrace Plot ×3 → Saddle-Quern Shed → Ration Shed  ·  ~$18/min. Feeds the camp; it does not enrich it',
+      'Adit ×3 → Washing Floor → Smelting Hearth → Goldsmith\'s Bench  ·  ~$87/min, and 35% of the gold never arrives',
+      'Malachite Cut ×2 → Copper Furnace  ·  ~$34/min. UNTAXED, and it keeps full speed when the picks are down',
+      'Timber Camp → Turf Clamp  ·  ~$28/min · Bitumen Seep → Pitch Boilery  ·  ~$29/min, and it lights the mines',
+      'Limestone Cut → Dressing Shed → Block Yard  ·  ~$34/min · Goat Pen → Hair-Cloth Shed  ·  ~$29/min',
+    ],
+
+    firstSteps: [
+      'ROCK-CUT WELL first — the gorge waters nothing here, and the terraces need a ring.',
+      'Then TWO TERRACE PLOTS and a SADDLE-QUERN SHED touching one of them (+25% both ways).',
+      'Then a GATHERING GROUND. One worker, no well, no road — it is what feeds you when everything else stops.',
+      'Then FOUR SHELTERS and a RATION SHED. Bread is a wage here, not a trade: it feeds the camp and barely pays.',
+      '★ Then TIMBER CAMP → TURF CLAMP, and only THEN the gold. Two buildings and five mouths earn from the first minute; the gold chain is FOUR deep and pays NOTHING until the Goldsmith\'s Bench at the end of it. Open short, then commit.',
+      'PROSPECT PIT → ADIT → WASHING FLOOR → SMELTING HEARTH → GOLDSMITH\'S BENCH, then the OVERSEER\'S POST and the TRIBUTE YARD — the masters skim whether the Yard runs or not, but nothing counts toward the quota unless it does.',
+    ],
+    mistake: 'Sinking the whole founding purse into the gold chain before anything else sells. It is four ' +
+      'buildings deep and earns nothing until the last of them — measured, that opening is bankrupt by ' +
+      'minute twenty. The other mistake is the opposite one, later: grinding the levy forever. It compounds ' +
+      Math.round((TUNE.TRIBUTE.growth - 1) * 100) + '% a count and your camp does not. Once the gate is ' +
+      'met, STOP PAYING — that is how this age ends.',
   },
   4: {
 

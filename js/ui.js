@@ -22,6 +22,10 @@ const UI = {
     UI.els.silt = document.getElementById('hud-silt');
     UI.els.herdChip = document.getElementById('chip-herd');
     UI.els.herd = document.getElementById('hud-herd');
+    UI.els.levyChip = document.getElementById('chip-levy');
+    UI.els.levy = document.getElementById('hud-levy');
+    UI.els.unrestChip = document.getElementById('chip-unrest');
+    UI.els.unrest = document.getElementById('hud-unrest');
 
     UI.buildPalette();
 
@@ -741,6 +745,48 @@ const UI = {
         'One Dredging Crew per two wells keeps it open; another WELL makes it worse.';
     }
 
+    const showLevy = Econ.levyActive(s);
+    for (const el of [UI.els.levyChip, UI.els.unrestChip]) {
+      if (!el) continue;
+      el.classList.toggle('hidden', !showLevy);
+      el.style.display = showLevy ? '' : 'none';
+    }
+    if (showLevy && UI.els.levy) {
+      const f = Econ.levyForecast(s);
+      const mm = Math.floor(f.secs / 60), ss = Math.round(f.secs % 60);
+      UI.els.levy.textContent = f.missed
+        ? 'MISSED \u{00D7}' + f.missed
+        : Math.round(f.bank) + ' / ' + Math.round(f.quota) + ' \u{00B7} ' +
+          mm + ':' + (ss < 10 ? '0' : '') + ss;
+      UI.els.levyChip.classList.toggle('bad', f.missed > 0);
+      UI.els.levyChip.classList.toggle('warn', !f.missed && f.short > 0 && f.secs < 60);
+      UI.els.levyChip.title = 'Count ' + f.count + ' wants ' + Math.round(f.quota) +
+        ' gold and ' + Math.round(f.bank) + ' is weighed' +
+        (f.short > 0 ? ' \u{2014} SHORT BY ' + Math.round(f.short) + ', which the Hall will sell you for ' +
+          Util.fmtMoney(Econ.levyBuyoutPrice(s, f.short)) : ' \u{2014} covered') +
+        '. Called in ' + mm + 'm ' + ss + 's. The next count wants ' +
+        Math.round(Econ.levyQuota(f.count)) + '. ' +
+        (Econ.levyYardLive(s) ? '' : '\u{2605} NOTHING IS BEING CREDITED: the masters skim whether the ' +
+          'Tribute Yard runs or not, but the quota only counts what a staffed, connected Yard weighs.');
+    }
+    if (showLevy && UI.els.unrest) {
+      const U = TUNE.UNREST, u = s.unrest || 0;
+      UI.els.unrest.textContent = Math.round(u * 100) + '%' +
+        (s.conscripted ? ' \u{00B7} ' + s.conscripted + ' taken' : '');
+      UI.els.unrestChip.classList.toggle('bad', u >= U.strikeAt);
+      UI.els.unrestChip.classList.toggle('warn', u < U.strikeAt && u >= U.conscriptAt);
+      UI.els.unrestChip.title = s.struck
+        ? 'THE PICKS ARE DOWN. "We have put a stop to the digging." Nothing on the ridge is working ' +
+          'and nothing will start it again. The age can turn.'
+        : 'Unrest ' + Math.round(u * 100) + '%. Every missed count adds ' +
+          Math.round(U.missed * 100) + '; settling one takes off ' + Math.round(-U.paid * 100) +
+          ', and overpaying by half again takes off ' + Math.round(-U.appeased * 100) + '. ' +
+          'At ' + Math.round(U.conscriptAt * 100) + '% they start taking people (' +
+          (s.conscripted | 0) + ' so far). At ' + Math.round(U.strikeAt * 100) +
+          '% the mines slow \u{2014} and ONLY the mines: bread, charcoal, pitch, limestone and hair ' +
+          'keep full speed, which is what pays for the buyout.';
+    }
+
     const showHerd = Econ.trophicActive(s);
     if (UI.els.herdChip) {
       UI.els.herdChip.classList.toggle('hidden', !showHerd);
@@ -916,6 +962,8 @@ const UI = {
         if (d && d.rockRadius) return 'THE ROCK IS WORKED OUT — nothing left within ' + d.rockRadius + ' tiles. Move it';
         return 'WORKED OUT — nothing left in reach. Move it';
       })(), 'warn'],
+
+      struck: ['THE PICKS ARE DOWN — this is a refusal, not a staffing problem. The age can turn', 'bad'],
       no_staff: ['NO WORKERS available', 'bad'], understaffed: ['UNDERSTAFFED', 'warn'],
       no_input: ['NO INPUT in stock', 'bad'], no_customers: ['NOT ENOUGH CUSTOMERS', 'bad'],
       hungry: ['RESIDENTS HUNGRY', 'bad'],

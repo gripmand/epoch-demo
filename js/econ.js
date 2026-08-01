@@ -4,6 +4,8 @@ const Econ = {
 
   M: TUNE.TICK_MIN * TUNE.TEMPO,
 
+  BASE_M: TUNE.TICK_MIN * TUNE.TEMPO,
+
   realTime(s, nowMs) {
     const now = nowMs || Date.now();
     const dtMs = Math.max(0, now - (s.lastSeenMs || now));
@@ -103,6 +105,8 @@ const Econ = {
 
     Econ.trophicTick(s, offline);
 
+    Econ.levyTick(s, offline);
+
     Econ.stampWater(s);
 
     Econ.nileTick(s, offline);
@@ -179,6 +183,19 @@ const Econ = {
         Econ.note('grain', 0, want);
         C.grainDraw.oxen += want;
         C.fedByres.add(b.id);
+      }
+    }
+
+    C.litLamps = new Set();
+    for (const b of byPlaced) {
+      const dL = DEF(b.type);
+      if (!dL || !dL.lampRadius || !dL.fuelIn) continue;
+      if (b.block || b.mothballed || (dL.workers && !b.staff)) continue;
+      const want = dL.fuelRate * (dL.workers ? b.staff / dL.workers : 1) * Econ.M;
+      if (want > 0 && (s.stock[dL.fuelIn] || 0) >= want) {
+        s.stock[dL.fuelIn] -= want;
+        Econ.note(dL.fuelIn, 0, want);
+        C.litLamps.add(b.id);
       }
     }
 
@@ -373,7 +390,8 @@ const Econ = {
 
         const left = Econ.cutterWoodLeft(b);
         b.woodLeft = left;
-        const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b);
+
+        const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b) * Econ.groundMult(b);
         made = left > 0 ? Math.min(left, d.out.deadwood * staffEff * mult * Econ.M * (1 + C.beerBonus)) : 0;
 
         made = Math.min(made, Math.max(0, Econ.capOf(s, 'deadwood') - s.stock.deadwood));
@@ -397,15 +415,16 @@ const Econ = {
         made = d.out[kind] * staffEff * mult * Econ.M * (1 + C.beerBonus);
         Econ.addStock(s, kind, made);
         outKind = kind;
-      } else if (d.out.stone || d.out.flint) {
+      } else if (d.quarried) {
 
-        const good = d.out.stone ? 'stone' : 'flint';
+        const good = Object.keys(d.out)[0];
         const left = Econ.quarryStoneLeft(b);
         b.stoneLeft = left;
 
-        const rf = d.out.stone ? (0.5 + 0.5 * (b.rockFrac || 0)) : 1;
+        const rf = good === 'stone' ? (0.5 + 0.5 * (b.rockFrac || 0)) : 1;
 
-        const mult = rf * (1 + (b.adjBoost || 0)) * rankOutMult(b) * Econ.groundMult(b);
+        const mult = rf * (1 + (b.adjBoost || 0)) * rankOutMult(b) * Econ.groundMult(b) *
+          Econ.mineMult(s, b);
         made = left > 0 ? d.out[good] * staffEff * mult * Econ.M * (1 + C.beerBonus) : 0;
 
         made = Math.min(made, Math.max(0, Econ.capOf(s, good) - s.stock[good]));
@@ -418,6 +437,14 @@ const Econ = {
 
         b.status = left <= 0 ? 'stand_spent' : (staffEff < 1 ? 'understaffed' : 'ok');
         continue;
+      } else if (d.out) {
+
+        const kind = Object.keys(d.out)[0];
+        const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b) * Econ.groundMult(b) *
+          Econ.mineMult(s, b);
+        made = d.out[kind] * staffEff * mult * Econ.M * (1 + C.beerBonus);
+        Econ.addStock(s, kind, made);
+        outKind = kind;
       }
 
       if (outKind && made > 0) Econ.noteFood(s, outKind, made);
@@ -442,14 +469,15 @@ const Econ = {
       b.bureauSlow = Econ.anyAuraLive(b.bureauSlowBy);
       const slow = b.bureauSlow ? (1 - TUNE.BUREAU.slow) : 1;
       const want = d.procRate * staffEff * (1 + (b.adjBoost || 0)) *
-        rankOutMult(b) * slow * Econ.M * (1 + C.beerBonus);
+        rankOutMult(b) * slow * Econ.M * (1 + C.beerBonus) * Econ.mineMult(s, b);
       const use = Math.min(want, s.stock[d.procIn]);
       s.stock[d.procIn] -= use;
       Econ.note(d.procIn, 0, use);
       if (d.procIn === 'grain') {
         C.grainDraw[d.procOut === 'flour' ? 'mill' : 'brewery'] += use;
       }
-      const made = use * d.procRatio;
+
+      const made = Econ.levySkim(s, b, use * d.procRatio);
       Econ.addStock(s, d.procOut, made);
 
       if (d.procOut === 'flour') { flourMade += made; s.cum.flour += made; }
@@ -1342,7 +1370,16 @@ const Econ = {
     return Game.housedResidents(s) >= r.pop && s.money >= r.money &&
            (Econ.cumFood(s) - Econ.baseFood(base)) >= r.food &&
            (s.cum.stone - (base.stone || 0)) >= r.stone &&
+           Econ.eraExtraGate(s) &&
            Econ.monumentDone(s, s.era);
+  },
+
+  ERA_EXTRA_GATE: {
+    2: (s, base) => (s.cum.tributePaid || 0) - (base.tributePaid || 0) >= TUNE.TRIBUTE.gate,
+  },
+  eraExtraGate(s) {
+    const f = Econ.ERA_EXTRA_GATE[rungOf(s.era)];
+    return f ? f(s, s.eraBase || {}) : true;
   },
 
   monumentFor(era) {
@@ -1534,7 +1571,11 @@ const Econ = {
 
     s.era = Econ.nextEra(s);
 
-    s.eraBase = { flour: s.cum.flour, food: Econ.cumFood(s), stone: s.cum.stone };
+    s.eraBase = { flour: s.cum.flour, food: Econ.cumFood(s), stone: s.cum.stone,
+                  tributePaid: s.cum.tributePaid || 0 };
+
+    s.tribute = { bank: 0, count: 0, missed: 0, due: TUNE.TRIBUTE.firstAt * 60 };
+    s.unrest = 0; s.struck = 0; s.conscripted = 0;
     const era = eraInfo(s.era);
 
     Econ.log(s, '\u{1F30D}', 'The age turned: Era ' + s.era + ' — ' + era.name +
@@ -1575,6 +1616,8 @@ const Econ = {
     if (d.needsPower && !Grid.covered(G.cache.power, b)) return 'no_power';
 
     if (d.needsWarm && (!G.cache.warm || !Grid.covered(G.cache.warm, b))) return 'no_warmth';
+
+    if (d.mines && G.s && G.s.struck && Econ.levyActive(G.s)) return 'struck';
     return null;
   },
 
@@ -1663,6 +1706,154 @@ const Econ = {
         '/min; your crews clear ' + (f.clear * TUNE.TEMPO).toFixed(2) +
         '/min. Build a DREDGING CREW — about one per two wells. Another well makes it worse, ' +
         'not better: it is one more channel to keep clear.', 15000);
+    }
+  },
+
+  levyActive(s) { return rungOf(s.era) === 2; },
+
+  realSecs() { return Econ.M / Econ.BASE_M; },
+
+  levyState(s) {
+    if (!s.tribute) s.tribute = { bank: 0, count: 0, missed: 0, due: TUNE.TRIBUTE.firstAt * 60 };
+    return s.tribute;
+  },
+  levyQuota(count) {
+    return TUNE.TRIBUTE.base * Math.pow(TUNE.TRIBUTE.growth, count);
+  },
+  levyForecast(s) {
+    const t = Econ.levyState(s);
+    const quota = Econ.levyQuota(t.count);
+    return { quota, bank: t.bank, short: Math.max(0, quota - t.bank),
+             secs: Math.max(0, t.due), count: t.count + 1, missed: t.missed || 0,
+             unrest: s.unrest || 0 };
+  },
+
+  levySkim(s, b, made) {
+    if (!Econ.levyActive(s) || !DEF(b.type).levied || !(made > 0)) return made;
+    const t = Econ.levyState(s);
+    const take = made * TUNE.TRIBUTE.share;
+
+    if (Econ.levyYardLive(s)) t.bank += take;
+    b.levied = take;
+    return made - take;
+  },
+
+  levyYardLive(s) {
+    return s.buildings.some(b => {
+      const d = DEF(b.type);
+      return d && d.levyYard && b.done !== false && !b.mothballed && !b.block &&
+        (!d.workers || b.staff > 0);
+    });
+  },
+
+  mineMult(s, b) {
+    if (!Econ.levyActive(s)) return 1;
+    const d = DEF(b.type);
+    if (!d || !d.mines) return 1;
+    const U = TUNE.UNREST, u = s.unrest || 0;
+    let m = 1;
+    if (u >= U.clampNoGate) m = U.crashSlow;
+    else if (u >= U.strikeAt) m = U.strikeSlow;
+
+    if (s.struck) return 0;
+
+    if (Econ.anyLampLit(b.lampNear)) m *= 1 + TUNE.TERRAIN_BONUS;
+    if (s.policyDoubleShift) m *= 1 + TUNE.SHIFT.bonus;
+    return m;
+  },
+
+  levyBuyoutPrice(s, units) {
+    return Math.round(units * TUNE.PRICES.gold * TUNE.TRIBUTE.buyoutMult);
+  },
+  levyBuyout(s, units) {
+    if (!Econ.levyActive(s) || !(units > 0)) return false;
+    const price = Econ.levyBuyoutPrice(s, units);
+    if (s.money < price) return false;
+    s.money -= price;
+    Econ.levyState(s).bank += units;
+    return true;
+  },
+
+  levyTick(s, offline) {
+    if (!Econ.levyActive(s)) return;
+    const t = Econ.levyState(s);
+    const T = TUNE.TRIBUTE, U = TUNE.UNREST;
+    t.due -= Econ.realSecs();
+    let guard = 0;
+    while (t.due <= 0 && guard++ < 1000) {
+      const quota = Econ.levyQuota(t.count);
+      if (t.bank >= quota) {
+
+        const ratio = t.bank / quota;
+        t.bank -= quota;
+        s.cum.tributePaid = (s.cum.tributePaid || 0) + quota;
+        t.missed = 0;
+
+        s.unrest = (s.unrest || 0) >= U.clampNoGate
+          ? U.strikeAt - 0.01
+          : Util.clamp((s.unrest || 0) + (ratio >= T.appeaseAt ? U.appeased : U.paid), 0, 1);
+        t.count++;
+        if (!offline) {
+          Econ.log(s, '\u{2696}\u{FE0F}', 'Count ' + t.count + ' settled: ' +
+            Math.round(quota) + ' gold weighed out.' +
+            (ratio >= T.appeaseAt ? ' They went away satisfied.' : ''));
+        }
+      } else {
+
+        t.missed = (t.missed || 0) + 1;
+        s.unrest = Util.clamp((s.unrest || 0) + U.missed +
+          (s.policyDoubleShift ? TUNE.SHIFT.unrestPerLevy : 0), 0, 1);
+        t.count++;
+        Econ.levyConscript(s, offline);
+        if (!offline) {
+          const nq = Econ.levyQuota(t.count);
+          UI.toast('\u{2696}\u{FE0F} THE COUNT IS SHORT — ' + Math.round(quota) +
+            ' gold owed, ' + Math.round(t.bank) + ' weighed. Unrest ' +
+            Math.round((s.unrest || 0) * 100) + '%. The next count wants ' +
+            Math.round(nq) + '. The Hall will sell you the shortfall at $' +
+            TUNE.TRIBUTE.buyoutMult + '\u{00D7} list.', 14000);
+          Econ.log(s, '\u{2696}\u{FE0F}', 'Count ' + t.count + ' was short by ' +
+            Math.round(quota - t.bank) + ' gold.');
+        }
+      }
+
+      if ((s.unrest || 0) >= U.crashAt && !Econ.eraReady(s)) s.unrest = U.clampNoGate;
+      if ((s.unrest || 0) >= U.crashAt && Econ.eraReady(s) && !s.struck) {
+        s.struck = 1;
+        if (!offline) {
+          UI.toast('\u{270A} THE STRIKE OF THE IGIGI \u{2014} "We have put a stop to the digging. ' +
+            'The load is excessive, it is killing us." Every pick in the camp is down, and they ' +
+            'are not coming back up. The age can turn.', 22000);
+        }
+        Econ.log(s, '\u{270A}', 'The tools were burned at the gate. The digging has stopped.');
+      }
+      t.due += T.periodMin * 60;
+    }
+  },
+
+  levyConscript(s, offline) {
+    const U = TUNE.UNREST;
+    if ((s.unrest || 0) < U.conscriptAt) return;
+    const housed = Game.housedResidents(s);
+
+    const take = Math.min(Math.round(housed * U.conscriptShare),
+      Math.max(0, housed - U.conscriptFloor));
+    if (take <= 0) return;
+    let left = take;
+    for (const b of s.buildings) {
+      if (left <= 0) break;
+      if (!b.residents) continue;
+      const n = Math.min(b.residents, left);
+      b.residents -= n; left -= n;
+    }
+    const gone = take - left;
+    if (gone <= 0) return;
+    s.conscripted = (s.conscripted || 0) + gone;
+    Econ.log(s, '\u{26D3}\u{FE0F}', gone + ' were taken up the hill to work the masters\' own ground.');
+    if (!offline) {
+      UI.toast('\u{26D3}\u{FE0F} ' + gone + ' PEOPLE WERE CONSCRIPTED. They are not dead and this is ' +
+        'not famine — the masters took them for the shortfall, and they do not come back. ' +
+        Math.round((s.unrest || 0) * 100) + '% unrest. Settle a count in full to stop it.', 16000);
     }
   },
 
@@ -2349,19 +2540,14 @@ const Econ = {
     }
   },
 
-  BASE_CAP: { grain: 'GRAIN_CAP', flour: 'FLOUR_CAP', stone: 'STONE_CAP', blocks: 'BLOCKS_CAP',
-              clay: 'CLAY_CAP', pottery: 'POTTERY_CAP', wool: 'WOOL_CAP',
-              cloth: 'CLOTH_CAP', beer: 'BEER_CAP',
-              dates: 'DATES_CAP', fish: 'FISH_CAP', salt: 'SALT_CAP', reeds: 'REEDS_CAP',
-              baskets: 'BASKETS_CAP', sesame: 'SESAME_CAP', oil: 'OIL_CAP',
-              dyedcloth: 'DYEDCLOTH_CAP', mudbrick: 'MUDBRICK_CAP',
-              water: 'WATER_CAP', cacao: 'CACAO_CAP',
-              chocolate: 'CHOCOLATE_CAP', honey: 'HONEY_CAP',
-              deadwood: 'DEADWOOD_CAP', charcoal: 'CHARCOAL_CAP',
-              game: 'GAME_CAP', pemmican: 'PEMMICAN_CAP', forage: 'FORAGE_CAP',
-              hide: 'HIDE_CAP', parka: 'PARKA_CAP', flint: 'FLINT_CAP',
-              blades: 'BLADES_CAP', bone: 'BONE_CAP', ochre: 'OCHRE_CAP',
-              carvings: 'CARVINGS_CAP', ivory: 'IVORY_CAP' },
+  BASE_CAP: (function () {
+    const m = {};
+    for (const g in TUNE.PRICES) {
+      const k = g.toUpperCase() + '_CAP';
+      if (TUNE[k] !== undefined) m[g] = k;
+    }
+    return m;
+  })(),
 
   CRAFT_KINDS: ['clay', 'pottery', 'wool', 'cloth', 'beer', 'reeds', 'baskets',
                 'sesame', 'oil', 'dyedcloth', 'mudbrick', 'salt', 'dates', 'fish',
@@ -2370,7 +2556,10 @@ const Econ = {
                 'deadwood', 'charcoal', 'hide', 'parka', 'flint', 'blades',
                 'bone', 'ochre', 'carvings', 'ivory',
 
-                'forage'],
+                'forage',
+
+                'ore', 'concentrate', 'malachite', 'gold', 'goldleaf',
+                'copper', 'bitumen', 'pitch'],
 
   capOf(s, kind) {
 
@@ -2578,6 +2767,12 @@ const Econ = {
   anyAuraLive(ids) {
     if (!ids || !ids.length) return false;
     for (const id of ids) if (Econ.auraLive(id)) return true;
+    return false;
+  },
+
+  anyLampLit(ids) {
+    if (!ids || !ids.length || !G.cache.litLamps) return false;
+    for (const id of ids) if (G.cache.litLamps.has(id) && Econ.auraLive(id)) return true;
     return false;
   },
 

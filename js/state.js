@@ -30,14 +30,15 @@ const Game = {
       hallLevel: Math.max(1, era),
       realRent: 0,
 
-      eraBase: { flour: 0, food: 0, stone: 0 },
+      eraBase: { flour: 0, food: 0, stone: 0, tributePaid: 0 },
       giftHousing: 0,
       giftStore: 0,
       giftRank: 0,
+      giftCrew: 0,
 
       stock: Game.startStock(granted, era),
 
-      cum: { flour: 0, food: 0, stone: 0, earned: 0 },
+      cum: { flour: 0, food: 0, stone: 0, earned: 0, tributePaid: 0 },
       hunger: 0,
       settlerAcc: 0,
 
@@ -74,6 +75,13 @@ const Game = {
       policyCorvee: false,
       policyRation: false,
       season: null,
+
+      policyDoubleShift: false,
+
+      tribute: { bank: 0, count: 0, missed: 0, due: TUNE.TRIBUTE.firstAt * 60 },
+      unrest: 0,
+      conscripted: 0,
+      struck: 0,
 
       silt: 0,
 
@@ -216,7 +224,7 @@ const Game = {
 
   crewSize(s) {
     if (s && rungOf(s.era) === 0) return 0;
-    return TUNE.FOUNDING_CREW | 0;
+    return (TUNE.FOUNDING_CREW | 0) + 4 * ((s && s.giftCrew) | 0);
   },
 
   totalResidents(s) {
@@ -264,6 +272,15 @@ const Game = {
       giftHousing: s.giftHousing | 0,
       giftStore: s.giftStore | 0,
       giftRank: s.giftRank | 0,
+      giftCrew: s.giftCrew | 0,
+
+      tribute: s.tribute ? { bank: +s.tribute.bank || 0, count: s.tribute.count | 0,
+                             missed: s.tribute.missed | 0,
+                             due: Math.round(+s.tribute.due || 0) } : null,
+      unrest: +s.unrest || 0,
+      conscripted: s.conscripted | 0,
+      struck: s.struck ? 1 : 0,
+      policyDoubleShift: !!s.policyDoubleShift,
 
       nile: s.nile ? { phase: s.nile.phase | 0, left: Math.round(s.nile.left) } : null,
 
@@ -542,7 +559,7 @@ const Game = {
       eraBase: (d.eraBase && typeof d.eraBase === 'object')
         ? { flour: +d.eraBase.flour || 0,
             food: d.eraBase.food != null ? (+d.eraBase.food || 0) : (+d.eraBase.flour || 0),
-            stone: +d.eraBase.stone || 0 }
+            stone: +d.eraBase.stone || 0, tributePaid: +d.eraBase.tributePaid || 0 }
         : { flour: 0, food: 0, stone: 0 },
 
       stock: (() => {
@@ -553,7 +570,8 @@ const Game = {
 
       cum: { flour: +d.cum.flour || 0,
              food: d.cum.food != null ? (+d.cum.food || 0) : (+d.cum.flour || 0),
-             stone: +d.cum.stone || 0, earned: +d.cum.earned || 0 },
+             stone: +d.cum.stone || 0, earned: +d.cum.earned || 0,
+             tributePaid: +d.cum.tributePaid || 0 },
       hunger: +d.hunger || 0,
       nextId: d.nextId | 0 || 1, placeCounter: d.placeCounter | 0 || 0,
       owned: d.owned.slice(), firsts: d.firsts || {}, prompted: d.prompted || {},
@@ -582,6 +600,17 @@ const Game = {
       giftHousing: d.giftHousing | 0,
       giftStore: d.giftStore | 0,
       giftRank: d.giftRank | 0,
+      giftCrew: d.giftCrew | 0,
+
+      tribute: (d.tribute && typeof d.tribute === 'object')
+        ? { bank: Math.max(0, +d.tribute.bank || 0), count: Math.max(0, d.tribute.count | 0),
+            missed: Math.max(0, d.tribute.missed | 0),
+            due: Math.max(0, Math.round(+d.tribute.due || 0)) }
+        : null,
+      unrest: Util.clamp(+d.unrest || 0, 0, 1),
+      conscripted: d.conscripted | 0,
+      struck: d.struck ? 1 : 0,
+      policyDoubleShift: !!d.policyDoubleShift,
       nile: (d.nile && typeof d.nile === 'object')
         ? { phase: Util.clamp(d.nile.phase | 0, 0, 2), left: Math.max(1, d.nile.left | 0) }
         : null,
