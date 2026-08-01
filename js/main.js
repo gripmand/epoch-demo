@@ -131,7 +131,7 @@ const Main = {
       };
       setTimeout(askName, 4000);
 
-      const eraName = (ERAS[G.s.era - 1] || {}).name || 'A NEW AGE';
+      const eraName = eraInfo(G.s.era).name;
       const g = (typeof ERA_GUIDES !== 'undefined' && ERA_GUIDES[rungOf(G.s.era)]) || null;
 
       const opener = g && g.firstSteps && g.firstSteps.length ? g.firstSteps[0] : '';
@@ -161,7 +161,7 @@ const Main = {
         }
       }, 1500);
     } else {
-      UI.toast('City loaded — Era ' + G.s.era + ' · ' + ERAS[G.s.era - 1].name + '. Autosaves every 10s.');
+      UI.toast('City loaded — Era ' + G.s.era + ' · ' + eraInfo(G.s.era).name + '. Autosaves every 10s.');
     }
 
     if (askFresh) setTimeout(() => UI.promptReset(), 700);

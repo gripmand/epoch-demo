@@ -416,7 +416,7 @@ const Shapes = {
   rockTint(era) {
     const keys = Object.keys(Shapes.ROCK_TINT).map(Number).sort((a, b) => a - b);
     let pick = keys[0];
-    for (const k of keys) if (k <= (era || 1)) pick = k;
+    for (const k of keys) if (k <= rungOf(era)) pick = k;
     return Shapes.ROCK_TINT[pick];
   },
 
@@ -442,7 +442,7 @@ const Shapes = {
   _protoMats: {},
 
   protoMat(kind, era) {
-    const e = era || 1;
+    const e = rungOf(era);
     const key = kind + ':' + e;
     if (Shapes._protoMats[key]) return Shapes._protoMats[key];
     const isRock = ['boulder', 'crag', 'karst', 'slag', 'regolith'].indexOf(kind) >= 0;
@@ -2530,7 +2530,7 @@ const Shapes = {
   ledgerSkin(era) {
     const keys = Object.keys(Shapes.LEDGER_SKINS).map(Number).sort((a, b) => a - b);
     let pick = keys[0];
-    for (const k of keys) if (k <= (era || 1)) pick = k;
+    for (const k of keys) if (k <= rungOf(era)) pick = k;
     return Shapes.LEDGER_SKINS[pick];
   },
 
@@ -2881,7 +2881,7 @@ const Shapes = {
   houseSkin(era, level) {
     const keys = Object.keys(Shapes.HOUSE_SKINS).map(Number).sort((a, b) => a - b);
     let pick = keys[0];
-    for (const k of keys) if (k <= (era || 1)) pick = k;
+    for (const k of keys) if (k <= rungOf(era)) pick = k;
     const row = Shapes.HOUSE_SKINS[pick];
     return row[Math.max(0, Math.min(row.length - 1, (level || 1) - 1))];
   },
@@ -2898,7 +2898,7 @@ const Shapes = {
 
   skinFor(type, era, level) {
 
-    const e = rungOf(era || (G.s && G.s.era) || 1);
+    const e = rungOf(curEra(era));
     const d = BUILDINGS[type];
     const own = Shapes.eraSkin(type, e);
 
@@ -2937,7 +2937,7 @@ const Shapes = {
 
   forType(type, era, level, frac) {
     const d = DEF(type);
-    const e = era || (G.s && G.s.era) || 1;
+    const e = curEra(era);
     let g;
     if (d.monument) {
       if (type === 'ziggurat') g = Shapes.ziggurat(d);
@@ -2945,7 +2945,7 @@ const Shapes = {
       else if (type === 'templePyr') g = Shapes.templePyramid(d);
 
       else if (type === 'paintedcave') g = Shapes.paintedCave(d);
-      else g = Shapes.genericMonument(d, d.era || e);
+      else g = Shapes.genericMonument(d, d.era != null ? d.era : e);
 
       if (frac !== undefined && frac < 0.999) Shapes.asSite(g, d, frac);
     } else {
@@ -2991,7 +2991,7 @@ const Shapes = {
       for (const type in BUILDINGS) {
         const d = BUILDINGS[type];
 
-        if ((d.era || 1) !== rung || d.monument || type === 'road') continue;
+        if (defEra(d) !== rung || d.monument || type === 'road') continue;
         if (d.noBuild && !(typeof UPGRADE_TARGETS !== 'undefined' && UPGRADE_TARGETS.has(type))) continue;
         if (!Shapes.eraSkin(type, rung)) miss.push(type);
       }
@@ -3005,7 +3005,7 @@ const Shapes = {
     for (const type in BUILDINGS) {
       if (type === 'road') continue;
       const d = DEF(type);
-      const g = Shapes.forType(type, d.era || 1);
+      const g = Shapes.forType(type, defEra(d));
       const m = Shapes.measure(g);
       const issues = [];
       if (m.maxX > d.w / 2 + 0.001) issues.push('overhangs X');

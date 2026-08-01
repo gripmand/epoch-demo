@@ -17,6 +17,11 @@ const Grid = {
 
   TERRAIN_PROFILE: {
 
+    0: { trunkW: 4.2, trunkW2: 3.8, branch: 3, secondW: 2.6, wander: 0.55,
+         fertileTo: 6, dryFrom: 20, edgeJitter: 4,
+         beyond: 'GRASS', saltAt: 0.99, rockAt: 0.86, peakR: 3,
+         seaEdge: 8, saltPatches: true },
+
     1: { trunkW: 3.0, trunkW2: 2.8, branch: 2, secondW: 1.8, wander: 0.5,
          fertileTo: -9, dryFrom: 3, edgeJitter: 2,
          beyond: 'GRASS', saltAt: 0.99, rockAt: 0.80, peakR: 3,
@@ -37,7 +42,7 @@ const Grid = {
   },
 
   terrainProfile(era) {
-    const rung = rungOf(era != null ? era : ((G.s && G.s.era) || 1));
+    const rung = rungOf(curEra(era));
     const keys = Object.keys(Grid.TERRAIN_PROFILE).map(Number).sort((a, b) => a - b);
     let pick = keys[0];
     for (const k of keys) if (k <= rung) pick = k;
@@ -223,7 +228,16 @@ const Grid = {
         }
     }
 
-    if (P.bonebeds) {
+    if (P.seaEdge) {
+      const depth = P.seaEdge;
+      for (let y = W - depth - 3; y < W; y++)
+        for (let x = 0; x < W; x++) {
+          const edge = W - depth - Math.round(nz(x, 11, 17) * 6) + 3;
+          if (y >= edge) t[Grid.key(x, y)] = TERRAIN.WATER;
+        }
+    }
+
+    if (P.bonebeds || P.saltPatches) {
       let placed = 0;
       const target = Math.round(W * W * 0.015);
       for (let attempt = 0; attempt < 4000 && placed < target; attempt++) {
@@ -296,7 +310,7 @@ const Grid = {
 
   treeDensity(era) {
 
-    const e = Math.max(0, rungOf(era != null ? era : ((G.s && G.s.era) || 1)));
+    const e = Math.max(0, rungOf(curEra(era)));
     for (let i = e; i >= 0; i--) {
       const d = Grid.TREE_DENSITY[i];
       if (d !== undefined) return d;
@@ -309,7 +323,7 @@ const Grid = {
     if (s.planted && s.planted[k]) return true;
     if (s.cleared && s.cleared[k]) return false;
     if (G.cache.terrain[k] !== TERRAIN.GRASS) return false;
-    const era = (s && s.era) || 1;
+    const era = curEra(s && s.era);
     let d = Grid.treeDensity(era);
     if (d <= 0) return false;
 
@@ -339,7 +353,11 @@ const Grid = {
     return hit;
   },
 
-  forestChanged() { if (G.cache) G.cache.forestDirty = true; },
+  forestChanged() {
+    if (!G.cache) return;
+    G.cache.forestDirty = true;
+    G.cache.forestVer = (G.cache.forestVer || 0) + 1;
+  },
 
   rockChanged() { if (G.cache) G.cache.rockVer = (G.cache.rockVer || 0) + 1; },
 
@@ -377,7 +395,7 @@ const Grid = {
       s.terraEdits[k] = T;
       if (s.planted && s.planted[k]) delete s.planted[k];
 
-      if (T === TERRAIN.ROCK) s.rockSpent[k] = TUNE.ROCK_YIELD;
+      if (T === TERRAIN.ROCK) s.rockSpent[k] = rockYield(s);
       s.cleared[k] = 1;
     }
     s.money -= cost;
@@ -420,15 +438,15 @@ const Grid = {
 
   stoneAt(x, y) {
     const v = G.s && G.s.rockSpent ? G.s.rockSpent[Grid.key(x, y)] : undefined;
-    return TUNE.ROCK_YIELD - (v === undefined ? 0 : v);
+    return rockYield() - (v === undefined ? 0 : v);
   },
 
   spendStone(s, x, y, amt) {
     const k = Grid.key(x, y);
     const spent = (s.rockSpent[k] || 0) + amt;
-    s.rockSpent[k] = Math.min(TUNE.ROCK_YIELD, spent);
+    s.rockSpent[k] = Math.min(rockYield(s), spent);
 
-    if (s.rockSpent[k] >= TUNE.ROCK_YIELD && G.cache.terrain[k] === TERRAIN.ROCK) {
+    if (s.rockSpent[k] >= rockYield(s) && G.cache.terrain[k] === TERRAIN.ROCK) {
       G.cache.terrain[k] = TERRAIN.GRASS;
       s.terraEdits[k] = TERRAIN.GRASS;
       Grid.rockChanged();
@@ -590,6 +608,29 @@ const Grid = {
         if (Grid.treeAt(s, nx, ny)) n++;
       }
     return n;
+  },
+
+  coverFraction(s, b, r) {
+    if (!G.cache.coverCache) G.cache.coverCache = new Map();
+    const ver = G.cache.forestVer || 0;
+    const key = b.id + '|' + b.x + ',' + b.y + '|' + r + '|' + ver;
+    const hit = G.cache.coverCache.get(key);
+    if (hit !== undefined) return hit;
+    const d = Grid.dimsOf(b);
+    let tree = 0, total = 0;
+    for (let dy = -r; dy < d.h + r; dy++)
+      for (let dx = -r; dx < d.w + r; dx++) {
+        const nx = b.x + dx, ny = b.y + dy;
+        if (!Grid.inB(nx, ny)) continue;
+        if (Util.rectDist(b.x, b.y, d.w, d.h, nx, ny, 1, 1) > r) continue;
+        total++;
+        if (Grid.treeAt(s, nx, ny)) tree++;
+      }
+    const frac = total ? tree / total : 0;
+
+    if (G.cache.coverCache.size > 4096) G.cache.coverCache.clear();
+    G.cache.coverCache.set(key, frac);
+    return frac;
   },
 
   whyBlocked(s, type, x, y, rot) {
@@ -909,6 +950,14 @@ const Grid = {
         const nearInd = industry.some(o => Grid.adjacent(b, o));
 
         b.cap = Math.max(1, houseCap(d, b) + ((nearPark || nearShrine) ? 1 : 0) + (nearTemple ? 1 : 0) - (nearInd ? 1 : 0));
+
+        if (s.policyHuddle && Econ.trophicActive(s))
+          b.cap = Math.max(1, Math.round(b.cap * (1 - TUNE.HUDDLE.capCut)));
+
+        if (Econ.trophicActive(s)) {
+          b.cover = Grid.coverFraction(s, b, TUNE.PRED.coverRadius);
+          b.sentinel = Econ.sentinelReliefAt(s, b);
+        }
         b.nearPark = nearPark; b.nearShrine = nearShrine; b.nearTemple = nearTemple; b.nearInd = nearInd;
 
         b.nearOvenIds = ovens.filter(o => within(b, o, TUNE.OVEN.radius)).map(o => o.id);

@@ -16,14 +16,18 @@ const Game = {
   newGame(seed, opts) {
 
     const granted = !!TUNE.FOUNDING_GRANT && !(opts && opts.bare);
+
+    const era = (opts && opts.era != null) ? opts.era : START_ERA;
     const s = {
       version: 1,
       seed: seed !== undefined ? seed : (Math.floor(Math.random() * 2 ** 31)),
       tick: 0,
-      money: TUNE.START_MONEY,
 
-      era: START_ERA,
-      hallLevel: START_ERA,
+      money: startMoneyFor(era),
+
+      era,
+
+      hallLevel: Math.max(1, era),
       realRent: 0,
 
       eraBase: { flour: 0, food: 0, stone: 0 },
@@ -31,7 +35,7 @@ const Game = {
       giftStore: 0,
       giftRank: 0,
 
-      stock: Game.startStock(granted),
+      stock: Game.startStock(granted, era),
 
       cum: { flour: 0, food: 0, stone: 0, earned: 0 },
       hunger: 0,
@@ -73,6 +77,11 @@ const Game = {
 
       silt: 0,
 
+      policyHuddle: false,
+      predGrace: null,
+      herdCull: 0,
+      giftSeams: 0,
+
       chill: 0,
       woodSpent: {},
       herds: null,
@@ -110,11 +119,11 @@ const Game = {
     return s;
   },
 
-  startStock(granted) {
+  startStock(granted, era) {
     const st = Object.assign({}, TUNE.START_STOCK);
     if (granted) return st;
     for (const k in st) st[k] = 0;
-    if (rungOf(START_ERA) === 1) {
+    if (rungOf(era != null ? era : START_ERA) === 1) {
       st.deadwood = TUNE.START_STOCK.deadwood;
       st.pemmican = TUNE.START_STOCK.pemmican;
     }
@@ -205,7 +214,10 @@ const Game = {
     return n;
   },
 
-  crewSize(s) { return TUNE.FOUNDING_CREW | 0; },
+  crewSize(s) {
+    if (s && rungOf(s.era) === 0) return 0;
+    return TUNE.FOUNDING_CREW | 0;
+  },
 
   totalResidents(s) {
     return Game.housedResidents(s) + Game.crewSize(s);

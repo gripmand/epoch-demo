@@ -20,6 +20,8 @@ const UI = {
     UI.els.fuelChip = document.getElementById('chip-fuel');
     UI.els.siltChip = document.getElementById('chip-silt');
     UI.els.silt = document.getElementById('hud-silt');
+    UI.els.herdChip = document.getElementById('chip-herd');
+    UI.els.herd = document.getElementById('hud-herd');
 
     UI.buildPalette();
 
@@ -186,7 +188,7 @@ const UI = {
       const tier = d.tier || 'infra';
       const alsoIndustry = UI.activeTab === 'food' && !!d.procIn;
       if (tier !== UI.activeTab && !alsoIndustry) continue;
-      const era = d.era || 1;
+      const era = defEra(d);
 
       if (era !== G.s.era && !d.universal) {
 
@@ -217,7 +219,7 @@ const UI = {
     if (UI.els.lockBtn) {
       const hidden = Object.keys(BUILDINGS).filter(k => {
         const d = BUILDINGS[k];
-        return !d.noBuild && !d.fixed && (d.tier || 'infra') === UI.activeTab && (d.era || 1) > G.s.era;
+        return !d.noBuild && !d.fixed && (d.tier || 'infra') === UI.activeTab && defEra(d) > G.s.era;
       }).length;
       UI.els.lockBtn.textContent = UI.showLocked ? 'Hide locked' : (hidden ? 'Show ' + hidden + ' locked' : 'All unlocked');
       UI.els.lockBtn.classList.toggle('on', UI.showLocked);
@@ -237,14 +239,14 @@ const UI = {
       const shownDesc = descOverride || d.desc;
       if (era !== lastEra) {
         lastEra = era;
-        body.appendChild(UI.el('div', 'pal-era', 'Era ' + era + ' · ' + ERAS[era - 1].name));
+        body.appendChild(UI.el('div', 'pal-era', 'Era ' + era + ' · ' + eraInfo(era).name));
       }
       const bill = mon ? UI.billText(mon) : '';
       const btn = document.createElement('button');
       btn.className = 'pal-btn' + (locked ? ' locked' : '');
       btn.dataset.type = type;
       btn.title = locked
-        ? 'Unlocks in Era ' + era + ' — ' + ERAS[era - 1].name
+        ? 'Unlocks in Era ' + era + ' — ' + eraInfo(era).name
         : mon
           ? '$' + d.cost + ' lays the foundation. Your city then delivers ' + bill +
             ' over time — it earns nothing until it is finished.'
@@ -256,7 +258,7 @@ const UI = {
       btn.onclick = () => {
 
         const devFree = window.Dev && Dev.flags.freeBuild;
-        if (locked && !devFree) { UI.toast('\u{1F512} ' + shownName + ' unlocks in Era ' + era + ' — ' + ERAS[era - 1].name + '.'); return; }
+        if (locked && !devFree) { UI.toast('\u{1F512} ' + shownName + ' unlocks in Era ' + era + ' — ' + eraInfo(era).name + '.'); return; }
         Input.setTool(type === 'road' ? 'road' : 'build', type);
       };
       body.appendChild(btn);
@@ -442,6 +444,9 @@ const UI = {
   },
 
   themeFor(era) {
+
+    if (era <= 0) return 'cretaceous';
+    if (era === 1) return 'glacial';
     if (era <= 4) return 'anunnaki';
     if (era <= 9) return 'egypt';
     if (era <= 13) return 'classical';
@@ -736,7 +741,47 @@ const UI = {
         'One Dredging Crew per two wells keeps it open; another WELL makes it worse.';
     }
 
-    const era = ERAS[s.era - 1];
+    const showHerd = Econ.trophicActive(s);
+    if (UI.els.herdChip) {
+      UI.els.herdChip.classList.toggle('hidden', !showHerd);
+      UI.els.herdChip.style.display = showHerd ? '' : 'none';
+    }
+    if (showHerd && UI.els.herd) {
+      const f = Econ.herdForecast(s);
+      const ceil = Math.round(f.ceiling);
+      let txt = f.head + (f.beds ? ' / ' + (f.grace > 0 ? f.beds : ceil) : '');
+      if (f.grace > 0) txt += ' · ' + Math.ceil(f.grace) + 's';
+      else if (f.empty >= 1) txt += ' · ' + f.empty + ' empty';
+      UI.els.herd.textContent = txt;
+
+      const starved = f.beds > 0 && ceil < f.beds * 0.75;
+      UI.els.herdChip.classList.toggle('bad', !f.grace && starved);
+      UI.els.herdChip.classList.toggle('warn', !f.grace && !starved && f.empty >= 1 &&
+        f.head >= f.ceiling * TUNE.PRED.warnAt);
+
+      const nests = s.buildings.filter(b => DEF(b.type) && DEF(b.type).cap && !b.mothballed);
+      const c = nests.length ? Econ.nestCull(s, nests[0], f.head) : null;
+      UI.els.herdChip.title = f.grace > 0
+        ? 'Nothing is hunting yet — ' + Math.ceil(f.grace) + ' seconds of grace left. ' +
+          'Nest in the OPEN before it starts: every tree within ' + TUNE.PRED.coverRadius +
+          ' tiles of a nest is cover for something.'
+        : 'The range holds ' + f.head + ' head and can hold about ' + ceil +
+          ' on this ground; you have ' + f.beds + ' bowls.' +
+          (c ? '\ncover    ×' + c.coverMult.toFixed(2) + '   ' + Math.round(c.cover * 100) +
+               '% of the ground within ' + TUNE.PRED.coverRadius + ' tiles is treed' +
+               '\ndilution ×' + c.diluteMult.toFixed(2) + '   small herds are watched harder — ' +
+               f.head + ' head' +
+               '\nsentinel ×' + c.sentinelMult.toFixed(2) + '   ' +
+               (c.sentinelMult < 1 ? 'a Sentinel Knoll covers these nests' : 'no Sentinel Knoll covers these nests') +
+               '\noffering ×' + c.offerMult.toFixed(2) + '   ' +
+               (c.offerMult < 1 ? 'a Carrion Ground is supplied' : 'no Carrion Ground supplied') +
+               (c.huddleMult < 1 ? '\nhuddle   ×' + c.huddleMult.toFixed(2) + '   the colony is packed in' : '')
+             : '') +
+          '\nPredators take ' + (f.take * TUNE.TEMPO).toFixed(1) + ' head a minute. ' +
+          'Another nest does not help; open ground and a Sentinel Knoll do.';
+    }
+
+    const era = eraInfo(s.era);
     const ready = Econ.eraReady(s);
     UI.els.era.classList.toggle('ready', ready);
 
@@ -744,11 +789,17 @@ const UI = {
       ready ? '⬆ THE AGE CAN TURN — click' : 'Era ' + s.era + ' · ' + era.name;
 
     if (!Econ.nextEra(s)) UI.els.eraBar.style.width = '100%';
-    else {
+
+    else if (Econ.trophicActive(s)) {
+      const g = Econ.prologueGate(s);
+      const f = Math.min((TUNE.PRED.stageSeconds - g.left) / TUNE.PRED.stageSeconds,
+                         g.head / g.needHead);
+      UI.els.eraBar.style.width = Math.round(Util.clamp(f, 0, 1) * 100) + '%';
+    } else {
       const r = eraReq(s.era + 1);
 
       const base = s.eraBase || {};
-      const site = s.buildings.find(b => DEF(b.type) && DEF(b.type).monument && (DEF(b.type).era || 1) === s.era);
+      const site = s.buildings.find(b => DEF(b.type) && DEF(b.type).monument && defEra(DEF(b.type)) === s.era);
       const monFrac = Econ.monumentDone(s, s.era) ? 1
         : (site ? (Econ.monumentProgress(s, site) || {}).frac || 0 : 0);
 
@@ -800,7 +851,7 @@ const UI = {
       UI.updateHUD(G.s);
 
       const ns = G.s;
-      const eraName = (ERAS[ns.era - 1] || {}).name || 'A NEW AGE';
+      const eraName = eraInfo(ns.era).name;
       const ng = (typeof ERA_GUIDES !== 'undefined' && ERA_GUIDES[rungOf(ns.era)]) || null;
       const opener = ng && ng.firstSteps && ng.firstSteps.length ? ng.firstSteps[0] : '';
       UI.toast(eraName.toUpperCase() + '. A new world, and ' + Util.fmtMoney(TUNE.START_MONEY) +
@@ -811,7 +862,7 @@ const UI = {
   },
 
   promptAdvance(next) {
-    const era = ERAS[next - 1];
+    const era = eraInfo(next);
 
     const site = G.s.buildings.find(b => DEF(b.type).monument && !b.complete);
     let advisory = '';
@@ -1033,7 +1084,7 @@ const UI = {
         '% on ALL city income</span>');
       rows += mrow('…worth right now', '<span class="gold">+$' +
         ((G.cache.monBonusRate || 0)).toFixed(2) + '/min</span>');
-      rows += row('Rent points', monumentRP(d.era || 1) +
+      rows += row('Rent points', monumentRP(defEra(d)) +
         ' <span class="gold-dim">— the largest single source in this age</span>');
       rows += '<div class="insp-row insp-note"><span>The dividend scales with your economy, so it is ' +
         'worth more the more you build. It pays only while this stands finished and connected.</span></div>';
@@ -1109,6 +1160,23 @@ const UI = {
       if (b.nearInd) tags.push('<span class="bad">−1 industry</span>');
       if (b.nearOven) tags.push('<span class="good">−15% flour</span>');
       rows += '<div class="insp-row"><span>Residents</span><span>' + (b.residents || 0) + ' / ' + (b.cap != null ? b.cap : d.cap) + ' ' + tags.join(' ') + '</span></div>';
+
+      if (Econ.trophicActive(s)) {
+        const c = Econ.nestCull(s, b, Game.housedResidents(s));
+        const taken = (c.frac * (b.residents || 0) * TUNE.TEMPO);
+        rows += '<div class="insp-row"><span>Taken from this nest</span><span class="' +
+          (c.coverMult > 1.2 ? 'bad' : taken > 0 ? 'warn' : '') + '">' +
+          taken.toFixed(2) + ' head/min</span></div>';
+        rows += '<div class="insp-row insp-note"><span>' +
+          (c.cover > 0.15
+            ? 'This nest sits in <b>' + Math.round(c.cover * 100) + '% cover</b> — the treeline within ' +
+              TUNE.PRED.coverRadius + ' tiles is what takes the hatchlings. A <b>Sentinel Knoll</b>, ' +
+              'or open ground, is the fix. <b>Another nest is not.</b>'
+            : 'Open ground within ' + TUNE.PRED.coverRadius + ' tiles — this nest is about as safe as ' +
+              'this age gets. A bigger colony is safer still: predators find a small herd more easily ' +
+              'than a large one.') +
+          '</span></div>';
+      }
 
       const lvl = b.level || 1;
       rows += '<div class="insp-row"><span>Dwelling</span><span class="gold">' +
@@ -1855,7 +1923,7 @@ const UI = {
   hideInspector() { UI.els.inspector.classList.add('hidden'); },
 
   eraCeremony(era, land) {
-    const e = ERAS[era - 1];
+    const e = eraInfo(era);
     if (!e) return;
     const u = Econ.eraUnlocks(era);
     const g = eraGuide(era);
@@ -2121,6 +2189,21 @@ const UI = {
 
     const pop = Game.housedResidents(s);
     let html = '<h2>The Era Ladder</h2>';
+
+    if (Econ.nextEra(s) && Econ.trophicActive(s)) {
+      const g = Econ.prologueGate(s);
+      html += '<div class="panel-sub">The sky changes when this range has:</div>';
+      html += '<div class="insp-row"><span>Time on this ground</span><span class="' +
+        (g.left <= 0 ? 'good' : '') + '">' + Math.max(0, TUNE.PRED.stageSeconds - g.left) + ' / ' +
+        TUNE.PRED.stageSeconds + 's ' + (g.left <= 0 ? '✓' : '') + '</span></div>';
+      html += '<div class="insp-row"><span>Head held in nests</span><span class="' +
+        (g.head >= g.needHead ? 'good' : '') + '">' + g.head + ' / ' + g.needHead + ' ' +
+        (g.head >= g.needHead ? '✓' : '') + '</span></div>';
+      html += '<div class="panel-note">There is no monument here and no money gate. The prologue ends ' +
+        'the way it really ended, and what it asks of you is only that the colony held.</div>';
+      if (Econ.eraReady(s)) html += '<div class="panel-note good">The age can turn.</div>';
+      return html;
+    }
     if (Econ.nextEra(s)) {
       const n = s.era + 1, r = eraReq(n);
 
@@ -2211,7 +2294,7 @@ const UI = {
     const g = eraGuide(s.era);
     const a = anchorFor(s.era);
     const site = eraSite(s.era);
-    const era = ERAS[s.era - 1];
+    const era = eraInfo(s.era);
     let h = '<h2>Era ' + s.era + ' · ' + era.name + '</h2>';
     h += '<div class="panel-sub">' + g.headline + '</div>';
 
@@ -2357,7 +2440,7 @@ const UI = {
       if (d.sells) cons[d.sells] = (cons[d.sells] || 0) + 1;
       if (d.sellsRaw) for (const k of d.sellsRaw) cons[k] = (cons[k] || 0) + 1;
       if (d.monument && !b.complete) {
-        const nd = monumentBuild(b.type, d.era || 1) || {};
+        const nd = monumentBuild(b.type, defEra(d)) || {};
         for (const k in nd) if (k !== 'money') cons[k] = (cons[k] || 0) + 1;
       }
     }
@@ -2366,7 +2449,7 @@ const UI = {
       let best = null;
       for (const t in BUILDINGS) {
         const e = BUILDINGS[t];
-        if (e.noBuild || e.fixed || (e.era || 1) !== era) continue;
+        if (e.noBuild || e.fixed || defEra(e) !== era) continue;
         if (test(e) && (!best || (e.cost || 0) < (best.cost || 0))) best = e;
       }
       return best;
@@ -2480,7 +2563,13 @@ const UI = {
     }
 
     let gate = null;
-    if (Econ.nextEra(s)) {
+
+    if (Econ.nextEra(s) && Econ.trophicActive(s)) {
+      const g = Econ.prologueGate(s);
+      gate = { ready: g.ready, binds: { k: g.binds === 'head' ? 'head held in nests' : 'time on this ground',
+        f: g.binds === 'head' ? g.head / g.needHead
+          : (TUNE.PRED.stageSeconds - g.left) / TUNE.PRED.stageSeconds } };
+    } else if (Econ.nextEra(s)) {
       const r = eraReq(era + 1), eb = s.eraBase || {}, cum = s.cum || {};
       const legs = [
         { k: 'population', f: r.pop > 0 ? Game.housedResidents(s) / r.pop : 1 },
@@ -2512,7 +2601,7 @@ const UI = {
 
     rows.sort((x, y) => RANK[x.cls] - RANK[y.cls]);
     const worst = rows.find(r => r.cls === 'bad') || rows.find(r => r.cls === 'warn') || null;
-    const eraName = (ERAS[era - 1] && ERAS[era - 1].name) || 'this age';
+    const eraName = eraInfo(era).name;
 
     let h = '<div class="panel-title">\u{1F50D} The Scout</div>';
     h += worst
@@ -2587,7 +2676,7 @@ const UI = {
     h += '<table class="tally">';
     for (const e of log) {
       const mins = Math.round(e.tick / 60);
-      h += '<tr><td class="gold-dim" style="white-space:nowrap">era ' + (e.era || 1) + ' · min ' + mins +
+      h += '<tr><td class="gold-dim" style="white-space:nowrap">era ' + defEra(e) + ' · min ' + mins +
         '</td><td>' + e.icon + ' ' + UI.esc(e.msg) + '</td></tr>';
     }
     h += '</table>';
@@ -2616,7 +2705,7 @@ const UI = {
           const d = DEF(r.type) || {};
           h += '<button class="btn-gold relic-place" data-i="' + i + '">' +
             (d.icon || '\u{1F3DB}\u{FE0F}') + ' Place the ' + UI.esc(d.name || r.type) +
-            ' <span class="gold-dim">(from era ' + (r.era || 1) + ')</span></button>';
+            ' <span class="gold-dim">(from era ' + (r.era != null ? r.era : 1) + ')</span></button>';
         });
         h += '</div>';
         h += '<div class="panel-sub">It arrives finished — no deliveries, no road, no water. ' +

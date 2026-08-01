@@ -86,7 +86,7 @@ const Rend = {
   groundFor(era) {
     const keys = Object.keys(Rend.ERA_GROUND).map(Number).sort((a, b) => a - b);
     let pick = keys[0];
-    for (const k of keys) if (k <= (era || 1)) pick = k;
+    for (const k of keys) if (k <= rungOf(era)) pick = k;
     return Rend.ERA_GROUND[pick];
   },
 
@@ -133,7 +133,7 @@ const Rend = {
     Rend.miniFrame = 0;
     Rend.statusTex = { bad: Rend.makeStatusTex('#d64545'), warn: Rend.makeStatusTex('#d69a3c') };
 
-    Rend.applyEra((G.s && G.s.era) || 1);
+    Rend.applyEra(curEra());
     Rend.computeHeights(G.s);
     Rend.updateChunks(G.s, true);
     Rend.buildWorldSplat();
@@ -228,12 +228,12 @@ const Rend = {
   liftSet(era) {
     const keys = Object.keys(Rend.ERA_LIFT).map(Number).sort((a, b) => a - b);
     let pick = keys[0];
-    for (const k of keys) if (k <= (era || 1)) pick = k;
+    for (const k of keys) if (k <= rungOf(era)) pick = k;
     return Rend.ERA_LIFT[pick];
   },
 
   tileLift(t) {
-    const L = Rend.liftSet((G.s && G.s.era) || 1);
+    const L = Rend.liftSet(curEra());
     if (t === TERRAIN.WATER) return L.water;
     if (t === TERRAIN.ROCK) return L.rock;
     if (t === TERRAIN.MOUNTAIN) return L.mountain;
@@ -1090,7 +1090,7 @@ const Rend = {
   },
 
   buildScatterDefs(era) {
-    const e = Rend.scatterFor(era || 1);
+    const e = Rend.scatterFor(rungOf(era));
     const defs = [];
     if (e.tree && e.tree.length)
       defs.push({ variants: e.tree, place: (s, x, y) => Grid.treeAt(s, x, y) });
@@ -1123,14 +1123,14 @@ const Rend = {
   },
 
   get SCATTER() {
-    if (!Rend._scatterDefs) Rend._scatterDefs = Rend.buildScatterDefs(Rend._era || 1);
+    if (!Rend._scatterDefs) Rend._scatterDefs = Rend.buildScatterDefs(rungOf(Rend._era));
     return Rend._scatterDefs;
   },
 
   _up: new THREE.Vector3(0, 1, 0),
 
   buildChunkScatter(s, cx, cz) {
-    const CH = Rend.CH, era = Rend._era || 1;
+    const CH = Rend.CH, era = rungOf(Rend._era);
     const out = [];
     const m4 = new THREE.Matrix4();
     const vpos = new THREE.Vector3(), vsc = new THREE.Vector3(), q = new THREE.Quaternion();
@@ -1233,7 +1233,7 @@ const Rend = {
   GLINT_MIN: 0.25,
 
   glintBase(b) {
-    return buildingRP(DEF(b.type).era || 1, { rp: 1 }) || 1;
+    return buildingRP(defEra(DEF(b.type)), { rp: 1 }) || 1;
   },
 
   glintScale(rel) {
@@ -1684,7 +1684,7 @@ const Rend = {
 
   ensureWater() {
     if (Rend.waterMesh) return;
-    const gr = Gfx.gradeFor(Rend._era || 1);
+    const gr = Gfx.gradeFor(rungOf(Rend._era));
     const geo = new THREE.PlaneGeometry(TUNE.WORLD, TUNE.WORLD, 1, 1);
     geo.rotateX(-Math.PI / 2);
     const mat = Gfx.mat(gr.water.color, {
@@ -2324,7 +2324,7 @@ const Rend = {
         [TERRAIN.ASH]: rgb(GR.salt.color).map(v => Math.round(v * 0.55)),
         [TERRAIN.ROCK]: rgb(GR.rock.color),
         [TERRAIN.MOUNTAIN]: rgb(GR.cliff),
-        [TERRAIN.WATER]: rgb(Gfx.gradeFor(Rend._era || 1).water.color),
+        [TERRAIN.WATER]: rgb(Gfx.gradeFor(rungOf(Rend._era)).water.color),
       };
       for (let py = 0; py < M; py++)
         for (let px = 0; px < M; px++) {

@@ -197,6 +197,15 @@ const Gfx = {
 
   ERA_GRADE: {
 
+    0: {
+      sky: ['#4f86b0', '#9fc4c0', '#e8ecc9'],
+      hemi: [0xdfeacb, 0x6f7a3a, 0.82],
+      sun: [0xfff6dc, 1.22], fog: 0xdfe8c8, fogN: 90, fogF: 300, expo: 0.95,
+      apron: 0xa8b477,
+      sunDir: [-84, 78, -50],
+      water: { color: 0x2f8f86, shallow: 0x7fc9b4, opacity: 0.84,
+               glint: 0xd6f0e4, glintAmt: 0.22 },
+    },
     1: {
       sky: ['#5b7fa8', '#9fb9cc', '#dfe8ee'],
       hemi: [0xdfe9f2, 0x8fa4b5, 0.86],
@@ -251,7 +260,7 @@ const Gfx = {
   gradeFor(era) {
     const keys = Object.keys(Gfx.ERA_GRADE).map(Number).sort((a, b) => a - b);
     let pick = keys[0];
-    for (const k of keys) if (k <= (era || 1)) pick = k;
+    for (const k of keys) if (k <= rungOf(era)) pick = k;
     return Gfx.ERA_GRADE[pick];
   },
 
@@ -292,7 +301,7 @@ const Gfx = {
   applyGrade(era) {
     const gr = Gfx.gradeFor(era);
     if (!gr || !Gfx.renderer) return gr;
-    Gfx.era = era || 1;
+    Gfx.era = rungOf(era);
     Gfx.renderer.toneMappingExposure = gr.expo;
 
     const c = document.createElement('canvas');

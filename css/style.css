@@ -26,6 +26,11 @@ html, body {
   --accent: #e6c87a;
   --accent-dim: #9aa3ad;
 }
+/* ★ rung 0: the Cretaceous hothouse — wet green, the colour ERA_GRADE[0] bounces */
+body[data-era-theme="cretaceous"]{ --chip-bg: rgba(14, 26, 16, 0.90); --chip-border: rgba(150, 200, 120, 0.34); --accent: #b9dd8a; }
+/* ★ rung 1: the Long Winter. It used to share Sumer's violet, which is exactly
+   the era-purity bug the project has a standing rule about. Cold blue on near-black. */
+body[data-era-theme="glacial"]   { --chip-bg: rgba(14, 20, 28, 0.92); --chip-border: rgba(150, 190, 225, 0.34); --accent: #a8cfe8; }
 body[data-era-theme="anunnaki"]  { --chip-bg: rgba(20, 18, 30, 0.90); --chip-border: rgba(160, 140, 220, 0.28); --accent: #c9b8f0; }
 body[data-era-theme="egypt"]     { --chip-bg: rgba(38, 28, 12, 0.90); --chip-border: rgba(212, 175, 55, 0.40); --accent: #e8c96a; }
 body[data-era-theme="jungle"]    { --chip-bg: rgba(14, 30, 18, 0.90); --chip-border: rgba(110, 190, 130, 0.35); --accent: #8fd9a0; }

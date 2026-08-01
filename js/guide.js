@@ -55,11 +55,17 @@ function anchorFor(era) {
 }
 
 const ERA_RECORD = {
-  0:  { icon: '\u{1F4DC}', tally: 'The Tally', tallyBtn: 'Tally',
+
+  _default: { icon: '\u{1F4DC}', tally: 'The Tally', tallyBtn: 'Tally',
         tallySub: 'What this city keeps count of.',
         chronicle: 'The Chronicle', chronBtn: 'Chronicle',
         chronSub: 'Set down as it happened. The record keeps the last 200 entries.',
         keeper: 'whoever keeps this city’s records' },
+  0:  { icon: '\u{1FAA8}', tally: 'The Layer Count', tallyBtn: 'Layers',
+        tallySub: 'What this range has laid down, and what is left of it.',
+        chronicle: 'The Seam', chronBtn: 'The Seam',
+        chronSub: 'Nothing here writes anything down. The record is the ground — the last 200 layers.',
+        keeper: 'the mud, which forgets nothing' },
   1:  { icon: '\u{1F9B4}', tally: 'The Bone Tally', tallyBtn: 'Bone Tally',
         tallySub: 'Notches cut into bone beside the fire.',
         chronicle: 'The Winter Count', chronBtn: 'Winter Count',
@@ -84,15 +90,21 @@ const ERA_RECORD = {
 function eraRecord(era) {
   const e = Math.max(0, rungOf(era));
   for (let i = e; i >= 0; i--) if (ERA_RECORD[i]) return ERA_RECORD[i];
-  return ERA_RECORD[0];
+  return ERA_RECORD._default;
 }
 
 const ERA_FOUNDING = {
-  0:  { icon: '\u{1F3DB}\u{FE0F}', title: 'Name Your City',
+  _default: { icon: '\u{1F3DB}\u{FE0F}', title: 'Name Your City',
         sub: 'It needs a name before anyone can speak of it.',
         placeholder: '', ok: 'Found the city', skip: 'It needs no name yet',
         founded: ' was founded.',
         toast: ' is founded. May its tally always run positive.' },
+
+  0:  { icon: '\u{1F332}', title: 'Name This Range',
+        sub: 'Nothing here can name it. Sixty-six million years from now, somebody will.',
+        placeholder: 'The Landmark Beds', ok: 'Name the range', skip: 'Leave it unnamed',
+        founded: ' was laid down, layer on layer, in the same mud.',
+        toast: ' is named — by the people who will one day dig it up.' },
   1:  { icon: '\u{1F525}', title: 'Name Your Camp',
         sub: 'The band needs a word for this place — the word they will use when they are somewhere else.',
         placeholder: 'Long-Hearth-by-the-Ford', ok: 'Name the camp', skip: 'It needs no name yet',
@@ -117,15 +129,35 @@ const ERA_FOUNDING = {
 function eraFounding(era) {
   const e = Math.max(0, rungOf(era));
   for (let i = e; i >= 0; i--) if (ERA_FOUNDING[i]) return ERA_FOUNDING[i];
-  return ERA_FOUNDING[0];
+  return ERA_FOUNDING._default;
 }
 
 const ERA_SITE = {
-  0: {
+
+  _default: {
     roadYes: '<b>housing, the places that sell, the places that store and the age’s monument</b>',
     roadNo: 'Fields, workshops and the things that work the land where the land is',
     water: 'Most buildings must sit inside this age’s water coverage. Press <b>O</b> to see it.',
     extra: [],
+  },
+  0: {
+    roadYes: '<b>Nest Mounds, Rookery Terraces, the Leaf Mat, Chalk Downs, the Petrified Bar, the ' +
+      'Amber Bed, the Egg Bed, the Peat Swamp, the Channel Lag and the Refuge</b>',
+    roadNo: 'Fern Prairies, Grazing Lawns, Coccolith Shoals, Chalk Banks, Bone Beds, Mineral Seeps, ' +
+      'Resin Conifer Stands, Amber Seeps, Clutch Mounds, Horsetail Marshes, Waterholes, Spring Seeps, ' +
+      'the Ford, the Log Jam, the Wallow, the Sentinel Knoll and the Carrion Ground — and, less ' +
+      'obviously, the Magnolia Thicket and the Rot-Wood Bed, which need nothing at all',
+    water: 'Most buildings must sit inside a <b>Waterhole’s</b> three tiles or a <b>Spring Seep’s</b> ' +
+      'five. ★ THE SEA DOES NOT COUNT: coverage is stamped only by a placed building, never by the ' +
+      'water you are standing beside. Press <b>O</b> to see it.',
+    extra: [
+      '<b>The trophic loop.</b> Every nest loses a share of its head every minute, and the share rises ' +
+      'with the TREE COVER within six tiles of it. Nest in the open and browse in the shelter — the ' +
+      'opposite of what a city builder trains. A <b>Sentinel Knoll</b> cuts it by a quarter and costs ' +
+      'no food; a <b>Carrion Ground</b> cuts it by nearly half and is paid for in clutches. The ' +
+      '<b>Magnolia Thicket</b> and the <b>Rot-Wood Bed</b> feed you either way. Watch the ' +
+      '\u{1F995} chip.',
+    ],
   },
   1: {
     roadYes: '<b>Hide Tents, Mammoth-Bone Lodges, the Permafrost Store, the Sled Dog Post, the Meat Stall, ' +
@@ -182,9 +214,33 @@ const ERA_SITE = {
     ],
   },
 };
-function eraSite(era) { return ERA_SITE[rungOf(era)] || ERA_SITE[0]; }
+function eraSite(era) { return ERA_SITE[rungOf(era)] || ERA_SITE._default; }
 
 const ERA_GUIDES = {
+  0: {
+    headline: 'You are not the chief. You are the thing being watched.',
+    mechanic: 'The colony IS the food. A second population you never place takes a share of the herd ' +
+      'every minute, and the share depends on the ground you nested on: every tree within 6 tiles of a ' +
+      'nest is cover for something. Growing is the defence — a big herd is safer PER HEAD than a small ' +
+      'one. Watch the \u{1F995} chip: if nests stand empty, the treeline is why.',
+    chain: [
+      'Fern Prairie ×3 → Grazing Lawn → Leaf Mat  ·  ~$10/min. Dinner, and it barely pays',
+      'Coccolith Shoal ×2 → Chalk Bank → Chalk Downs  ·  ~$19/min. The volume earner, on the sea margin',
+      'Bone Bed → Mineral Seep → Petrified Bar  ·  ~$22/min. On the gravel, the one ground you cannot make more of',
+      'Resin Conifer Stand ×2 → Amber Seep → Amber Bed  ·  ~$25/min. The ridge — a Spring Seep has to walk up there first',
+      'Horsetail Marsh → Peat Swamp  ·  ~$16/min. Two buildings and one landform',
+    ],
+    firstSteps: [
+      'A WATERHOLE first, on open floodplain: 3 tiles, and the sea does not count — coverage comes from a building.',
+      'Three FERN PRAIRIES and a GRAZING LAWN: one Lawn is exactly three prairies, and it feeds ten head.',
+      'Then trail out and drop NEST MOUNDS in the OPEN. They are $12 — build far more than you think you need.',
+      'A MAGNOLIA THICKET on the ash beds: no water, no road, no herd, and it feeds you when the rest goes wrong.',
+      'A SENTINEL KNOLL before the fourth chain. $33 buys back a third of a colony nesting in cover.',
+    ],
+    mistake: 'Nesting in the trees. Every tree within 6 tiles of a nest raises what is taken from it by ' +
+      'up to half — and clearing one nest\'s cover costs about $540 at $15 a tile, so the answer is ' +
+      'usually to move, or to put a Sentinel Knoll on it. Another nest is never the answer.',
+  },
   1: {
     headline: 'Keep the fire alive. Everything else is detail.',
 
@@ -377,7 +433,8 @@ const ERA_GUIDES = {
 };
 
 function eraGuide(era) {
-  const g = ERA_GUIDES[Util.clamp(rungOf(era), 1, MAX_ERA)];
+
+  const g = ERA_GUIDES[Util.clamp(rungOf(era), 0, MAX_ERA)];
   if (g) return g;
   return {
     headline: 'This age is still being carved.',

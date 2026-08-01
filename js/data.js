@@ -34,6 +34,8 @@ const TUNE = {
 
   ERA_STARTER: { 1: 'deadwoodcutter', 4: 'farm', 5: 'emmerfield', 14: 'milpa' },
 
+  ERA_START_MONEY: { 0: 1080 },
+
   MIGRATION: {
     perMinute: 8,
     floor: 0.35,
@@ -127,6 +129,28 @@ const TUNE = {
     rearmAt: 0.20,
   },
 
+  PRED: {
+    graceMinutes: 1.5,
+    calving: 0.60,
+    base: 0.034,
+    coverRadius: 6,
+    coverPenalty: 0.50,
+    diluteRef: 20, diluteExp: 0.35,
+
+    diluteMin: 0.55, diluteMax: 1.40,
+    sentinelRelief: 0.25,
+    offering: { good: 'beer', perHead: 0.02, relief: 0.45 },
+
+    floorHerd: 2,
+    warnAt: 0.90,
+    rearmAt: 0.60,
+
+    stageSeconds: 300,
+    exitHead: 8,
+  },
+
+  HUDDLE: { cullCut: 0.35, capCut: 0.25 },
+
   DEADWOOD_YIELD: 500,
 
   FUEL: { deadwood: 1.0, charcoal: 3.0, bone: 1.0 },
@@ -205,6 +229,8 @@ const TUNE = {
   IMPORT_GRAIN: { units: 20, price: 2 },
 
   ERA_IMPORT: {
+
+    0: { kind: 'flour', price: 8, who: 'A week grazing beyond the range brought back', unit: 'load' },
     1: { kind: 'pemmican', price: 8, who: 'A passing band traded the camp', unit: 'bundle' },
     4: { kind: 'grain', price: 2, who: 'A caravan sold the city', unit: 'sack' },
 
@@ -268,7 +294,7 @@ const TUNE = {
 
 const HOUSE_RUNG_COST_MULT = [0.6, 1.0, 1.8, 3.0];
 
-const HOUSE_RUNG_REF = { 1: 'hidetent', 4: 'house', 5: 'villa', 14: 'stonehouse' };
+const HOUSE_RUNG_REF = { 0: 'nestmound', 1: 'hidetent', 4: 'house', 5: 'villa', 14: 'stonehouse' };
 function houseRungRefCost(era) {
   const rung = rungOf(era);
   const keys = Object.keys(HOUSE_RUNG_REF).map(Number).sort((a, b) => a - b);
@@ -284,7 +310,7 @@ function houseUpgradeCost(era, level, d) {
   const typeMult = (d && d.cost && refCost) ? d.cost / refCost : 1;
 
   return Math.round(TUNE.HOUSE_UPGRADE_COST *
-    Math.pow(TUNE.HOUSE_UPGRADE_ERA_MULT, (era || 1) - 4) * step * typeMult / 10) * 10;
+    Math.pow(TUNE.HOUSE_UPGRADE_ERA_MULT, rungOf(era) - 4) * step * typeMult / 10) * 10;
 }
 
 function buildMinutes() { return 0; }
@@ -335,7 +361,14 @@ const ERAS = [
 ];
 const MAX_ERA = 37;
 
-const WRITTEN_RUNGS = [1, 4, 5, 14];
+const ERA_PROLOGUE = { n: 0, name: 'The Cretaceous',
+  blurb: 'Ninety million years before anyone. Outgrow what eats you.' };
+function eraInfo(era) {
+  const r = rungOf(era);
+  return r === 0 ? ERA_PROLOGUE : (ERAS[r - 1] || ERA_PROLOGUE);
+}
+
+const WRITTEN_RUNGS = [0, 1, 4, 5, 14];
 
 const START_ERA = WRITTEN_RUNGS[0];
 function nextWrittenEra(era) {
@@ -348,8 +381,19 @@ const MIGRATE_RUNG = {
   8: 28, 9: 30, 10: 33, 11: 34, 12: 35, 13: 36, 14: 37,
 };
 
+const DEFAULT_ERA = 1;
+
 function rungOf(era) {
-  return Math.max(0, Math.round(era || 1));
+  const e = (era == null || era !== era) ? DEFAULT_ERA : era;
+  return Math.max(0, Math.round(e));
+}
+
+function defEra(d) { return (d && d.era != null) ? d.era : DEFAULT_ERA; }
+
+function curEra(era) {
+  if (era != null) return era;
+  const live = (typeof G !== 'undefined' && G && G.s) ? G.s.era : null;
+  return live != null ? live : START_ERA;
 }
 
 const ERA_GROWTH = Math.pow(3.6, 12 / 35);
@@ -433,7 +477,8 @@ function monumentRP(era) {
 
 function buildingRP(era, def) {
   const w = (def && def.rp !== undefined) ? def.rp : 1;
-  return RP.buildingBase * w * Math.pow(RP.buildingGrowth, (era || 1) - 1);
+
+  return RP.buildingBase * w * Math.pow(RP.buildingGrowth, rungOf(era) - 1);
 }
 
 function rpHalf(era) {
@@ -486,6 +531,11 @@ function rentNetMonthly(era, hallLevel, tierKey) {
 const HALL_COST_GROWTH = Math.pow(2.1, 12 / 35);
 
 const ERA_TERRA_LOCK = {
+
+  0: {
+    rock: 'the bone beds are what the floods left, one at a time, over millions of years — ' +
+      'nothing in this age can make more of them, and that is the only thing this age is trying to teach you',
+  },
   1: {
     tree: 'nothing grows here — the standing forest has been dead a thousand years, and no sapling takes in frozen loess',
     fertile: 'no ground on the glacial steppe will take a crop — this age eats what it hunts and gathers',
@@ -503,12 +553,23 @@ const ERA_TERRA_LOCK = {
       'limestone, and the only rich ground here is ground you made with ash and terraces',
   },
 };
+
+function rockYield(s) {
+  const st = s || (typeof G !== 'undefined' && G ? G.s : null);
+  return TUNE.ROCK_YIELD * (1 + 0.25 * ((st && st.giftSeams) | 0));
+}
+
+function startMoneyFor(era) {
+  const v = TUNE.ERA_START_MONEY[rungOf(era)];
+  return v !== undefined ? v : TUNE.START_MONEY;
+}
+
 function terraCost(kind, era) {
-  const e = rungOf(era || (window.G && G.s && G.s.era) || START_ERA);
+  const e = rungOf(curEra(era));
   return Math.max(5, Math.round(TUNE.TERRA[kind] * Math.pow(HALL_COST_GROWTH, e - 4)));
 }
 function terraLocked(kind, era) {
-  const L = ERA_TERRA_LOCK[rungOf(era || (window.G && G.s && G.s.era) || START_ERA)];
+  const L = ERA_TERRA_LOCK[rungOf(curEra(era))];
   return (L && L[kind]) || null;
 }
 
@@ -524,13 +585,476 @@ const ROAD_REQUIRED = ['townhall', 'house', 'villa', 'stonehouse', 'market', 'ba
   'stoneyard', 'bakery', 'templeGranary', 'granary', 'temple',
 
   'rawstall', 'basketweaver', 'oilpress', 'dyeworks', 'weighhouse', 'tablethouse',
-  'woolbureau', 'storehouse', 'breadoven', 'runnerpost'];
+  'woolbureau', 'storehouse', 'breadoven', 'runnerpost',
+
+  'nestmound', 'rookeryterrace', 'leafmat', 'blackmud', 'chalkdowns', 'marlfloor',
+  'amberbed', 'buriedfall', 'eggbed', 'floodlayer', 'peatswamp', 'sunkenmire',
+  'channellag', 'scourpool', 'petrifiedbar', 'stoneforest', 'refuge', 'siltbank'];
 
 const BUILDINGS = {
   townhall: {
     name: 'Town Hall', tier: 'civic', w: 3, h: 3, cost: 0, upkeep: 0,
     icon: '\u{1F3DB}️', color: '#c9a86a', fixed: true,
     desc: 'Your permanent flagship. Pays an in-game trickle AND accrues real rent every second. One upgrade unlocks per era — rent compounds all the way to the Transdimensional age.',
+  },
+
+  landmark: {
+    name: 'The Landmark', tier: 'civic', era: 0, w: 3, h: 3, cost: 0, upkeep: 0,
+    icon: '\u{1F332}', color: '#6f8a4a', fixed: true, selfRun: true,
+    desc: 'A sixty-metre araucaria on a rise, standing alone above the fern. The whole range is ' +
+      'organised around it and nothing on this floodplain is out of sight of it. It pays a trickle ' +
+      'into the record every second.',
+  },
+
+  waterhole: {
+    name: 'Waterhole', tier: 'infra', era: 0, w: 1, h: 1, cost: 22, upkeep: 0.033,
+    icon: '\u{1F573}\u{FE0F}', color: '#7fb4c9', selfRun: true, waterRadius: 3,
+
+    desc: 'A hoof-punched hollow that holds water through the dry weeks. Waters 3 tiles. Everything ' +
+      'that needs water shuts down without it — AND THE SEA DOES NOT COUNT: standing on the shore ' +
+      'waters nothing, because coverage is stamped by a building and never by the ground.',
+  },
+  logjam: {
+    name: 'Log Jam', tier: 'infra', era: 0, w: 2, h: 2, cost: 72, upkeep: 0.067,
+    icon: '\u{1FAB5}', color: '#8a7a5c', selfRun: true, needsWater: true,
+    depot: true, storeCraft: 7,
+
+    desc: 'A driftwood raft piled in a river bend, holding everything the last flood carried. Extra ' +
+      'capacity for every deposited good, and a SUPPLY POINT — so the chalk district out on the sea ' +
+      'margin stops paying the carting premium.',
+  },
+  ford: {
+    name: 'The Ford', tier: 'infra', era: 0, w: 1, h: 1, cost: 43, upkeep: 0.017,
+    icon: '\u{1F6B6}', color: '#8fa8b5', selfRun: true, onWater: true, bridge: true,
+
+    desc: 'A gravel bar shallow enough to cross. Laid ON water it carries the trail over the channel — ' +
+      'lay a line of them and the far braid joins your range.',
+  },
+
+  fernprairie: {
+    name: 'Fern Prairie', tier: 'food', era: 0, w: 2, h: 2, cost: 36, upkeep: 0.050,
+    icon: '\u{1F33F}', color: '#7d9a55', selfRun: true, needsWater: true,
+    out: { grain: 0.33 },
+
+    desc: '0.33 browse/min off a stand of tree fern and horsetail. +50% on floodplain silt, +25% ' +
+      'touching a Grazing Lawn. THREE of these feed one Lawn on plain ground, two on silt.',
+  },
+  grazinglawn: {
+    name: 'Grazing Lawn', tier: 'food', era: 0, w: 2, h: 2, cost: 90, upkeep: 0.083,
+    icon: '\u{1F343}', color: '#8fae62', selfRun: true, needsWater: true, industry: true,
+    grainMill: true,
+    procIn: 'grain', procRate: 1.00, procOut: 'flour', procRatio: 0.6,
+
+    desc: 'A stretch worked down to the root: 1.00 standing browse/min becomes 0.60 forage — 1.25 and ' +
+      '0.75 when it touches a Prairie, because the +25% raises both sides. ONE LAWN FEEDS TEN HEAD. ' +
+      'Industry: nothing nests beside a lawn with no cover on it.',
+  },
+  leafmat: {
+    name: 'The Leaf Mat', tier: 'commerce', era: 0, w: 2, h: 2, cost: 90, upkeep: 0.100,
+    icon: '\u{1F342}', color: '#6a7a4a', selfRun: true, needsWater: true, needsRoad: true,
+    sells: 'flour', sellRate: 0.338, sellPrice: 3.07, custRadius: 6, custMin: 3,
+
+    desc: 'Surplus the herd does not eat, trodden into airless mud and kept. 0.338 forage/min at $3.07. ' +
+      'Needs 3 head. Forage sustains the range; it is not what makes it rich.',
+  },
+
+  coccolithshoal: {
+    name: 'Coccolith Shoal', tier: 'food', era: 0, w: 2, h: 2, cost: 40, upkeep: 0.050,
+    icon: '\u{1F41A}', color: '#d8dcc9', selfRun: true, nearWater: 3,
+    out: { clay: 0.53 },
+
+    desc: '0.53 marl/min. A bloom of armoured algae dying and settling three tiles off the sea edge, ' +
+      'laying down the white mud the age is NAMED for — creta, chalk, Cretaceous. It still needs a ' +
+      'Waterhole of its own: the sea it stands beside does not count.',
+  },
+  chalkbank: {
+    name: 'Chalk Bank', tier: 'food', era: 0, w: 2, h: 2, cost: 94, upkeep: 0.093,
+    icon: '\u{1F90D}', color: '#e2e0d2', selfRun: true, needsWater: true, industry: true,
+    procIn: 'clay', procRate: 0.67, procOut: 'pottery', procRatio: 0.5,
+
+    desc: '0.67 marl/min compacts into 0.34 chalk. Two Shoals feed it and leave change.',
+  },
+  chalkdowns: {
+    name: 'Chalk Downs', tier: 'commerce', era: 0, w: 2, h: 2, cost: 87, upkeep: 0.100,
+    icon: '\u{26F0}\u{FE0F}', color: '#eeece0', selfRun: true, needsWater: true, needsRoad: true,
+    sells: 'pottery', sellRate: 0.282, sellPrice: 6.79, custRadius: 7, custMin: 4,
+
+    desc: '0.282 chalk/min at $6.79, on a sea floor going white. Needs 4 head, and it is always your ' +
+      'FAR district — run a Log Jam out to it or pay the carting.',
+  },
+
+  bonebed: {
+    name: 'Bone Bed', tier: 'food', era: 0, w: 2, h: 2, cost: 43, upkeep: 0.040,
+    icon: '\u{1F9B4}', color: '#cfc4ae', selfRun: true, onRock: true, rockRadius: 11,
+    industry: true,
+    out: { stone: 0.80 },
+
+    desc: '0.80 bone/min out of a channel-lag gravel, scaled by how much gravel is actually under it ' +
+      '— three tiles of four is 0.70. It works every lens within 11 tiles. This is the one ground in ' +
+      'the age you cannot make more of: there is no rock brush for sale here, and what the floods laid ' +
+      'down took millions of years to lay.',
+  },
+  mineralseep: {
+    name: 'Mineral Seep', tier: 'food', era: 0, w: 2, h: 2, cost: 94, upkeep: 0.093,
+    icon: '\u{1F48E}', color: '#a8a8b5', selfRun: true, nearWater: 2, industry: true,
+    procIn: 'stone', procRate: 0.67, procOut: 'blocks', procRatio: 0.5,
+
+    desc: 'Mineral-charged groundwater moving through buried bone, atom for atom, until the bone IS ' +
+      'the rock: 0.67 bone/min becomes 0.34 fossil. This is not a metaphor for fossilisation, it is ' +
+      'the process.',
+  },
+  petrifiedbar: {
+    name: 'The Petrified Bar', tier: 'commerce', era: 0, w: 2, h: 2, cost: 87, upkeep: 0.100,
+    icon: '\u{1FAA8}', color: '#9c9488', selfRun: true, needsWater: true, needsRoad: true,
+    sells: 'blocks', sellRate: 0.282, sellPrice: 7.81, custRadius: 7, custMin: 4,
+
+    desc: '0.282 fossil/min at $7.81, laid down in a gravel bar and left. The richest thing this age ' +
+      'makes that a later age will dig up and argue about.',
+  },
+
+  resinconifer: {
+    name: 'Resin Conifer Stand', tier: 'food', era: 0, w: 2, h: 2, cost: 47, upkeep: 0.050,
+    icon: '\u{1F332}', color: '#5f7a4a', selfRun: true, dryLand: true,
+    out: { wool: 0.33 },
+
+    desc: '0.33 resin/min. Wants ground with NO fertile silt and NO water under it — the araucaria ' +
+      'ridge, rain-fed and stressed, which is exactly when a conifer bleeds hardest. Dry ground is a ' +
+      '+50% BONUS and never a wall; it is the reason amber pays what it pays.',
+  },
+  amberseep: {
+    name: 'Amber Seep', tier: 'food', era: 0, w: 2, h: 2, cost: 108, upkeep: 0.100,
+    icon: '\u{1F36F}', color: '#c98f2f', selfRun: true, needsWater: true, industry: true,
+    procIn: 'wool', procRate: 0.53, procOut: 'cloth', procRatio: 0.5,
+
+    desc: '0.53 resin/min hardens into 0.27 amber. A wound in a conifer, a beetle in the wound, and ' +
+      'ninety million years. Nothing else in this age comes out of the ground finished.',
+  },
+  amberbed: {
+    name: 'Amber Bed', tier: 'commerce', era: 0, w: 2, h: 2, cost: 116, upkeep: 0.116,
+    icon: '\u{1F7E0}', color: '#d8a03f', selfRun: true, needsWater: true, needsRoad: true,
+    sells: 'cloth', sellRate: 0.225, sellPrice: 11.08, custRadius: 7, custMin: 5,
+
+    desc: '0.225 amber/min at $11.08 — the richest thing this age makes and the fussiest to reach: ' +
+      'the resin grew on ground with no water of its own, so a Spring Seep had to walk up there first.',
+  },
+
+  horsetailmarsh: {
+    name: 'Horsetail Marsh', tier: 'food', era: 0, w: 2, h: 2, cost: 36, upkeep: 0.033,
+    icon: '\u{1F33E}', color: '#6f8a5f', selfRun: true, nearWater: 2,
+    out: { reeds: 0.40 },
+
+    desc: '0.40 horsetail/min from the oxbow edge. Nearly worthless standing; the swamp underneath it ' +
+      'is the whole point.',
+  },
+  peatswamp: {
+    name: 'Peat Swamp', tier: 'commerce', era: 0, w: 2, h: 2, cost: 69, upkeep: 0.067,
+    icon: '\u{1FAB5}', color: '#4a4a3a', selfRun: true, needsWater: true, needsRoad: true,
+    procIn: 'reeds', procRate: 0.67, procOut: 'baskets', procRatio: 0.5,
+    sells: 'baskets', sellRate: 0.310, sellPrice: 5.26, custRadius: 6, custMin: 3,
+
+    desc: 'Buries and keeps in one place: 0.67 horsetail/min pressed into lignite and laid down on the ' +
+      'spot at $5.26. TWO buildings and one landform where chalk needs three and two. Everything you ' +
+      'press down here, a later age digs up and burns.',
+  },
+
+  clutchmound: {
+    name: 'Clutch Mound', tier: 'food', era: 0, w: 2, h: 2, cost: 87, upkeep: 0.087,
+    icon: '\u{1F95A}', color: '#c9b48f', selfRun: true, needsWater: true,
+    procIn: 'grain', procRate: 0.67, procOut: 'beer', procRatio: 0.5,
+
+    desc: '0.67 browse/min becomes 0.34 clutches. It drinks the same fern your Grazing Lawn wants, so ' +
+      'the herd’s own fertility competes with the herd’s own dinner — grow more prairie, or ' +
+      'choose. Clutches are also what a Carrion Ground gives away.',
+  },
+  eggbed: {
+    name: 'Egg Bed', tier: 'commerce', era: 0, w: 2, h: 2, cost: 80, upkeep: 0.093,
+    icon: '\u{1F423}', color: '#c9a86a', selfRun: true, needsWater: true, needsRoad: true,
+    sells: 'beer', sellRate: 0.394, sellPrice: 4.02, custRadius: 6, custMin: 3,
+
+    desc: '0.394 clutches/min at $4.02, buried in successive flood layers. Auca Mahuevo is thousands ' +
+      'of eggs across four such layers, and every one of them is a year the colony came back to the ' +
+      'same mud.',
+  },
+
+  magnoliathicket: {
+    name: 'Magnolia Thicket', tier: 'food', era: 0, w: 3, h: 3, cost: 90, upkeep: 0.067,
+    icon: '\u{1F338}', color: '#b5849c', selfRun: true, saltProof: true,
+    out: { dates: 0.50 },
+
+    desc: 'The first flowers in the world, and a hadrosaur eats them: 0.50 fruit/min, eaten like ' +
+      'forage. Needs NO water coverage and no road, ignores the trophic loop entirely, and takes +50% ' +
+      'standing on ash-buried ground nobody else wants. It is what feeds the colony while the ' +
+      'predators are being paid.',
+  },
+  rotwoodbed: {
+    name: 'Rot-Wood Bed', tier: 'food', era: 0, w: 2, h: 2, cost: 58, upkeep: 0.050,
+    icon: '\u{1F980}', color: '#7a6a4a', selfRun: true, nearWater: 2,
+    out: { fish: 0.40 },
+
+    desc: '0.40 crustaceans/min out of rotted conifer logs on the bar. Hadrosaur dung from this exact ' +
+      'formation is full of decayed wood AND crustacean shell (Chin et al. 2017) — the herd was not a ' +
+      'pure browser. Eaten at 75% of forage. Needs no water coverage, no road and no herd.',
+  },
+
+  channellag: {
+    name: 'Channel Lag', tier: 'commerce', era: 0, w: 1, h: 2, cost: 51, upkeep: 0.050,
+    icon: '\u{1F30A}', color: '#a89a7a', selfRun: true, needsWater: true, needsRoad: true,
+    sellsRaw: ['stone', 'grain', 'clay', 'wool', 'reeds'], sellRate: 0.845,
+    custRadius: 6, custMin: 3,
+
+    desc: 'A bend where everything the flood carried settles out. Sells whichever raw the range has ' +
+      'most of — bone, browse, marl, resin, horsetail — at 80% of list, 0.845/min. Your first income ' +
+      'the minute the first shoal opens; knowing when to demolish it is the real decision.',
+  },
+
+  nestmound: {
+    name: 'Nest Mound', tier: 'housing', era: 0, w: 1, h: 1, cost: 12, upkeep: 0.017,
+    icon: '\u{1F95A}', color: '#b09a72', selfRun: true, cap: 2, needsWater: true, needsRoad: true,
+
+    desc: 'A scraped bowl banked with rotting fern, warm from the inside. Holds 1, and 2 once it has ' +
+      'earned a rung. +1 near a Wallow or a Sentinel Knoll, −1 next to industry — nothing nests beside ' +
+      'a lawn with no cover on it.',
+  },
+  rookeryterrace: {
+    name: 'Rookery Terrace', tier: 'housing', era: 0, w: 2, h: 2, cost: 30, upkeep: 0.043,
+    icon: '\u{1F426}', color: '#c2a878', selfRun: true, cap: 6, needsWater: true, needsRoad: true,
+
+    levels: ['Scrape Row', 'Rookery Terrace', 'Packed Rookery', 'Terraced Colony',
+             'Great Rookery', 'Ancestral Rookery'],
+
+    desc: 'Nests packed nest-to-nest at one adult’s reach: 3 head in four tiles, 6 once it has ' +
+      'earned a rung. Colonial nesting IS the predation strategy — a hundred parents see a predator a ' +
+      'hundred times sooner, and the dilution term is not a metaphor.',
+  },
+
+  wallow: {
+    name: 'The Wallow', tier: 'civic', era: 0, w: 1, h: 1, cost: 29, upkeep: 0.017,
+    icon: '\u{1F43E}', color: '#8a7a5f', selfRun: true, capRadius: 11,
+
+    desc: 'Churned mud the whole range comes back to: cooling, parasites, and the only place everybody ' +
+      'is in one place at once. +1 capacity for EVERY nest within 11 tiles. One is enough; a second ' +
+      'adds nothing to a nest already covered.',
+  },
+  sentinelknoll: {
+    name: 'Sentinel Knoll', tier: 'civic', era: 0, w: 1, h: 1, cost: 33, upkeep: 0.027,
+    icon: '\u{1F441}\u{FE0F}', color: '#9a8f6a', selfRun: true,
+    amenityRadius: 4, sentinelRelief: 0.25,
+
+    desc: 'A rise with a clear line to the treeline. +1 capacity within 4 tiles, and nests it covers ' +
+      'lose 25% less to predators — the cheapest lever in the age, the only one that costs no food, ' +
+      'and the only one that still works when everything else has stopped.',
+  },
+  carrionground: {
+    name: 'Carrion Ground', tier: 'civic', era: 0, w: 2, h: 4, cost: 145, upkeep: 0.100,
+    icon: '\u{1F9B4}', color: '#8a7a6a', selfRun: true, offerRelief: 0.45,
+
+    desc: 'Where the dead are left where they fall, and a clutch is left with them. Costs 0.02 ' +
+      'clutches per head per minute and predators take 45% less from the living. It is the best ' +
+      'defence in the age and you pay for it in FOOD — which is the entire point.',
+  },
+  refuge: {
+    name: 'The Refuge', tier: 'civic', era: 0, w: 4, h: 4, cost: 325, upkeep: 0.116,
+    icon: '\u{1F5FF}', color: '#a89a7a', selfRun: true, needsWater: true, needsRoad: true,
+    depot: true, storeGrain: 80, storeFlour: 50,
+
+    desc: 'A deep bank hollow the whole range shelters under: far more browse and forage capacity, and ' +
+      'a supply point so the far districts stop paying the carting premium.',
+  },
+
+  skullcairn: {
+    name: 'Skull Cairn', tier: 'beauty', era: 0, w: 1, h: 1, cost: 9, upkeep: 0,
+    icon: '\u{1F480}', color: '#d8d0bc', selfRun: true, cosmetic: true,
+
+    desc: 'A bleached skull propped where the flood dropped it. No output, no upkeep: being here is ' +
+      'the point.',
+  },
+  standingtrunk: {
+    name: 'Standing Trunk', tier: 'beauty', era: 0, w: 1, h: 1, cost: 9, upkeep: 0,
+    icon: '\u{1FAB5}', color: '#a89484', selfRun: true, cosmetic: true,
+    desc: 'A conifer that died standing and turned to stone where it stood, still upright ninety ' +
+      'million years later. Pure landscape — zero output, zero upkeep.',
+  },
+
+  deepbrake: {
+    name: 'The Deep Brake', tier: 'food', era: 0, w: 2, h: 2, cost: 108, upkeep: 0.088,
+    icon: '\u{1F33F}', color: '#6f8a4a', selfRun: true, needsWater: true,
+    out: { grain: 0.66 },
+    desc: 'The stand let to grow deep and cut in strips instead of grazed flat, so it comes back ' +
+      'behind the herd: 0.66 browse/min, double the open prairie.',
+  },
+  bloomshelf: {
+    name: 'The Bloom Shelf', tier: 'food', era: 0, w: 2, h: 2, cost: 120, upkeep: 0.088,
+    icon: '\u{1F41A}', color: '#e2e6d6', selfRun: true, nearWater: 3,
+    out: { clay: 1.06 },
+    desc: 'A shelf the bloom returns to every season, settling year on year: 1.06 marl/min.',
+  },
+  bledgrove: {
+    name: 'The Bled Grove', tier: 'food', era: 0, w: 2, h: 2, cost: 141, upkeep: 0.088,
+    icon: '\u{1F332}', color: '#4f6a3a', selfRun: true, dryLand: true,
+    out: { wool: 0.66 },
+    desc: 'Every trunk on the rise scored and left to weep, season after season: 0.66 resin/min. ' +
+      'Still takes its bonus on ground with no silt and no water under it.',
+  },
+  oxbowbed: {
+    name: 'The Oxbow Bed', tier: 'food', era: 0, w: 2, h: 2, cost: 108, upkeep: 0.058,
+    icon: '\u{1F33E}', color: '#5f7a4f', selfRun: true, nearWater: 2,
+    out: { reeds: 0.80 },
+    desc: 'A whole cut-off meander gone to standing horsetail: 0.80/min, and the bed regrows behind ' +
+      'the cut.',
+  },
+  deeplens: {
+    name: 'The Deep Lens', tier: 'food', era: 0, w: 2, h: 2, cost: 129, upkeep: 0.070,
+    icon: '\u{1F9B4}', color: '#c2b8a0', selfRun: true, onRock: true, rockRadius: 11,
+    industry: true,
+    out: { stone: 1.60 },
+    desc: 'The lens opened and worked in courses rather than picked off the surface: 1.60 bone/min, ' +
+      'still scaled by the gravel underneath it — and still on the one ground this age cannot make ' +
+      'more of.',
+  },
+
+  blossomfall: {
+    name: 'The Blossom Fall', tier: 'food', era: 0, w: 3, h: 3, cost: 270, upkeep: 0.117,
+    icon: '\u{1F338}', color: '#c99ab0', selfRun: true, saltProof: true,
+    out: { dates: 0.80 },
+    desc: 'A thicket in full flower with the ground under it deep in fallen fruit: 0.80/min. Still ' +
+      'needs no water coverage, and still owes the trophic loop nothing.',
+  },
+  sunklog: {
+    name: 'The Sunk Log', tier: 'food', era: 0, w: 2, h: 2, cost: 174, upkeep: 0.088,
+    icon: '\u{1F980}', color: '#6a5c40', selfRun: true, nearWater: 2,
+    out: { fish: 0.64 },
+    desc: 'Whole trunks worked down into the mud, rotting from the inside and crawling: 0.64/min. ' +
+      'Needs no water coverage and no herd.',
+  },
+
+  trampleflat: {
+    name: 'The Trample Flat', tier: 'food', era: 0, w: 2, h: 2, cost: 180, upkeep: 0.113,
+    icon: '\u{1F343}', color: '#7d9a52', selfRun: true, needsWater: true, industry: true,
+    grainMill: true,
+    procIn: 'grain', procRate: 1.40, procOut: 'flour', procRatio: 0.6,
+    desc: 'Ground worked flat by the whole colony passing over it twice a day: 1.40 browse/min into ' +
+      '0.84 forage. Fourteen head off one flat.',
+  },
+  whitecliff: {
+    name: 'The White Cliff', tier: 'food', era: 0, w: 2, h: 2, cost: 188, upkeep: 0.126,
+    icon: '\u{26F0}\u{FE0F}', color: '#f0eee2', selfRun: true, needsWater: true, industry: true,
+    procIn: 'clay', procRate: 0.94, procOut: 'pottery', procRatio: 0.5,
+    desc: 'The bank cut back until the section stands white and open: 0.94 marl/min into 0.47 chalk.',
+  },
+  slowwound: {
+    name: 'The Slow Wound', tier: 'food', era: 0, w: 2, h: 2, cost: 216, upkeep: 0.136,
+    icon: '\u{1F36F}', color: '#b58230', selfRun: true, needsWater: true, industry: true,
+    procIn: 'wool', procRate: 0.74, procOut: 'cloth', procRatio: 0.5,
+    desc: 'A wound kept open for decades instead of a season, and the fall under it metres deep: ' +
+      '0.74 resin/min into 0.37 amber.',
+  },
+  broodbank: {
+    name: 'The Brood Bank', tier: 'food', era: 0, w: 2, h: 2, cost: 174, upkeep: 0.118,
+    icon: '\u{1F95A}', color: '#d8c9a8', selfRun: true, needsWater: true,
+    procIn: 'grain', procRate: 0.94, procOut: 'beer', procRatio: 0.5,
+    desc: 'A whole bank of mounds, laid and re-laid in the same season: 0.94 browse/min into 0.47 ' +
+      'clutches. It drinks proportionally more of your dinner.',
+  },
+  silicaspring: {
+    name: 'The Silica Spring', tier: 'food', era: 0, w: 2, h: 2, cost: 188, upkeep: 0.126,
+    icon: '\u{1F48E}', color: '#b5b5c2', selfRun: true, nearWater: 2, industry: true,
+    procIn: 'stone', procRate: 0.94, procOut: 'blocks', procRatio: 0.5,
+    desc: 'Water rising through volcanic ash carries far more silica, and the replacement runs faster ' +
+      'and finer: 0.94 bone/min into 0.47 fossil.',
+  },
+  sunkenmire: {
+
+    name: 'The Sunken Mire', tier: 'commerce', era: 0, w: 2, h: 2, cost: 159, upkeep: 0.091,
+    icon: '\u{1FAB5}', color: '#3a3a2c', selfRun: true, needsWater: true, needsRoad: true,
+    procIn: 'reeds', procRate: 0.94, procOut: 'baskets', procRatio: 0.5,
+    sells: 'baskets', sellRate: 0.620, sellPrice: 5.26, custRadius: 6, custMin: 3,
+    desc: 'A mire deep enough that nothing which goes into it sees air again: 0.94 horsetail/min ' +
+      'buried, and laid down twice as fast.',
+  },
+
+  blackmud: {
+    name: 'The Black Mud', tier: 'commerce', era: 0, w: 2, h: 2, cost: 225, upkeep: 0.140,
+    icon: '\u{1F342}', color: '#4a5238', selfRun: true, needsWater: true, needsRoad: true,
+    sells: 'flour', sellRate: 0.676, sellPrice: 3.07, custRadius: 6, custMin: 3,
+    desc: 'Airless, sour and metres deep — nothing that goes in comes back out: 0.676 forage/min laid ' +
+      'down, double the mat.',
+  },
+  marlfloor: {
+    name: 'The Marl Floor', tier: 'commerce', era: 0, w: 2, h: 2, cost: 218, upkeep: 0.140,
+    icon: '\u{1F90D}', color: '#f2f0e6', selfRun: true, needsWater: true, needsRoad: true,
+    sells: 'pottery', sellRate: 0.564, sellPrice: 6.79, custRadius: 7, custMin: 4,
+    desc: 'A sea floor going white from the shore to the horizon: 0.564 chalk/min, twice the downs.',
+  },
+  buriedfall: {
+    name: 'The Buried Fall', tier: 'commerce', era: 0, w: 2, h: 2, cost: 290, upkeep: 0.162,
+    icon: '\u{1F7E0}', color: '#e2ab48', selfRun: true, needsWater: true, needsRoad: true,
+    sells: 'cloth', sellRate: 0.450, sellPrice: 11.08, custRadius: 7, custMin: 5,
+    desc: 'A whole resin fall taken down by one flood and sealed under the next: 0.450 amber/min. ' +
+      'The richest deposit the age can lay.',
+  },
+  floodlayer: {
+    name: 'The Flood Layer', tier: 'commerce', era: 0, w: 2, h: 2, cost: 200, upkeep: 0.130,
+    icon: '\u{1F423}', color: '#d8b87a', selfRun: true, needsWater: true, needsRoad: true,
+    sells: 'beer', sellRate: 0.788, sellPrice: 4.02, custRadius: 6, custMin: 3,
+    desc: 'Four seasons of nests one on top of the other, each sealed by the flood that ended it: ' +
+      '0.788 clutches/min.',
+  },
+  scourpool: {
+    name: 'The Scour Pool', tier: 'commerce', era: 0, w: 1, h: 2, cost: 128, upkeep: 0.070,
+    icon: '\u{1F30A}', color: '#b5a684', selfRun: true, needsWater: true, needsRoad: true,
+    sellsRaw: ['stone', 'grain', 'clay', 'wool', 'reeds'], sellRate: 1.690,
+    custRadius: 6, custMin: 3,
+    desc: 'The deep hole on the outside of the bend, where the whole flood unloads at once: 1.690 ' +
+      'raw/min at 80% of list, double the lag.',
+  },
+  stoneforest: {
+    name: 'The Stone Forest', tier: 'commerce', era: 0, w: 2, h: 2, cost: 218, upkeep: 0.140,
+    icon: '\u{1FAA8}', color: '#a8a096', selfRun: true, needsWater: true, needsRoad: true,
+    sells: 'blocks', sellRate: 0.564, sellPrice: 7.81, custRadius: 7, custMin: 4,
+    desc: 'Trunks and ribs standing in stone across a whole terrace: 0.564 fossil/min.',
+  },
+
+  seep: {
+    name: 'Spring Seep', tier: 'infra', era: 0, w: 1, h: 1, cost: 55, upkeep: 0.053,
+    icon: '\u{1F4A7}', color: '#7fb4c9', selfRun: true, waterRadius: 5,
+
+    desc: 'A true seep at the foot of the ridge: waters 5 tiles and it does not go down in a drought. ' +
+      'The only way to get water onto the upland, which is the only place amber grows.',
+  },
+  driftbank: {
+    name: 'The Drift Bank', tier: 'infra', era: 0, w: 2, h: 2, cost: 180, upkeep: 0.121,
+    icon: '\u{1FAB5}', color: '#7a6a4c', selfRun: true, needsWater: true,
+    depot: true, storeCraft: 10,
+    desc: 'Flood after flood piled into the same bend until the bank is made of it: half again the ' +
+      'capacity for every deposited good, and still a supply point.',
+  },
+  churnedhollow: {
+    name: 'The Churned Hollow', tier: 'civic', era: 0, w: 1, h: 1, cost: 73, upkeep: 0.031,
+    icon: '\u{1F43E}', color: '#7a6a52', selfRun: true, capRadius: 16,
+    desc: 'Generations of wallowing in one hollow until it is a pond: +1 capacity for every nest ' +
+      'within 16 tiles.',
+  },
+  watchrise: {
+    name: 'The Watch Rise', tier: 'civic', era: 0, w: 1, h: 1, cost: 83, upkeep: 0.049,
+    icon: '\u{1F441}\u{FE0F}', color: '#a89a72', selfRun: true,
+    amenityRadius: 6, sentinelRelief: 0.36,
+
+    desc: 'A rise with sight of the whole range and somebody on it at all hours: +1 capacity within ' +
+      '6 tiles, and nests it covers lose 36% less to predators.',
+  },
+  openkill: {
+    name: 'The Open Kill', tier: 'civic', era: 0, w: 2, h: 4, cost: 363, upkeep: 0.140,
+    icon: '\u{1F9B4}', color: '#7a6a5c', selfRun: true, offerRelief: 0.65,
+
+    desc: 'Nothing is dragged off and nothing is buried: the whole kill is left in the open with a ' +
+      'clutch beside it. Same 0.02 clutches per head, and predators take 65% less from the living.',
+  },
+  siltbank: {
+    name: 'The Silt Bank', tier: 'civic', era: 0, w: 4, h: 4, cost: 813, upkeep: 0.209,
+    icon: '\u{1F5FF}', color: '#b5a888', selfRun: true, needsWater: true, needsRoad: true,
+    depot: true, storeGrain: 116, storeFlour: 73,
+    desc: 'A whole cut bank of layered flood silt, hollowed out along the seams: half again the browse ' +
+      'and forage the Refuge holds, and still a supply point.',
   },
 
   hearth: {
@@ -2043,6 +2567,8 @@ function houseMaxLevel(s) {
 }
 
 const HOUSE_LEVELS = {
+
+  0: ['Scrape', 'Nest Mound', 'Guarded Mound', 'Nest Ring', 'Colony Mound', 'Ancestral Mound'],
   1: ['Windbreak', 'Hide Tent', 'Banked Tent', 'Sunken Hut', 'Winter Hut', "Elder's Hut"],
 
   4: ['Reed Hut', 'Mudbrick House', 'Courtyard House', 'Two-Storey House', "Merchant's Compound", 'Anunnaki Hall'],
@@ -2077,6 +2603,22 @@ function houseCap(d, b) {
 }
 
 const MONUMENT_GIFT = {
+
+  0: {
+    key: 'seams',
+    icon: '\u{1F9B4}',
+    title: 'The Nesting Ground',
+    lead: 'The sky changes colour, and then it is over.',
+    body: 'Nothing you laid out survives — not the nests, not the trail, not the ground itself. What ' +
+          'survives is the record: a colony that came back to the same mud year after year and stayed ' +
+          'with the eggs. Sixty-six million years from now somebody digs it up and gives it a name.',
+    grant: '<b>Every seam of stone in every age after this one runs 25% richer — because this is the ' +
+           'age that laid it down.</b>',
+    toast: '\u{1F9B4} A nesting ground is preserved. Every seam of stone in every age after this one ' +
+           'runs 25% richer.',
+    log: 'Their gift: the ground itself. Everything the ladder digs up, this age put down.',
+    apply(s) { s.giftSeams = (s.giftSeams | 0) + 1; },
+  },
   4: {
     key: 'housing',
     icon: '\u{1F3E0}',
@@ -2128,6 +2670,16 @@ const MONUMENT_GIFT = {
 function monumentGift(era) { return MONUMENT_GIFT[rungOf(era)] || null; }
 
 const ERA_POLICY = {
+
+  0: {
+    key: 'policyHuddle', icon: '\u{1F995}', name: 'The Huddle',
+    tip: 'The colony packs nest to nest: predators take ' +
+      Math.round(TUNE.HUDDLE.cullCut * 100) + '% less and every nest holds ' +
+      Math.round(TUNE.HUDDLE.capCut * 100) + '% fewer while it lasts. Costs no goods and never runs ' +
+      'out. Pull it when the herd is falling; drop it the moment it is safe.',
+    on: 'The range closes up. Fewer are taken — and nothing grows while you are bunched.',
+    off: 'The colony spreads back out over the floodplain.',
+  },
   4: {
     key: 'policyBeerRation', icon: '\u{1F37A}', name: 'Beer Ration Decree',
     tip: 'The city drinks ' + (TUNE.BEER_RATION.perResident * TUNE.TEMPO).toFixed(1) +
@@ -2166,6 +2718,11 @@ function eraImport(era) {
 }
 
 const ERA_ROAD = {
+
+  0: { flavour: 'Game Trail', color: 0xcbbfa6, hw: 0.36,
+       desc: 'Where the herd walks the same line twice a day the fern stops coming back and the marl ' +
+             'comes up white. Only SOME things need one — nests and the places the surplus is laid ' +
+             'down; prairies, shoals, seeps and knolls never do. $10 a tile, nothing to keep.' },
 
   1: { flavour: 'Snow Track', color: 0x6d6459, hw: 0.31,
        desc: 'Snow trodden through to the frozen loess beneath, staked out with markers so it can be ' +
@@ -2445,6 +3002,32 @@ const UPGRADES = {
   stonehouse:    { to: 'plasterrange',   cost: 1050, era: 14, label: 'Plaster Range' },
   catchment: { to: 'aguada',     cost: 1150, era: 14, label: 'Aguada Reservoir' },
 
+  fernprairie:     { to: 'deepbrake',     cost: 72,  era: 0, label: 'The Deep Brake' },
+  coccolithshoal:  { to: 'bloomshelf',    cost: 80,  era: 0, label: 'The Bloom Shelf' },
+  resinconifer:    { to: 'bledgrove',     cost: 94,  era: 0, label: 'The Bled Grove' },
+  horsetailmarsh:  { to: 'oxbowbed',      cost: 72,  era: 0, label: 'The Oxbow Bed' },
+  bonebed:         { to: 'deeplens',      cost: 86,  era: 0, label: 'The Deep Lens' },
+  magnoliathicket: { to: 'blossomfall',   cost: 180, era: 0, label: 'The Blossom Fall' },
+  rotwoodbed:      { to: 'sunklog',       cost: 116, era: 0, label: 'The Sunk Log' },
+  grazinglawn:     { to: 'trampleflat',   cost: 90,  era: 0, label: 'The Trample Flat' },
+  chalkbank:       { to: 'whitecliff',    cost: 94,  era: 0, label: 'The White Cliff' },
+  amberseep:       { to: 'slowwound',     cost: 108, era: 0, label: 'The Slow Wound' },
+  clutchmound:     { to: 'broodbank',     cost: 87,  era: 0, label: 'The Brood Bank' },
+  mineralseep:     { to: 'silicaspring',  cost: 94,  era: 0, label: 'The Silica Spring' },
+  peatswamp:       { to: 'sunkenmire',    cost: 90,  era: 0, label: 'The Sunken Mire' },
+  leafmat:         { to: 'blackmud',      cost: 135, era: 0, label: 'The Black Mud' },
+  chalkdowns:      { to: 'marlfloor',     cost: 131, era: 0, label: 'The Marl Floor' },
+  amberbed:        { to: 'buriedfall',    cost: 174, era: 0, label: 'The Buried Fall' },
+  eggbed:          { to: 'floodlayer',    cost: 120, era: 0, label: 'The Flood Layer' },
+  channellag:      { to: 'scourpool',     cost: 77,  era: 0, label: 'The Scour Pool' },
+  petrifiedbar:    { to: 'stoneforest',   cost: 131, era: 0, label: 'The Stone Forest' },
+  waterhole:       { to: 'seep',          cost: 33,  era: 0, label: 'Spring Seep' },
+  logjam:          { to: 'driftbank',     cost: 108, era: 0, label: 'The Drift Bank' },
+  wallow:          { to: 'churnedhollow', cost: 44,  era: 0, label: 'The Churned Hollow' },
+  sentinelknoll:   { to: 'watchrise',     cost: 50,  era: 0, label: 'The Watch Rise' },
+  carrionground:   { to: 'openkill',      cost: 218, era: 0, label: 'The Open Kill' },
+  refuge:          { to: 'siltbank',      cost: 488, era: 0, label: 'The Silt Bank' },
+
   hearth:   { to: 'longfire',  cost: 160, era: 1, label: 'Longfire & Melt Row' },
 
   foragecamp: { to: 'tendedground',  cost: 190, era: 1, label: 'Tended Ground' },
@@ -2463,7 +3046,7 @@ const UPGRADE_TARGETS = (function () {
   for (const from in UPGRADES) {
     const u = UPGRADES[from], a = BUILDINGS[from], b = BUILDINGS[u.to];
     if (!a || !b || u.legacy) continue;
-    if ((a.era || 1) !== (b.era || 1)) continue;
+    if (defEra(a) !== defEra(b)) continue;
     t.add(u.to);
     b.noBuild = true;
   }
@@ -2603,8 +3186,8 @@ function inFoodChain(kind) { return !!kind && !!FOOD_CHAIN[kind]; }
   for (const rung in TUNE.ERA_STARTER) {
     const k = TUNE.ERA_STARTER[rung], d = BUILDINGS[k];
     if (!d) say('ERA_STARTER[' + rung + '] = "' + k + '" is not a building');
-    else if ((d.era || 1) !== +rung)
-      say('ERA_STARTER[' + rung + '] = "' + k + '" is era ' + (d.era || 1) +
+    else if (defEra(d) !== +rung)
+      say('ERA_STARTER[' + rung + '] = "' + k + '" is era ' + defEra(d) +
           ' — a rung-' + rung + ' city can never build it, so the crew is held forever');
   }
 
@@ -2632,11 +3215,11 @@ function inFoodChain(kind) { return !!kind && !!FOOD_CHAIN[kind]; }
       say(from + ' -> ' + u.to + ' RESIZES ' + a.w + 'x' + a.h + ' -> ' + b.w + 'x' + b.h +
           ' (structural rule 5: an upgrade must not demand ground you did not commit)');
 
-    if (!u.legacy && (u.era || 1) !== (a.era || 1))
-      say(from + ' (era ' + (a.era || 1) + ') -> ' + u.to + ' is tagged era ' + (u.era || 1) +
+    if (!u.legacy && defEra(u) !== defEra(a))
+      say(from + ' (era ' + defEra(a) + ') -> ' + u.to + ' is tagged era ' + defEra(u) +
           ' — under the prestige turn this upgrade can never fire');
 
-    if (!u.legacy && (a.era || 1) === (b.era || 1) && !b.noBuild)
+    if (!u.legacy && defEra(a) === defEra(b) && !b.noBuild)
       say(from + ' -> ' + u.to + ' is an in-era upgrade target but is still PURCHASABLE ' +
           '(noBuild not set) — it can be bought outright instead of earned');
   }
@@ -2661,7 +3244,7 @@ function inFoodChain(kind) { return !!kind && !!FOOD_CHAIN[kind]; }
     for (const key in BUILDINGS) {
       const d = BUILDINGS[key];
       if (!d.cap) continue;
-      (homesOf[d.era || 1] = homesOf[d.era || 1] || []).push(key);
+      (homesOf[defEra(d)] = homesOf[defEra(d)] || []).push(key);
     }
     for (const era in homesOf) {
       const shared = homesOf[era].filter(k => !BUILDINGS[k].levels);
@@ -2686,11 +3269,25 @@ function inFoodChain(kind) { return !!kind && !!FOOD_CHAIN[kind]; }
   return bad;
 })();
 
-const ERA_FOOD_LABEL = { 1: 'Food put by this age', 4: 'Flour milled this age',
+const ERA_FOOD_LABEL = { 0: 'Forage laid down this age',
+                         1: 'Food put by this age', 4: 'Flour milled this age',
                          5: 'Flour milled this age', 14: 'Food ground this age' };
 function eraFoodLabel(era) { return ERA_FOOD_LABEL[rungOf(era)] || 'Food produced this age'; }
 
 const ERA_VOICE = {
+  0: {
+
+    settlers: ['Pale-Crest', 'Broken-Frill', 'Long-Stride', 'Ash-Back', 'Two-Notch', 'Mud-Foot'],
+    place: 'range',
+    mill: 'Grazing Lawn',
+    tally: 'the record in the mud',
+    tallyLine: 'Nothing here writes anything down. The record is the ground: every layer you lay is ' +
+      'counted, and it will still be there in ninety million years.',
+    ration: 'The last of what the range arrived carrying is gone. It feeds itself now.',
+
+    saltName: 'ground the ash has buried',
+    saltAnswers: 'or leave it, and let the next flood lay new silt over it',
+  },
   1: {
 
     settlers: ['Flint-Hand', 'Antler', 'Ochre', 'Ash-Foot', 'Long-Shadow', 'Cold-Water'],
@@ -2758,7 +3355,8 @@ function settlerName(s) {
 }
 
 const ERA_STAPLE = {
-  0: {
+
+  _default: {
     raw: 'grain', cooked: 'flour',
     rawIcon: '\u{1F33E}', cookedIcon: '\u{1F35E}',
     rawName: 'Raw food', cookedName: 'Prepared food',
@@ -2766,6 +3364,21 @@ const ERA_STAPLE = {
     shortNote: 'Every chain you add brings mouths and no food — grow the food chain before you grow anything that eats.',
     hungerFix: 'grow this age’s food chain',
     goodNames: null,
+  },
+  0: {
+    raw: 'grain', cooked: 'flour',
+    rawIcon: '\u{1F33F}', cookedIcon: '\u{1F342}',
+    rawName: 'Browse', cookedName: 'Forage',
+    cookedVerb: 'laid down', rawFrom: 'the fern prairies',
+    rawNote: 'the Clutch Mounds draw on it too, and only one of the two feeds anyone',
+    shortNote: 'Every chain you add brings mouths and no browse — add prairies and a Lawn, or plant a ' +
+      'Magnolia Thicket, which needs nothing at all.',
+    hungerFix: 'lay out a Fern Prairie and a Grazing Lawn, or plant a Magnolia Thicket',
+
+    goodNames: { grain: 'Browse', flour: 'Forage', clay: 'Marl', pottery: 'Chalk',
+                 wool: 'Resin', cloth: 'Amber', beer: 'Clutches', reeds: 'Horsetail',
+                 baskets: 'Lignite', stone: 'Bone', blocks: 'Fossil',
+                 dates: 'Fruit', fish: 'Crustaceans' },
   },
   1: {
     raw: 'game', cooked: 'pemmican',
@@ -2808,7 +3421,7 @@ const ERA_STAPLE = {
     goodNames: { grain: 'Maize', flour: 'Masa' },
   },
 };
-function eraStaple(era) { return ERA_STAPLE[rungOf(era)] || ERA_STAPLE[0]; }
+function eraStaple(era) { return ERA_STAPLE[rungOf(era)] || ERA_STAPLE._default; }
 
 function goodLabel(era, key) {
   const a = eraStaple(era).goodNames;

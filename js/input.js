@@ -129,7 +129,7 @@ const Input = {
 
           if (eb && !DEF(eb.type).fixed && !DEF(eb.type).monument && !DEF(eb.type).noBuild) {
             const ed = DEF(eb.type);
-            if ((ed.era || 1) <= s.era || (window.Dev && Dev.flags.freeBuild)) {
+            if (defEra(ed) <= s.era || (window.Dev && Dev.flags.freeBuild)) {
               Input.setTool(eb.type === 'road' ? 'road' : 'build', eb.type);
               UI.firstToast('eyedrop', '✎ Alt+click copies a building into your hand — ' + ed.name + ' armed.');
               return;
@@ -544,7 +544,7 @@ const Input = {
     const dev = window.Dev && Dev.flags;
 
     if (d.noBuild && !(dev && dev.freeBuild)) return false;
-    if ((d.era || 1) > s.era && !(dev && dev.freeBuild)) return false;
+    if (defEra(d) > s.era && !(dev && dev.freeBuild)) return false;
     if (d.unique && s.buildings.some(b => b.type === type) && !(dev && dev.freeBuild)) {
       UI.toast(d.name + ' is a monument — you may only raise one.');
       return false;
@@ -587,7 +587,7 @@ const Input = {
     if (d.monument && nb) {
       nb.delivered = {}; nb.complete = false; nb.stage = 0; nb.buildFrac = 0;
       Econ.log(s, '\u{1F3D7}️', 'The foundation of the ' + d.name + ' was laid.');
-      const need = monumentBuild(type, d.era || 1);
+      const need = monumentBuild(type, defEra(d));
       const list = Object.keys(need).map(k => Math.round(need[k]) + ' ' + (k === 'money' ? '' : k)).join(', ');
       UI.toast('\u{1F3D7}️ Foundation laid. The ' + d.name + ' will rise as your city delivers ' +
         list.replace(/, ([^,]*)$/, ' and $1') + '. It earns nothing until it is finished.', 12000);

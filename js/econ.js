@@ -101,6 +101,8 @@ const Econ = {
 
     Econ.siltTick(s, offline);
 
+    Econ.trophicTick(s, offline);
+
     Econ.stampWater(s);
 
     Econ.nileTick(s, offline);
@@ -207,6 +209,25 @@ const Econ = {
       C.ration = true;
     }
 
+    C.offerRelief = 0;
+    if (Econ.trophicActive(s)) {
+      let best = 0;
+      for (const b of s.buildings) {
+        const d = DEF(b.type);
+        if (!d || !d.offerRelief || b.mothballed || b.done === false || b.block) continue;
+        best = Math.max(best, d.offerRelief);
+      }
+      if (best > 0) {
+        const O = TUNE.PRED.offering;
+        const need = O.perHead * Game.totalResidents(s) * Econ.M;
+        if (need > 0 && s.stock[O.good] >= need) {
+          s.stock[O.good] -= need;
+          Econ.note(O.good, 0, need);
+          C.offerRelief = best;
+        }
+      }
+    }
+
     for (const b of byPlaced) {
       const d = DEF(b.type);
 
@@ -287,7 +308,7 @@ const Econ = {
 
     for (const b of byPlaced) {
       const d = DEF(b.type);
-      if (!d.out || !d.workers || b.mothballed) continue;
+      if (!d.out || (!d.workers && !d.selfRun) || b.mothballed) continue;
       if (d.oxTeam) continue;
 
       if (b.resting) {
@@ -303,9 +324,10 @@ const Econ = {
         continue;
       }
       b.flooded = false;
-      const staffEff = b.staff / d.workers;
+
+      const staffEff = d.workers ? b.staff / d.workers : 1;
       b.lastStaffEff = staffEff;
-      if (b.staff === 0) { b.status = 'no_staff'; b.rate = 0; continue; }
+      if (d.workers && b.staff === 0) { b.status = 'no_staff'; b.rate = 0; continue; }
 
       let made = 0, outKind = null;
       if (d.out.grain) {
@@ -405,7 +427,8 @@ const Econ = {
 
     Econ.waterTick(s, offline);
 
-    const procs = byPlaced.filter(b => DEF(b.type).procIn && DEF(b.type).workers && !b.mothballed);
+    const procs = byPlaced.filter(b => { const d = DEF(b.type);
+      return d.procIn && (d.workers || d.selfRun) && !b.mothballed; });
 
     procs.sort((a, b) =>
       ((DEF(b.type).procOut === 'flour') ? 1 : 0) - ((DEF(a.type).procOut === 'flour') ? 1 : 0) ||
@@ -413,8 +436,8 @@ const Econ = {
     for (const b of procs) {
       const d = DEF(b.type);
       if (b.block) { b.status = b.block; b.rate = 0; continue; }
-      const staffEff = b.staff / d.workers;
-      if (b.staff === 0) { b.status = 'no_staff'; b.rate = 0; continue; }
+      const staffEff = d.workers ? b.staff / d.workers : 1;
+      if (d.workers && b.staff === 0) { b.status = 'no_staff'; b.rate = 0; continue; }
 
       b.bureauSlow = Econ.anyAuraLive(b.bureauSlowBy);
       const slow = b.bureauSlow ? (1 - TUNE.BUREAU.slow) : 1;
@@ -557,8 +580,8 @@ const Econ = {
       const d = DEF(b.type);
       if ((!d.sells && !d.sellsRaw) || b.mothballed) continue;
       if (b.block) { b.status = b.block; b.rate = 0; continue; }
-      if (b.staff === 0) { b.status = 'no_staff'; b.rate = 0; continue; }
-      const staffEff = b.staff / d.workers;
+      if (d.workers && b.staff === 0) { b.status = 'no_staff'; b.rate = 0; continue; }
+      const staffEff = d.workers ? b.staff / d.workers : 1;
 
       const cust = b.customers != null ? b.customers : Grid.customerSurvey(s, b).n;
       if (cust < d.custMin) { b.status = 'no_customers'; b.rate = 0; continue; }
@@ -1024,7 +1047,7 @@ const Econ = {
       return;
     }
 
-    let rate = M.perMinute * Math.min(1, M.floor + open / M.openFull);
+    let rate = Econ.calvingRate(s) * Math.min(1, M.floor + open / M.openFull);
 
     const resNow = Game.totalResidents(s);
     if (resNow > 0) {
@@ -1145,7 +1168,7 @@ const Econ = {
   monumentProgress(s, b) {
     const d = DEF(b.type);
     if (!d || !d.monument) return null;
-    const need = monumentBuild(b.type, d.era || 1);
+    const need = monumentBuild(b.type, defEra(d));
     const got = b.delivered || {};
     const parts = [];
     let sum = 0, n = 0;
@@ -1169,7 +1192,7 @@ const Econ = {
       const d = DEF(b.type);
       if (!d || !d.monument || b.complete || b.halted || b.done === false) continue;
       if (Econ.blockOf(b)) continue;
-      const need = monumentBuild(b.type, d.era || 1);
+      const need = monumentBuild(b.type, defEra(d));
       for (const k in need) {
         if (k === 'money') continue;
         const want = need[k] - ((b.delivered || {})[k] || 0);
@@ -1194,7 +1217,7 @@ const Econ = {
       const d = DEF(b.type);
       if (!d || !d.monument) continue;
       if (b.complete) continue;
-      const need = monumentBuild(b.type, d.era || 1);
+      const need = monumentBuild(b.type, defEra(d));
       b.delivered = b.delivered || {};
 
       b.block = Econ.blockOf(b);
@@ -1310,6 +1333,8 @@ const Econ = {
   eraReady(s) {
     const next = Econ.nextEra(s);
     if (!next) return false;
+
+    if (Econ.trophicActive(s)) return Econ.prologueGate(s).ready;
     const r = eraReq(s.era + 1);
 
     const base = s.eraBase || {};
@@ -1321,10 +1346,10 @@ const Econ = {
   },
 
   monumentFor(era) {
-    const e = Math.max(1, Math.round(era || 1));
+    const e = rungOf(era);
     for (const k in BUILDINGS) {
       const d = BUILDINGS[k];
-      if (d.monument && (d.era || 1) === e) return { key: k, def: d };
+      if (d.monument && defEra(d) === e) return { key: k, def: d };
     }
     return null;
   },
@@ -1363,23 +1388,23 @@ const Econ = {
     const out = { buildings: [], upgrades: [], monument: null };
     for (const k in BUILDINGS) {
       const d = BUILDINGS[k];
-      if ((d.era || 1) !== era || d.noBuild || d.fixed) continue;
+      if (defEra(d) !== era || d.noBuild || d.fixed) continue;
       if (d.monument) out.monument = d;
       else out.buildings.push(d);
     }
     for (const k in UPGRADES) {
       const u = UPGRADES[k];
-      if ((u.era || 1) === era) out.upgrades.push(u);
+      if (defEra(u) === era) out.upgrades.push(u);
     }
     return out;
   },
 
   migrateStalePrestige(s) {
-    if (!s || (s.era || 1) <= 1) return null;
+    if (!s || rungOf(s.era) <= 1) return null;
     const stale = s.buildings.filter(b => {
       const d = DEF(b.type);
       if (!d || b.relic || d.fixed || b.type === 'road') return false;
-      return (d.era || 1) < s.era;
+      return defEra(d) < s.era;
     });
     if (!stale.length) return null;
 
@@ -1387,7 +1412,7 @@ const Econ = {
     for (const b of s.buildings) {
       const d = DEF(b.type);
       if (d && d.monument && b.complete && !b.relic) {
-        carried.push({ type: b.type, era: d.era || 1, name: d.name });
+        carried.push({ type: b.type, era: defEra(d), name: d.name });
       }
     }
     s.relics = (s.relics || []).concat(carried);
@@ -1500,7 +1525,7 @@ const Econ = {
       const d = DEF(b.type);
 
       if (d && d.monument && b.complete) {
-        carried.push({ type: b.type, era: d.era || 1, name: d.name });
+        carried.push({ type: b.type, era: defEra(d), name: d.name });
       }
     }
     s.relics = (s.relics || []).concat(carried);
@@ -1510,7 +1535,7 @@ const Econ = {
     s.era = Econ.nextEra(s);
 
     s.eraBase = { flour: s.cum.flour, food: Econ.cumFood(s), stone: s.cum.stone };
-    const era = ERAS[s.era - 1];
+    const era = eraInfo(s.era);
 
     Econ.log(s, '\u{1F30D}', 'The age turned: Era ' + s.era + ' — ' + era.name +
       '. The old city is behind you — ' + wasBuildings + ' buildings, ' + wasPop +
@@ -1639,6 +1664,156 @@ const Econ = {
         '/min. Build a DREDGING CREW — about one per two wells. Another well makes it worse, ' +
         'not better: it is one more channel to keep clear.', 15000);
     }
+  },
+
+  trophicActive(s) { return rungOf(s.era) === 0; },
+
+  calvingRate(s) {
+    return Econ.trophicActive(s) ? TUNE.PRED.calving : TUNE.MIGRATION.perMinute;
+  },
+
+  diluteAt(head) {
+    const P = TUNE.PRED;
+    return Util.clamp(Math.pow(Math.max(1, head) / P.diluteRef, -P.diluteExp),
+                      P.diluteMin, P.diluteMax);
+  },
+
+  sentinelReliefAt(s, b) {
+    let relief = 0;
+    for (const o of s.buildings) {
+      const od = DEF(o.type);
+      if (!od || !od.sentinelRelief || o.mothballed || o.done === false) continue;
+      const r = (od.amenityRadius || 0) + rankRadiusBonus(o);
+      const ad = Grid.dimsOf(b), odm = Grid.dimsOf(o);
+      if (Util.rectDist(b.x, b.y, ad.w, ad.h, o.x, o.y, odm.w, odm.h) <= r)
+        relief = Math.max(relief, od.sentinelRelief);
+    }
+    return relief;
+  },
+
+  nestCull(s, b, head) {
+    const P = TUNE.PRED;
+
+    const cover = b.cover !== undefined ? b.cover : Grid.coverFraction(s, b, P.coverRadius);
+    const coverMult = 1 + P.coverPenalty * cover;
+    const diluteMult = Econ.diluteAt(head);
+    const sentinelMult = 1 - (b.sentinel !== undefined ? b.sentinel : Econ.sentinelReliefAt(s, b));
+    const offerMult = 1 - (G.cache.offerRelief || 0);
+    const huddleMult = (s.policyHuddle ? 1 - TUNE.HUDDLE.cullCut : 1);
+    return {
+      cover, coverMult, diluteMult, sentinelMult, offerMult, huddleMult,
+      frac: P.base * coverMult * diluteMult * sentinelMult * offerMult * huddleMult,
+    };
+  },
+
+  staticCullMean(s) {
+    let wsum = 0, w = 0;
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d || !d.cap || b.mothballed || b.done === false || b.block) continue;
+      const cap = Math.max(1, b.cap || d.cap);
+      const c = Econ.nestCull(s, b, TUNE.PRED.diluteRef);
+      wsum += (c.frac / c.diluteMult) * cap;
+      w += cap;
+    }
+    return w ? wsum / w : 0;
+  },
+  meanCullAt(s, H) { return Econ.staticCullMean(s) * Econ.diluteAt(H); },
+
+  herdForecast(s) {
+    const P = TUNE.PRED;
+    const head = Game.housedResidents(s);
+    let beds = 0, nests = 0;
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d || !d.cap || b.mothballed || b.done === false || b.block) continue;
+      nests++; beds += Math.max(1, b.cap || d.cap);
+    }
+    const grace = Math.max(0, s.predGrace || 0);
+    let take = 0, dom = null, domMult = 1;
+    if (!grace) {
+      for (const b of s.buildings) {
+        const d = DEF(b.type);
+        if (!d || !d.cap || b.mothballed || b.done === false) continue;
+        const c = Econ.nestCull(s, b, head);
+        take += c.frac * (b.residents || 0);
+
+        if (c.coverMult > domMult) { domMult = c.coverMult; dom = 'cover'; }
+      }
+      if (!dom) {
+        const dl = Econ.diluteAt(head);
+        if (dl > 1.05) { dom = 'dilution'; domMult = dl; }
+      }
+    }
+    let ceiling = 0;
+    if (nests) {
+      const stat = Econ.staticCullMean(s);
+      let H = Math.max(1, head);
+      for (let i = 0; i < 12; i++) {
+        const f = stat * Econ.diluteAt(H);
+        if (f <= 0) { H = beds; break; }
+        H = P.calving / f;
+      }
+
+      ceiling = Math.min(beds, H);
+    }
+    return { head, beds, nests, ceiling, take, grace,
+             empty: Math.max(0, beds - Math.round(ceiling)),
+             dominant: dom, dominantMult: domMult,
+             text: !nests ? 'nothing nests here yet'
+                 : grace > 0 ? Math.ceil(grace) + 's before anything hunts'
+                 : head >= ceiling - 0.5 ? 'the colony is at its ceiling'
+                 : 'growing toward ' + Math.round(ceiling) + ' head' };
+  },
+
+  trophicTick(s, offline) {
+    const C = G.cache;
+    C.herdTake = 0;
+    if (!Econ.trophicActive(s)) { C.herdCeiling = 0; return; }
+
+    if (offline) return;
+
+    if (s.predGrace === undefined || s.predGrace === null) s.predGrace = TUNE.PRED.graceMinutes * 60;
+    if (s.predGrace > 0) { s.predGrace = Math.max(0, s.predGrace - 1); return; }
+
+    const f = Econ.herdForecast(s);
+    C.herdTake = f.take; C.herdCeiling = f.ceiling;
+    const houses = s.buildings.filter(b => DEF(b.type) && DEF(b.type).cap);
+
+    const room = Math.max(0, f.head - TUNE.PRED.floorHerd);
+    s.herdCull = (s.herdCull || 0) + Math.min(f.take * Econ.M, room);
+    while (s.herdCull >= 1 && Game.totalResidents(s) > TUNE.PRED.floorHerd) {
+      s.herdCull -= 1;
+      Econ.removeResident(s, houses, 'culled');
+    }
+
+    if (f.ceiling > 0 && f.head < f.ceiling * TUNE.PRED.rearmAt) C.herdTold = 0;
+    else if (!C.herdTold && f.ceiling > 0 && f.head >= f.ceiling * TUNE.PRED.warnAt && f.empty >= 2) {
+      C.herdTold = 1;
+      const why = f.dominant === 'cover'
+        ? 'The treeline is what is taking them: ' + Math.round((f.dominantMult - 1) / TUNE.PRED.coverPenalty * 100) +
+          '% of the ground around your nests is treed. A SENTINEL KNOLL costs $' +
+          BUILDINGS.sentinelknoll.cost + ' and needs no water, no trail and no food.'
+        : 'Small colonies are watched harder than big ones. More nests IN THE OPEN is the answer; ' +
+          'more nests in cover is not.';
+      Econ.log(s, '\u{1F995}', 'The colony has stopped growing — the ground is holding it down.');
+      UI.toast('\u{1F995} THE RANGE IS FULL AT ' + Math.round(f.ceiling) + ' HEAD and you have ' +
+        f.beds + ' bowls. ' + why, 15000);
+    }
+  },
+
+  prologueGate(s) {
+    const P = TUNE.PRED;
+    const left = Math.max(0, P.stageSeconds - (s.tick || 0));
+    const head = Game.housedResidents(s);
+    const ready = left <= 0 && head >= P.exitHead;
+    return {
+      left, head, needHead: P.exitHead, ready,
+      binds: left > 0 ? 'time' : (head < P.exitHead ? 'head' : null),
+      text: ready ? 'the sky is changing colour'
+          : left > 0 ? Math.ceil(left) + 's before the sky changes'
+          : 'the range has held ' + head + ' of ' + P.exitHead + ' head',
+    };
   },
 
   HERD_NAMES: { mammoth: 'woolly mammoth', bison: 'steppe bison', rhino: 'woolly rhinoceros', sabertooth: 'sabertooth' },
@@ -2336,7 +2511,7 @@ const Econ = {
     if (d.monument && !b.complete) return null;
     const ok = !b.status || b.status === 'ok' || b.status === 'understaffed';
     if (!ok) return null;
-    return d.monument ? monumentRP(d.era || 1) : buildingRP(d.era || 1, d) * rankOutMult(b);
+    return d.monument ? monumentRP(defEra(d)) : buildingRP(defEra(d), d) * rankOutMult(b);
   },
 
   rentPoints(s) {
@@ -2420,7 +2595,9 @@ const Econ = {
     h.residents--;
     reason = reason || 'famine';
     if (s.records) {
-      const key = reason === 'freeze' ? 'lostFreeze' : reason === 'hunt' ? 'huntDrafted' : 'lostFamine';
+
+      const key = reason === 'freeze' ? 'lostFreeze' : reason === 'hunt' ? 'huntDrafted'
+        : reason === 'culled' ? 'lostCulled' : 'lostFamine';
       s.records[key] = (s.records[key] || 0) + 1;
     }
     Econ.floater(h, '-1');
