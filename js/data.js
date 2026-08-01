@@ -492,6 +492,11 @@ const ERA_TERRA_LOCK = {
   },
 
   4: {},
+
+  5: {
+    water: 'the river is the river — Egypt is given one Nile and builds around what it does, ' +
+      'and a channel you dug yourself would make the Inundation something you could opt out of',
+  },
 };
 function terraCost(kind, era) {
   const e = rungOf(era || (window.G && G.s && G.s.era) || START_ERA);
@@ -1320,6 +1325,135 @@ const BUILDINGS = {
       'double a Dredging Crew — about one Corps per FOUR wells. Still needs no road and no water.',
   },
 
+  papyrusbeds: {
+    name: 'Managed Papyrus Beds', tier: 'food', era: 5, w: 2, h: 2, cost: 500, upkeep: 0.40,
+    icon: '\u{1F33E}', color: '#8fae72', workers: 3, nearWater: 2,
+    out: { reeds: 4.4 },
+    desc: 'Cut on rotation and re-flooded: 4.4 reeds/min, and the marsh regrows behind the knife.',
+  },
+  niledredge: {
+    name: 'Nile Dredge Works', tier: 'food', era: 5, w: 2, h: 2, cost: 490, upkeep: 0.40,
+    icon: '\u{1FAB5}', color: '#9c7b52', workers: 3,
+    out: { clay: 5.2 },
+    desc: 'Silt lifted straight off the riverbed by basket-chain: 5.2 clay/min.',
+  },
+  granitequarry: {
+    name: 'Granite Quarry', tier: 'food', era: 5, w: 2, h: 2, cost: 640, upkeep: 0.54,
+    icon: '\u{26CF}\u{FE0F}', color: '#c2a99a', workers: 4, dryLand: true,
+    out: { stone: 3.6 },
+    desc: 'Aswan granite, split with wedges and floated downriver: 3.6 stone/min.',
+  },
+  palmterracegrove: {
+    name: 'Walled Palm Garden', tier: 'food', era: 5, w: 2, h: 2, cost: 520, upkeep: 0.32,
+    icon: '\u{1F334}', color: '#b8a24e', workers: 3, saltProof: true,
+    out: { dates: 3.2 },
+    desc: 'Walled, watered by shaduf and underplanted: 3.2 dates/min, and it still owes the flood nothing.',
+  },
+  deltafishery: {
+    name: 'Delta Fishery', tier: 'food', era: 5, w: 2, h: 2, cost: 540, upkeep: 0.36,
+    icon: '\u{1F41F}', color: '#5f9ea0', workers: 3, nearWater: 2,
+    out: { fish: 3.8 },
+    desc: 'Seine nets and drying racks across the delta mouths: 3.8 fish/min, and it rises WITH the flood.',
+  },
+
+  granarymill: {
+    name: 'Granary Mill', tier: 'food', era: 5, w: 2, h: 2, cost: 700, upkeep: 0.58,
+    icon: '\u{1F35E}', color: '#d8b878', workers: 4, needsWater: true, grainMill: true,
+    procIn: 'grain', procOut: 'flour', procRate: 5.88, procRatio: 0.6,
+    desc: 'Saddle querns worked in rows by the granary gang: 5.88 flour/min.',
+  },
+  houseoflife: {
+    name: 'House of Life', tier: 'craft', era: 5, w: 2, h: 2, cost: 780, upkeep: 0.64,
+    icon: '\u{1F4DC}', color: '#d8c9a0', workers: 4, needsWater: true,
+    procIn: 'reeds', procOut: 'baskets', procRate: 3.92, procRatio: 0.5,
+    desc: 'The temple workshop where papyrus is beaten, dried and bound: 3.92 rolls/min.',
+  },
+  nomebrickworks: {
+    name: 'Nome Brickworks', tier: 'craft', era: 5, w: 2, h: 2, cost: 640, upkeep: 0.52,
+    icon: '\u{1F9F1}', color: '#a86b4a', workers: 4,
+    procIn: 'clay', procOut: 'mudbrick', procRate: 4.48, procRatio: 0.5,
+    desc: 'Gangs, moulds and a stamped cartouche on every course: 4.48 brick/min.',
+  },
+  dressingfloor: {
+    name: 'Dressing Floor', tier: 'craft', era: 5, w: 2, h: 2, cost: 820, upkeep: 0.70,
+    icon: '\u{1F3D7}\u{FE0F}', color: '#cdbb92', workers: 5,
+    procIn: 'stone', procOut: 'blocks', procRate: 3.36, procRatio: 0.5,
+    desc: 'Copper saws, sand abrasive and a levelled dressing floor: 3.36 blocks/min.',
+  },
+
+  greatscrollmarket: {
+    name: 'Scroll Exchange', tier: 'shop', era: 5, w: 2, h: 2, cost: 1120, upkeep: 0.72,
+    icon: '\u{1F4DC}', color: '#d8c9a0', workers: 3, needsWater: true, needsRoad: true,
+    sells: 'baskets', sellRate: 1.0, sellPrice: 12, custRadius: 7, custMin: 5,
+    desc: 'Papyrus sold by the roll to every temple on the river: 1.0 roll/min.',
+  },
+  greatbrickwharf: {
+    name: 'Brick Harbour', tier: 'shop', era: 5, w: 2, h: 2, cost: 960, upkeep: 0.66,
+    icon: '\u{1F6A2}', color: '#a86b4a', workers: 3, needsWater: true, needsRoad: true,
+    sells: 'mudbrick', sellRate: 2.0, sellPrice: 4.1, custRadius: 7, custMin: 4,
+    desc: 'Barges loading day and night: 2 brick/min out to the building sites.',
+  },
+  greatblockwharf: {
+    name: 'Block Harbour', tier: 'shop', era: 5, w: 2, h: 2, cost: 1040, upkeep: 0.70,
+    icon: '\u{1F6A2}', color: '#cdbb92', workers: 3, needsWater: true, needsRoad: true,
+    sells: 'blocks', sellRate: 1.2, sellPrice: 12, custRadius: 7, custMin: 6,
+    desc: 'Sledges, ramps and a flooded canal to the quay: 1.2 dressed blocks/min.',
+  },
+  greatbazaar: {
+    name: 'Grand Bazaar', tier: 'shop', era: 5, w: 2, h: 2, cost: 1000, upkeep: 0.68,
+    icon: '\u{1F3EA}', color: '#d8b878', workers: 4, needsWater: true, needsRoad: true,
+    sells: 'flour', sellRate: 2.4, sellPrice: 7, custRadius: 7, custMin: 5,
+    desc: 'A covered market street rather than a square: 2.4 flour/min sold.',
+  },
+
+  floodreservoir: {
+    name: 'Flood Reservoir', tier: 'infra', era: 5, w: 2, h: 2, cost: 750, upkeep: 0.32,
+    icon: '\u{1F4A7}', color: '#6fb3cf', waterRadius: 16,
+    desc: 'Banked and sluiced to hold the flood longer: waters 16 tiles instead of 11.',
+  },
+  royalgranary: {
+    name: 'Royal Granary', tier: 'civic', era: 5, w: 2, h: 2, cost: 1400, upkeep: 0.44,
+    icon: '\u{1F3DB}\u{FE0F}', color: '#c9a878', needsWater: true, needsRoad: true,
+    depot: true, storeGrain: 5200, storeFlour: 3400,
+    desc: 'The nomarch\'s own vaults, doubled: 5,200 grain and 3,400 flour under seal.',
+  },
+  greatgranaryeg: {
+    name: 'Double Granary', tier: 'civic', era: 5, w: 2, h: 2, cost: 800, upkeep: 0.30,
+    icon: '\u{1F33E}', color: '#c9a878', needsWater: true, needsRoad: true,
+    storeGrain: 1600, storeFlour: 1000,
+    desc: 'A second vaulted range alongside the first: 1,600 grain and 1,000 flour.',
+  },
+  greatobelisk: {
+    name: 'Paired Obelisks', tier: 'civic', era: 5, w: 1, h: 1, cost: 440, upkeep: 0.10,
+    icon: '\u{1F5FC}', color: '#d6c48d', amenityRadius: 10,
+    desc: 'Two needles flanking the pylon, tipped in electrum: contentment out to 10 tiles.',
+  },
+  threshingcourt: {
+    name: 'Threshing Court', tier: 'food', era: 5, w: 2, h: 2, cost: 380, upkeep: 0.16,
+    icon: '\u{1F33E}', color: '#d8bf86', threshing: true,
+    desc: 'A swept and walled floor with oxen on the sledge: +25% to every field it touches.',
+  },
+  marlbeds: {
+    name: 'Marl Beds', tier: 'infra', era: 5, w: 1, h: 1, cost: 300, upkeep: 0.14,
+    icon: '\u{1F5D1}\u{FE0F}', color: '#8a7a5c', soilRadius: 10,
+    desc: 'Flood silt carted and spread by gang: fields within 10 tiles recover ×3.',
+  },
+  templearchive: {
+    name: 'Temple Archive', tier: 'civic', era: 5, w: 1, h: 1, cost: 640, upkeep: 0.22,
+    icon: '\u{1F4D6}', color: '#d8c9a0', needsWater: true, keepsTally: true,
+    desc: 'The full archive: every rate, every ledger, every year of the river\'s height.',
+  },
+  stonecauseway: {
+    name: 'Stone Causeway', tier: 'infra', era: 5, w: 1, h: 1, cost: 300, upkeep: 0.09,
+    icon: '\u{1F309}', color: '#b5a486', onWater: true, bridge: true,
+    desc: 'A built causeway rather than a ferry landing: the road crosses without waiting.',
+  },
+  greattemple: {
+    name: 'Great Temple', tier: 'civic', era: 5, w: 2, h: 2, cost: 1200, upkeep: 0.42,
+    icon: '\u{1F3EF}', color: '#d9c48a', needsWater: true, needsRoad: true, capRadius: 12,
+    desc: 'Pylon, court and hypostyle hall: +1 housing capacity for every home within 12 tiles.',
+  },
+
   emmerfield: {
     name: 'Emmer Field', tier: 'food', era: 5, w: 2, h: 2, cost: 220, upkeep: 0.24,
     icon: '\u{1F33E}', color: '#a8c258', workers: 2, needsWater: true,
@@ -1792,6 +1926,22 @@ const MONUMENT_GIFT = {
     apply(s) { s.giftHousing = (s.giftHousing | 0) + 1; },
   },
 
+  5: {
+    key: 'store',
+    icon: '\u{1F33E}',
+    title: 'The Granaries of the Two Lands',
+    lead: 'The Pyramid is closed. The last casing stone is set, and the scribes go back to counting grain.',
+    body: 'What outlasts the king is not the mountain on the west bank — it is the ledger. Seven fat years ' +
+          'and seven lean ones taught this valley to hold a surplus, and the men who measured the ' +
+          'Pyramid measured the harvest first.',
+    grant: '<b>Every store you own, in this age and every age after it, holds 25% more — grain, flour, ' +
+           'water and craft goods alike.</b>',
+    toast: '\u{1F33E} The granary ledger is yours. Every store in this age and every age after it holds ' +
+           '25% more.',
+    log: 'Their gift: the administration of a surplus — every store the city will ever build holds more.',
+    apply(s) { s.giftStore = (s.giftStore | 0) + 1; },
+  },
+
 };
 function monumentGift(era) { return MONUMENT_GIFT[rungOf(era)] || null; }
 
@@ -2057,6 +2207,29 @@ const UPGRADES = {
   estate:    { to: 'farm2',      cost: 400, era: 30, label: 'Steam Farm', legacy: true },
 
   emmerfield: { to: 'estate',    cost: 400, era: 5, label: 'Estate Farm' },
+
+  papyrusmarsh:  { to: 'papyrusbeds',       cost: 480, era: 5, label: 'Managed Papyrus Beds' },
+  nileclay:      { to: 'niledredge',        cost: 460, era: 5, label: 'Nile Dredge Works' },
+  desertquarry:  { to: 'granitequarry',     cost: 600, era: 5, label: 'Granite Quarry' },
+  palmgrove:     { to: 'palmterracegrove',  cost: 480, era: 5, label: 'Walled Palm Garden' },
+  nilefishery:   { to: 'deltafishery',      cost: 500, era: 5, label: 'Delta Fishery' },
+  quernhouse:    { to: 'granarymill',        cost: 420, era: 5, label: 'Granary Mill' },
+  scriptorium:   { to: 'houseoflife',       cost: 460, era: 5, label: 'House of Life' },
+  brickfield:    { to: 'nomebrickworks',   cost: 380, era: 5, label: 'Nome Brickworks' },
+  masonsyard:    { to: 'dressingfloor',       cost: 480, era: 5, label: 'Dressing Floor' },
+  scrollmarket:  { to: 'greatscrollmarket', cost: 840, era: 5, label: 'Scroll Exchange' },
+  brickwharf:    { to: 'greatbrickwharf',   cost: 720, era: 5, label: 'Brick Harbour' },
+  blockwharf:    { to: 'greatblockwharf',   cost: 780, era: 5, label: 'Block Harbour' },
+  bazaar:        { to: 'greatbazaar',       cost: 750, era: 5, label: 'Grand Bazaar' },
+  basin:         { to: 'floodreservoir',        cost: 450, era: 5, label: 'Flood Reservoir' },
+  nomarchgranary:{ to: 'royalgranary',      cost: 1050, era: 5, label: 'Royal Granary' },
+  granary:       { to: 'greatgranaryeg',    cost: 600, era: 5, label: 'Double Granary' },
+  obelisk:       { to: 'greatobelisk',      cost: 330, era: 5, label: 'Paired Obelisks' },
+  winnowingfloor:{ to: 'threshingcourt',    cost: 285, era: 5, label: 'Threshing Court' },
+  siltspread:    { to: 'marlbeds',   cost: 225, era: 5, label: 'Marl Beds' },
+  houseofbooks:  { to: 'templearchive', cost: 480, era: 5, label: 'Temple Archive' },
+  ferryquay:     { to: 'stonecauseway',        cost: 225, era: 5, label: 'Stone Causeway' },
+  temple:        { to: 'greattemple',       cost: 900, era: 5, label: 'Great Temple' },
 
   catchment: { to: 'aguada',     cost: 1150, era: 14, label: 'Aguada Reservoir' },
 

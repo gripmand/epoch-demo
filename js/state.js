@@ -28,6 +28,7 @@ const Game = {
 
       eraBase: { flour: 0, food: 0, stone: 0 },
       giftHousing: 0,
+      giftStore: 0,
 
       stock: Game.startStock(granted),
 
@@ -248,6 +249,7 @@ const Game = {
       pendingGift: s.pendingGift ? 1 : 0,
 
       giftHousing: s.giftHousing | 0,
+      giftStore: s.giftStore | 0,
 
       nile: s.nile ? { phase: s.nile.phase | 0, left: Math.round(s.nile.left) } : null,
 
@@ -564,6 +566,7 @@ const Game = {
       freeRank: d.freeRank ? 1 : 0,
       pendingGift: d.pendingGift ? 1 : 0,
       giftHousing: d.giftHousing | 0,
+      giftStore: d.giftStore | 0,
       nile: (d.nile && typeof d.nile === 'object')
         ? { phase: Util.clamp(d.nile.phase | 0, 0, 2), left: Math.max(1, d.nile.left | 0) }
         : null,

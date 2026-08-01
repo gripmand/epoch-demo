@@ -2198,7 +2198,8 @@ const Econ = {
                 'forage'],
 
   capOf(s, kind) {
-    const m = subTier(s).storageMult;
+
+    const m = subTier(s).storageMult * (1 + 0.25 * (s.giftStore | 0));
     const base = TUNE[Econ.BASE_CAP[kind]] || 30;
     if (kind === 'grain' || kind === 'flour' || kind === 'game' || kind === 'pemmican') {
 
