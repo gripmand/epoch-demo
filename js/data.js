@@ -116,6 +116,17 @@ const TUNE = {
 
   ROCK_YIELD: 900,
 
+  SILT: {
+    perSource: 0.0007,
+    dredgePerWorker: 0.0006,
+
+    reachLoss: 0.65,
+    reachFloor: 1,
+
+    warnAt: 0.45,
+    rearmAt: 0.20,
+  },
+
   DEADWOOD_YIELD: 500,
 
   FUEL: { deadwood: 1.0, charcoal: 3.0, bone: 1.0 },
@@ -479,6 +490,8 @@ const ERA_TERRA_LOCK = {
     tree: 'nothing grows here — the standing forest has been dead a thousand years, and no sapling takes in frozen loess',
     fertile: 'no ground on the glacial steppe will take a crop — this age eats what it hunts and gathers',
   },
+
+  4: {},
 };
 function terraCost(kind, era) {
   const e = rungOf(era || (window.G && G.s && G.s.era) || START_ERA);
@@ -947,6 +960,14 @@ const BUILDINGS = {
     icon: '\u{1F4A7}', color: '#7fb4c9', waterRadius: 8,
     desc: 'A lined and roofed reservoir. Waters a much wider radius than a Well.',
   },
+
+  dredgecrew: {
+    name: 'Dredging Crew', tier: 'infra', era: 4, w: 2, h: 2, cost: 180, upkeep: 0.22,
+    icon: '\u{1F6F6}', color: '#8a9a6b', workers: 3, dredge: true,
+    desc: 'Baskets and shoulder-poles: clears 0.0018 silt/min from the whole canal network, wherever it ' +
+      'stands. Roughly ONE CREW PER TWO WELLS keeps the channels open. Needs no road and no water — it is ' +
+      'the one building that still works when the canals have choked, which is how a silted city digs out.',
+  },
   threshing: {
     name: 'Threshing Floor', tier: 'food', era: 4, w: 2, h: 2, cost: 120, upkeep: 0.08,
     icon: '\u{1F33E}', color: '#d8bf86', threshing: true,
@@ -967,12 +988,14 @@ const BUILDINGS = {
     desc: 'Sealed pithoi sunk to the shoulder in the courtyard. +25 grain and +15 flour capacity, NO workers — ' +
       'the famine buffer that does not eat. The Temple Granary stores far more, but it costs six mouths to run.',
   },
+
   datepalm: {
     name: 'Date-Palm Orchard', tier: 'food', era: 4, w: 3, h: 3, cost: 250, upkeep: 0.20,
-    icon: '\u{1F334}', color: '#8fae62', workers: 3, needsWater: true,
-    out: { dates: 0.5 }, saltProof: true,
-    desc: 'Grows 0.5 dates/min, eaten like flour — and it IGNORES the salt clock entirely. On badly salted ' +
-      'ground (soil under 30%) it yields +50%: the palm was Sumer\'s answer to land the barley had ruined.',
+    icon: '\u{1F334}', color: '#8fae62', workers: 3,
+    out: { dates: 1.5 }, saltProof: true,
+    desc: 'Grows 1.5 dates/min, eaten like flour — and it IGNORES the salt clock entirely. Needs NO water ' +
+      'coverage: the palm roots into the water table, so it is the one food that keeps feeding you when the ' +
+      'canals silt up. On badly salted ground (soil under 30%) it yields +50%.',
   },
   saltpan: {
     name: 'Salt Pan Works', tier: 'food', era: 4, w: 2, h: 2, cost: 120, upkeep: 0.12,
@@ -984,9 +1007,11 @@ const BUILDINGS = {
   fishweir: {
     name: 'Fish Weir', tier: 'food', era: 4, w: 1, h: 3, cost: 160, upkeep: 0.15,
     icon: '\u{1F41F}', color: '#6f9fb5', workers: 2, onWater: true,
-    out: { fish: 0.7 },
-    desc: 'A reed fence across the current: 0.7 fish/min, eaten at 75% of flour\'s worth. The first building ' +
-      'that stands IN the water — food with no field, no mill and no salt clock. Bank frontage is now contested.',
+
+    out: { fish: 1.2 },
+    desc: 'A reed fence across the current: 1.2 fish/min, eaten at 75% of flour\'s worth. The first building ' +
+      'that stands IN the water — food with no field, no mill and no salt clock, and it needs no canal, ' +
+      'so it keeps feeding you through a silting. Bank frontage is now contested.',
   },
   breadoven: {
     name: 'Communal Bread Oven', tier: 'food', era: 4, w: 2, h: 2, cost: 240, upkeep: 0.22,
@@ -1016,7 +1041,8 @@ const BUILDINGS = {
   },
   oxbyre: {
     name: 'Ox Byre & Plow Team', tier: 'food', era: 4, w: 2, h: 4, cost: 400, upkeep: 0.30,
-    icon: '\u{1F402}', color: '#9c7f5c', workers: 2, needsWater: true,
+
+    icon: '\u{1F402}', color: '#9c7f5c', workers: 2, needsWater: true, oxTeam: true,
     desc: 'A span of oxen eats 0.4 grain/min as fodder and plows EVERY plowed field within 14 tiles — ' +
       'farms, estates and sesame alike — to +20% yield. There is no limit on how many it serves: the ' +
       'fodder costs the same for two fields or twenty, so it breaks even at two and is pure profit after. ' +
@@ -1081,7 +1107,8 @@ const BUILDINGS = {
   },
   woolbureau: {
     name: 'Wool Bureau', tier: 'civic', era: 4, w: 2, h: 2, cost: 200, upkeep: 0.20,
-    icon: '\u{1F9F6}', color: '#b9a883', workers: 2, needsWater: true,
+
+    icon: '\u{1F9F6}', color: '#b9a883', workers: 2, needsWater: true, woolBureau: true,
     desc: 'The state grading office (radius 20): Weavers in range run 10% SLOWER but every cloth and dyed-cloth ' +
       'shop in range sells at +15% — graded bolts trade better. Worth it only when the SHOP, not the shed, ' +
       'is your bottleneck. Read your own tally first.',
@@ -1114,6 +1141,183 @@ const BUILDINGS = {
     name: 'Date-Palm Garden', tier: 'beauty', era: 4, w: 1, h: 1, cost: 40, upkeep: 0,
     icon: '\u{1F33F}', color: '#7fae62', cosmetic: true,
     desc: 'A watered ornamental garden — one palm, flowers, a bench of brick. The city is allowed to be lovely.',
+  },
+
+  claybeds: {
+    name: 'Levee Clay Beds', tier: 'food', era: 4, w: 2, h: 2, cost: 270, upkeep: 0.26,
+    icon: '\u{1FAB5}', color: '#9c7b52', workers: 3, nearWater: 3,
+    out: { clay: 3.2 },
+    desc: 'The bank cut back and worked in courses: 3.2 clay/min, double the pit it replaces.',
+  },
+  woolflock: {
+    name: 'Great Flock', tier: 'food', era: 4, w: 2, h: 2, cost: 310, upkeep: 0.26,
+    icon: '\u{1F411}', color: '#c9bb9a', workers: 3, dryLand: true,
+    out: { wool: 2.0 },
+    desc: 'Twice the fold and a hired shepherd: 2 wool/min off the dry flats nobody else wants.',
+  },
+  saltworks: {
+    name: 'Salt Boiling Works', tier: 'food', era: 4, w: 2, h: 2, cost: 290, upkeep: 0.22,
+    icon: '\u{1F9C2}', color: '#e2ded0', workers: 3, onSalt: true,
+    out: { salt: 2.0 },
+    desc: 'Brine boiled down in lead pans rather than left to the sun: 2 salt/min, whatever the weather.',
+  },
+  reedbeds: {
+    name: 'Managed Reed Beds', tier: 'food', era: 4, w: 2, h: 2, cost: 250, upkeep: 0.18,
+    icon: '\u{1F33E}', color: '#8fae72', workers: 3, nearWater: 2,
+    out: { reeds: 2.4 },
+    desc: 'Cut on a rotation instead of stripped: 2.4 reeds/min, and the bed comes back every year.',
+  },
+  sesameterrace: {
+    name: 'Sesame Terraces', tier: 'food', era: 4, w: 2, h: 2, cost: 270, upkeep: 0.20,
+    icon: '\u{1F33F}', color: '#c9b672', workers: 3, needsWater: true,
+    out: { sesame: 1.2 },
+    desc: 'Banked and levelled beds: 1.2 sesame/min, and it still salts the ground at only half rate.',
+  },
+
+  palmterrace: {
+    name: 'Terraced Orchard', tier: 'food', era: 4, w: 3, h: 3, cost: 560, upkeep: 0.32,
+    icon: '\u{1F334}', color: '#8fae62', workers: 4,
+    out: { dates: 2.4 }, saltProof: true,
+    desc: 'Palms above, vegetables in their shade — the three-storey orchard Mesopotamia actually ran: ' +
+      '2.4 dates/min. Still needs NO water coverage, so it is still what feeds you through a silting.',
+  },
+  fishtraps: {
+    name: 'Standing Fish Traps', tier: 'food', era: 4, w: 1, h: 3, cost: 380, upkeep: 0.24,
+    icon: '\u{1F41F}', color: '#6f9fb5', workers: 3, onWater: true,
+    out: { fish: 1.9 },
+    desc: 'A permanent weir with sluices and holding pens: 1.9 fish/min, and it fishes through a silting.',
+  },
+
+  templemill: {
+    name: 'Temple Mill', tier: 'food', era: 4, w: 2, h: 2, cost: 420, upkeep: 0.34,
+    icon: '\u{1F35E}', color: '#d8b878', workers: 4, needsWater: true, grainMill: true,
+    procIn: 'grain', procOut: 'flour', procRate: 4.2, procRatio: 0.6,
+    desc: 'The É\'s own mill, worked in shifts: 4.2 flour/min. Still boosts an adjacent field +25% both ways.',
+  },
+  updraftkiln: {
+    name: 'Updraft Kiln', tier: 'craft', era: 4, w: 2, h: 2, cost: 430, upkeep: 0.38,
+    icon: '\u{1F3FA}', color: '#b5713f', workers: 4, needsWater: true,
+    procIn: 'clay', procOut: 'pottery', procRate: 2.8, procRatio: 0.5,
+    desc: 'A chimney draws the fire through the load instead of over it: 2.8 pottery/min, and fewer losses.',
+  },
+  loomhouse: {
+    name: 'Loom House', tier: 'craft', era: 4, w: 2, h: 2, cost: 490, upkeep: 0.40,
+    icon: '\u{1F9F6}', color: '#c2a878', workers: 4, needsWater: true,
+    procIn: 'wool', procOut: 'cloth', procRate: 2.24, procRatio: 0.5,
+    desc: 'Warp-weighted looms under one roof, worked by a guild of women: 2.24 cloth/min.',
+  },
+  ninkasibrewhouse: {
+    name: 'Ninkasi Brewhouse', tier: 'craft', era: 4, w: 2, h: 2, cost: 400, upkeep: 0.36,
+    icon: '\u{1F37A}', color: '#c9a05f', workers: 4, needsWater: true,
+    procIn: 'grain', procOut: 'beer', procRate: 2.8, procRatio: 0.5,
+    desc: 'Brewed to the hymn, in proper vats: 2.8 beer/min. It still drinks the grain your mill wanted.',
+  },
+  firedbrickyard: {
+    name: 'Fired-Brick Yard', tier: 'craft', era: 4, w: 2, h: 2, cost: 370, upkeep: 0.30,
+    icon: '\u{1F9F1}', color: '#a86b4a', workers: 4, needsWater: true,
+    procIn: 'clay', procOut: 'mudbrick', procRate: 2.8, procRatio: 0.5,
+    desc: 'Kiln-fired rather than sun-dried: 2.8 brick/min, and they survive a wet winter.',
+  },
+  matworks: {
+    name: 'Mat & Basket Works', tier: 'craft', era: 4, w: 2, h: 2, cost: 380, upkeep: 0.28,
+    icon: '\u{1F9FA}', color: '#c2a86b', workers: 4, needsWater: true, needsRoad: true,
+    procIn: 'reeds', procOut: 'baskets', procRate: 2.8, procRatio: 0.5,
+    sells: 'baskets', sellRate: 1.1, sellPrice: 8.9, custRadius: 6, custMin: 4,
+    desc: 'Mats, crates, river-boats and roofing: 2.8 baskets/min and it sells them twice as fast.',
+  },
+  beampress: {
+    name: 'Beam Press', tier: 'craft', era: 4, w: 2, h: 2, cost: 520, upkeep: 0.38,
+    icon: '\u{1FAD2}', color: '#b59a5f', workers: 4, needsWater: true, needsRoad: true,
+    procIn: 'sesame', procOut: 'oil', procRate: 2.8, procRatio: 0.5,
+    sells: 'oil', sellRate: 0.8, sellPrice: 13, custRadius: 6, custMin: 5,
+    desc: 'A weighted beam instead of a hand-stone: 2.8 oil/min, sold at twice the rate.',
+  },
+  purplehouse: {
+    name: 'Purple Dye House', tier: 'craft', era: 4, w: 2, h: 2, cost: 660, upkeep: 0.44,
+    icon: '\u{1F7E3}', color: '#7a4a86', workers: 4, needsWater: true, needsRoad: true,
+    procIn: 'cloth', procOut: 'dyedcloth', procRate: 0.84, procRatio: 0.6667,
+    sells: 'dyedcloth', sellRate: 0.6, sellPrice: 26, custRadius: 7, custMin: 6,
+    desc: 'The murex vats — the most valuable thing the age makes: 0.84 dyed cloth/min, sold twice as fast.',
+  },
+
+  potteryhall: {
+    name: 'Pottery Hall', tier: 'shop', era: 4, w: 2, h: 2, cost: 480, upkeep: 0.42,
+    icon: '\u{1F3FA}', color: '#c98f5f', workers: 3, needsWater: true,
+    sells: 'pottery', sellRate: 1.0, sellPrice: 11.5, custRadius: 7, custMin: 5,
+    desc: 'A roofed hall with a standing stock: moves 1 pottery/min, double the stall.',
+  },
+  clothexchange: {
+    name: 'Cloth Exchange', tier: 'shop', era: 4, w: 2, h: 2, cost: 640, upkeep: 0.50,
+    icon: '\u{1F9F5}', color: '#b58fc9', workers: 3, needsWater: true,
+    sells: 'cloth', sellRate: 0.8, sellPrice: 18.75, custRadius: 7, custMin: 6,
+    desc: 'Cloth sold by weight against sealed tablets: 0.8 cloth/min, twice the hall it replaces.',
+  },
+  greatalehouse: {
+    name: 'Great Alehouse', tier: 'shop', era: 4, w: 2, h: 2, cost: 440, upkeep: 0.40,
+    icon: '\u{1F37B}', color: '#c9a05f', workers: 3, needsWater: true,
+    sells: 'beer', sellRate: 1.4, sellPrice: 6.8, custRadius: 7, custMin: 5,
+    desc: 'Benches, a doorkeeper and a tally on the wall: 1.4 beer/min out the door.',
+  },
+  rawmarket: {
+    name: 'Raw Goods Row', tier: 'shop', era: 4, w: 1, h: 2, cost: 300, upkeep: 0.26,
+    icon: '\u{1F6D2}', color: '#c2a878', workers: 2, needsWater: true, needsRoad: true,
+    sellsRaw: ['salt', 'grain', 'clay', 'wool', 'reeds'], sellRate: 3.0, custRadius: 6, custMin: 4,
+    desc: 'A whole row of stalls rather than one: clears raw goods at 3.0/min.',
+  },
+
+  gardencourt: {
+    name: 'Garden Court', tier: 'beauty', era: 4, w: 1, h: 1, cost: 170, upkeep: 0.09,
+    icon: '\u{1F333}', color: '#6faf62', capRadius: 29,
+    desc: 'Water, shade and a bench: homes within 29 tiles hold more people.',
+  },
+  compostyard: {
+    name: 'Compost Yard', tier: 'infra', era: 4, w: 1, h: 1, cost: 190, upkeep: 0.14,
+    icon: '\u{1F5D1}\u{FE0F}', color: '#8a7a5c', soilRadius: 7,
+    desc: 'Night soil and river mud turned and carted: fields within 7 tiles recover ×3.',
+  },
+  terracedshrine: {
+    name: 'Terraced Shrine', tier: 'beauty', era: 4, w: 1, h: 1, cost: 190, upkeep: 0.14,
+    icon: '\u{1F54C}', color: '#c9b48f', amenityRadius: 12,
+    desc: 'A stepped platform and a standing god: contentment out to 12 tiles.',
+  },
+  districtbakehouse: {
+    name: 'District Bakehouse', tier: 'food', era: 4, w: 2, h: 2, cost: 480, upkeep: 0.34,
+    icon: '\u{1F956}', color: '#c98f5f', workers: 3, needsWater: true, needsRoad: true, ovenRadius: 12,
+    desc: 'Loaves for a whole quarter: homes within 12 tiles eat 15% less flour.',
+  },
+  silvermint: {
+    name: 'Silver Mint', tier: 'civic', era: 4, w: 2, h: 3, cost: 1050, upkeep: 0.62,
+    icon: '\u{1FA99}', color: '#b8b8c2', workers: 5, needsWater: true, needsRoad: true, weighRadius: 14,
+    desc: 'Sealed and stamped silver by the shekel: trade bonus out to 14 tiles.',
+  },
+  chainshaduf: {
+    name: 'Chain Shaduf', tier: 'infra', era: 4, w: 1, h: 1, cost: 250, upkeep: 0.16,
+    icon: '\u{1F573}\u{FE0F}', color: '#7fb4c9', workers: 2, needsWater: true, soilRadius: 6,
+    desc: 'Two lifts in series reach further up the bank: fields within 6 tiles recover ×3.',
+  },
+  sealedjarstore: {
+    name: 'Sealed Jar Store', tier: 'infra', era: 4, w: 1, h: 1, cost: 180, upkeep: 0.08,
+    icon: '\u{1F3FA}', color: '#c2a06b', storeGrain: 500, storeFlour: 300,
+    desc: 'Pitch-sealed and stamped: holds 500 grain and 300 flour, twice the loose cluster.',
+  },
+  greatstorehouse: {
+    name: 'Great Storehouse of the É', tier: 'civic', era: 4, w: 4, h: 4, cost: 1500, upkeep: 0.52,
+    icon: '\u{1F3DB}\u{FE0F}', color: '#c9a878', workers: 7, needsWater: true, needsRoad: true,
+    depot: true, storeGrain: 4200, storeFlour: 2600,
+    desc: 'The god\'s own granary, doubled and re-roofed: 4,200 grain and 2,600 flour under seal.',
+  },
+  craftwarehouse: {
+    name: 'Craft Warehouse', tier: 'civic', era: 4, w: 2, h: 2, cost: 420, upkeep: 0.30,
+    icon: '\u{1F4E6}', color: '#b59a72', workers: 3, needsWater: true, needsRoad: true,
+    depot: true, storeCraft: 400,
+    desc: 'Racked and ledgered: 400 craft goods held against the caravan season, double the storehouse.',
+  },
+
+  canalcorps: {
+    name: 'Canal Corps', tier: 'infra', era: 4, w: 2, h: 2, cost: 330, upkeep: 0.34,
+    icon: '\u{1F6F6}', color: '#8a9a6b', workers: 4, dredge: true, dredgePower: 1.5,
+    desc: 'A standing gang with sledges, baskets and a foreman who keeps a tally: clears 0.0036 silt/min, ' +
+      'double a Dredging Crew — about one Corps per FOUR wells. Still needs no road and no water.',
   },
 
   emmerfield: {
@@ -1160,13 +1364,13 @@ const BUILDINGS = {
     icon: '\u{1F35E}', color: '#d8b878', workers: 3, needsWater: true,
 
     grainMill: true,
-    procIn: 'grain', procOut: 'flour', procRate: 4.2, procRatio: 0.6,
+    procIn: 'grain', procOut: 'flour', procRate: 4.2, procRatio: 0.6, procRatio: 0.6,
     desc: 'Grinds 4.2 grain/min into flour. Egypt paid its wages in bread — this is the payroll.',
   },
   scriptorium: {
     name: 'Scriptorium', tier: 'food', era: 5, w: 2, h: 2, cost: 460, upkeep: 0.46,
     icon: '\u{1F4DC}', color: '#cfc09a', workers: 3, needsWater: true,
-    procIn: 'reeds', procOut: 'baskets', procRate: 2.8, procRatio: 0.5,
+    procIn: 'reeds', procOut: 'baskets', procRate: 2.8, procRatio: 0.5, procRatio: 0.5,
     desc: 'Splits, presses and dries papyrus into sheets: 2.8 reeds/min. The richest thing this age makes.',
   },
   brickfield: {
@@ -1707,6 +1911,8 @@ const RP_WEIGHT = {
   templeGranary: 1.2, granary: 0.8, temple: 0.6, scribe: 0.5, threshing: 0.3,
   house: 0.3, villa: 0.3, stonehouse: 0.3,
   well: 0.1, cistern: 0.15, canalwell: 0.15, aqueduct: 0.2, coal: 1.0,
+
+  dredgecrew: 0.2,
   park: 0.2, midden: 0.2, road: 0,
 
   datepalm: 1.0, saltpan: 1.0, fishweir: 1.0, sesamefield: 1.0, reedcutter: 1.0,
@@ -1811,6 +2017,36 @@ function rankUpCost(d, fromRank) {
 const UPGRADES = {
 
   well:      { to: 'cistern',    cost: 160, era: 4, label: 'Cistern' },
+
+  claypit:      { to: 'claybeds',         cost: 220, era: 4, label: 'Levee Clay Beds' },
+  sheepfold:    { to: 'woolflock',        cost: 260, era: 4, label: 'Great Flock' },
+  saltpan:      { to: 'saltworks',        cost: 240, era: 4, label: 'Salt Boiling Works' },
+  reedcutter:   { to: 'reedbeds',         cost: 200, era: 4, label: 'Managed Reed Beds' },
+  sesamefield:  { to: 'sesameterrace',    cost: 220, era: 4, label: 'Sesame Terraces' },
+  datepalm:     { to: 'palmterrace',      cost: 500, era: 4, label: 'Terraced Orchard' },
+  fishweir:     { to: 'fishtraps',        cost: 320, era: 4, label: 'Standing Fish Traps' },
+  mill:         { to: 'templemill',       cost: 260, era: 4, label: 'Temple Mill' },
+  kiln:         { to: 'updraftkiln',      cost: 260, era: 4, label: 'Updraft Kiln' },
+  weaver:       { to: 'loomhouse',        cost: 300, era: 4, label: 'Loom House' },
+  brewery:      { to: 'ninkasibrewhouse', cost: 240, era: 4, label: 'Ninkasi Brewhouse' },
+  brickyard:    { to: 'firedbrickyard',   cost: 220, era: 4, label: 'Fired-Brick Yard' },
+  basketweaver: { to: 'matworks',         cost: 250, era: 4, label: 'Mat & Basket Works' },
+  oilpress:     { to: 'beampress',        cost: 340, era: 4, label: 'Beam Press' },
+  dyeworks:     { to: 'purplehouse',      cost: 440, era: 4, label: 'Purple Dye House' },
+  potterystall: { to: 'potteryhall',      cost: 360, era: 4, label: 'Pottery Hall' },
+  clothhall:    { to: 'clothexchange',    cost: 480, era: 4, label: 'Cloth Exchange' },
+  tavern:       { to: 'greatalehouse',    cost: 330, era: 4, label: 'Great Alehouse' },
+  rawstall:     { to: 'rawmarket',        cost: 210, era: 4, label: 'Raw Goods Row' },
+  park:         { to: 'gardencourt',      cost: 120, era: 4, label: 'Garden Court' },
+  midden:       { to: 'compostyard',      cost: 140, era: 4, label: 'Compost Yard' },
+  shrine:       { to: 'terracedshrine',   cost: 140, era: 4, label: 'Terraced Shrine' },
+  breadoven:    { to: 'districtbakehouse', cost: 360, era: 4, label: 'District Bakehouse' },
+  weighhouse:   { to: 'silvermint',       cost: 750, era: 4, label: 'Silver Mint' },
+  shaduf:       { to: 'chainshaduf',      cost: 180, era: 4, label: 'Chain Shaduf' },
+  jarcluster:   { to: 'sealedjarstore',   cost: 120, era: 4, label: 'Sealed Jar Store' },
+  templeGranary:{ to: 'greatstorehouse',  cost: 900, era: 4, label: 'Great Storehouse of the É' },
+  storehouse:   { to: 'craftwarehouse',   cost: 300, era: 4, label: 'Craft Warehouse' },
+  dredgecrew:   { to: 'canalcorps',       cost: 210, era: 4, label: 'Canal Corps' },
   farm:      { to: 'estate',     cost: 280, era: 5, label: 'Estate Farm', legacy: true },
   house:     { to: 'villa',      cost: 220, era: 5, label: 'Villa', legacy: true },
   market:    { to: 'bazaar',     cost: 320, era: 5, label: 'Bazaar', legacy: true },

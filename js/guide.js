@@ -146,11 +146,17 @@ const ERA_SITE = {
     roadYes: '<b>Houses, the Market, the Temple Granary, the Bread Oven, the Raw Goods Stall, the Weigh-House, ' +
       'the Runner Post, the Tablet House, the Craft Storehouse, the Basket Weaver, the Oil Press, the Dye Works, ' +
       'the Wool Bureau and the Ziggurat</b>',
-    roadNo: 'Farms, mills, wells, middens, threshing floors, clay pits, kilns, sheepfolds, weavers, breweries — ' +
-      'and, less obviously, the Pottery Stall, the Cloth Hall and the Tavern',
-    water: 'Most buildings must sit inside a <b>Well’s</b> five tiles, or a <b>Cistern’s</b> eight. ' +
-      'Press <b>O</b> to see it.',
-    extra: [],
+    roadNo: 'Farms, mills, wells, middens, threshing floors, clay pits, kilns, sheepfolds, weavers, breweries, ' +
+      'Dredging Crews, Date-Palm Orchards and Fish Weirs — and, less obviously, the Pottery Stall, ' +
+      'the Cloth Hall and the Tavern',
+    water: 'Most buildings must sit inside a <b>Well’s</b> five tiles, or a <b>Cistern’s</b> eight — ' +
+      'and those rings SHRINK as the canals silt up. Press <b>O</b> to see them.',
+
+    extra: ['<b>The canals.</b> Every well silts the channels a little every minute, and a silted ' +
+      'channel reaches less ground, so buildings drop out of coverage from the edge inward. A <b>Dredging ' +
+      'Crew</b> clears it — roughly one per two wells — and it needs no road and no water, so it still ' +
+      'works when everything else has stopped. The <b>Date-Palm Orchard</b> and the <b>Fish Weir</b> need ' +
+      'no water either: they are what feed you while you dig out. Watch the 🛶 chip.'],
   },
   5: {
     roadYes: '<b>Villas, the Bazaar, the Granary, the Nomarch’s Granary, the Temple, the Scroll Market, ' +
@@ -209,10 +215,15 @@ const ERA_GUIDES = {
   4: {
 
     headline: 'Grain feeds your people. CRAFT GOODS make you rich.',
-    mechanic: 'Cropped ground slowly turns salty and yields less — press O twice for the SALT MAP. ' +
+
+    mechanic: 'KEEP THE CANALS OPEN. Every well you sink silts up the channels a little faster, and as the ' +
+      'silt rises every well reaches LESS GROUND — watch the 🛶 chip, which shows how choked they are and how ' +
+      'long you have. A DREDGING CREW clears it: about one per two wells. Another well makes it worse, not ' +
+      'better. Let it choke and everything that needs water stops — but Date Palms and Fish Weirs need none, ' +
+      'so the city still eats while you dig out. ' +
+      'And cropped ground separately turns salty and yields less — press O twice for the SALT MAP. ' +
       'Leave a field fallow and it recovers; a Midden or Shaduf in range, or a spot beside water, speeds that up ×3; ' +
-      'Date Palms simply ignore the salt and thrive on ruined ground; Sesame salts it at half rate. ' +
-      'So you rotate fields, convert the worst ground, and buy more land. Stone, when you reach it, has no recovery at all.',
+      'Date Palms ignore the salt and thrive on ruined ground; Sesame salts it at half rate.',
     chain: [
 
       'Farm → Mill → Market  ·  $36/min. Feeds the city; the food chain barely pays, it just keeps everyone alive',

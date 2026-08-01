@@ -18,6 +18,8 @@ const UI = {
     UI.els.waterChip = document.getElementById('chip-water');
     UI.els.seasonChip = document.getElementById('chip-season');
     UI.els.fuelChip = document.getElementById('chip-fuel');
+    UI.els.siltChip = document.getElementById('chip-silt');
+    UI.els.silt = document.getElementById('hud-silt');
 
     UI.buildPalette();
 
@@ -715,6 +717,25 @@ const UI = {
         ((s.chill || 0) > 0.02 ? '. CHILL at ' + Math.round(s.chill * 100) + '% — people freeze out at 100%.' : '.');
     }
 
+    const showSilt = Econ.canalActive(s);
+    if (UI.els.siltChip) {
+      UI.els.siltChip.classList.toggle('hidden', !showSilt);
+      UI.els.siltChip.style.display = showSilt ? '' : 'none';
+    }
+    if (showSilt && UI.els.silt) {
+      const f = Econ.siltForecast(s);
+      let txt = Math.round(f.silt * 100) + '%';
+      if (f.secs !== Infinity && f.secs < 3600) txt += ' · ' + Math.round(f.secs) + 's';
+      UI.els.silt.textContent = txt;
+      UI.els.siltChip.classList.toggle('bad', f.silt >= 0.75);
+      UI.els.siltChip.classList.toggle('warn', f.silt < 0.75 && (f.silt >= TUNE.SILT.warnAt || f.secs < 180));
+      UI.els.siltChip.title = 'The canals are ' + Math.round(f.silt * 100) + '% silted. ' +
+        Econ.siltSources(s) + ' wells lay down ' + (f.gain * TUNE.TEMPO).toFixed(2) +
+        '/min; your dredging crews clear ' + (f.clear * TUNE.TEMPO).toFixed(2) + '/min — ' + f.text +
+        '. Every well reaches ' + Math.round(Econ.canalReach(s) * 100) + '% of its range at this level. ' +
+        'One Dredging Crew per two wells keeps it open; another WELL makes it worse.';
+    }
+
     const era = ERAS[s.era - 1];
     const ready = Econ.eraReady(s);
     UI.els.era.classList.toggle('ready', ready);
@@ -831,7 +852,9 @@ const UI = {
 
       ok: ['RUNNING', 'good'], no_road: ['NO ROAD to ' + anchorFor(G.s.era).name, 'bad'],
 
-      no_water: [G.cache.brownout ? 'BROWNED OUT — the tank is empty' : 'NO WATER coverage', 'bad'],
+      no_water: [Econ.canalActive(G.s) && (G.s.silt || 0) > 0.15
+        ? 'THE CANALS ARE ' + Math.round((G.s.silt || 0) * 100) + '% SILTED — out of what the wells still reach'
+        : G.cache.brownout ? 'BROWNED OUT — the tank is empty' : 'NO WATER coverage', 'bad'],
       no_power: ['NO POWER', 'bad'],
 
       no_warmth: [G.cache.dark ? 'THE FIRES ARE DARK — no fuel' : 'OUTSIDE every hearth circle', 'bad'],

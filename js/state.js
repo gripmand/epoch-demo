@@ -69,6 +69,8 @@ const Game = {
       policyRation: false,
       season: null,
 
+      silt: 0,
+
       chill: 0,
       woodSpent: {},
       herds: null,
@@ -253,6 +255,8 @@ const Game = {
       policyRation: !!s.policyRation,
 
       chill: +s.chill || 0,
+
+      silt: +s.silt || 0,
       woodSpent: s.woodSpent || {},
       herds: s.herds || null,
 
@@ -569,6 +573,8 @@ const Game = {
         : null,
       policyRation: !!d.policyRation,
       chill: Util.clamp(+d.chill || 0, 0, 1),
+
+      silt: Util.clamp(+d.silt || 0, 0, 1),
       woodSpent: d.woodSpent || {},
       herds: Array.isArray(d.herds) ? d.herds.filter(h => h && h.kind && TUNE.HERDS.counts[h.kind] !== undefined)
         .map(h => ({ id: h.id | 0, kind: h.kind, x: +h.x || 0, y: +h.y || 0, heading: +h.heading || 0 })) : null,

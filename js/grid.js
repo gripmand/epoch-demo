@@ -863,10 +863,11 @@ const Grid = {
     const industry = s.buildings.filter(b => DEF(b.type).industry);
     const shops = s.buildings.filter(b => DEF(b.type).sells);
     const homes = s.buildings.filter(b => DEF(b.type).cap);
-    const ovens = s.buildings.filter(b => b.type === 'breadoven');
-    const weighs = s.buildings.filter(b => b.type === 'weighhouse');
-    const bureaus = s.buildings.filter(b => b.type === 'woolbureau');
-    const byres = s.buildings.filter(b => b.type === 'oxbyre');
+
+    const ovens = s.buildings.filter(b => DEF(b.type).ovenRadius);
+    const weighs = s.buildings.filter(b => DEF(b.type).weighRadius);
+    const bureaus = s.buildings.filter(b => DEF(b.type).woolBureau);
+    const byres = s.buildings.filter(b => DEF(b.type).oxTeam);
 
     const scribes = s.buildings.filter(b => DEF(b.type).keepsTally && b.done !== false);
 

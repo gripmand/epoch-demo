@@ -99,6 +99,8 @@ const Econ = {
 
     Econ.seasonTick(s, offline);
 
+    Econ.siltTick(s, offline);
+
     Econ.stampWater(s);
 
     Econ.nileTick(s, offline);
@@ -165,9 +167,11 @@ const Econ = {
 
     C.fedByres = new Set();
     for (const b of byPlaced) {
-      if (b.type !== 'oxbyre') continue;
+
+      const dOx = DEF(b.type);
+      if (!dOx || !dOx.oxTeam) continue;
       if (b.block || !b.staff) continue;
-      const want = TUNE.OX.fodder * (b.staff / DEF('oxbyre').workers) * Econ.M;
+      const want = TUNE.OX.fodder * (b.staff / dOx.workers) * Econ.M;
       if (want > 0 && s.stock.grain >= want) {
         s.stock.grain -= want;
         Econ.note('grain', 0, want);
@@ -264,7 +268,7 @@ const Econ = {
           income += dues;
           C.tickDues += dues;
         }
-      } else if (b.type === 'oxbyre' && !b.mothballed) {
+      } else if (d.oxTeam && !b.mothballed) {
         b.status = b.block ? b.block
           : b.staff === 0 ? 'no_staff'
           : C.fedByres.has(b.id) ? (b.staff < d.workers ? 'understaffed' : 'ok')
@@ -284,7 +288,7 @@ const Econ = {
     for (const b of byPlaced) {
       const d = DEF(b.type);
       if (!d.out || !d.workers || b.mothballed) continue;
-      if (b.type === 'oxbyre') continue;
+      if (d.oxTeam) continue;
 
       if (b.resting) {
         b.soil = Grid.soilUnder(b);
@@ -1571,6 +1575,72 @@ const Econ = {
 
   hearthActive(s) { return rungOf(s.era) === 1; },
 
+  canalActive(s) { return rungOf(s.era) === 4; },
+
+  siltSources(s) {
+    let n = 0;
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d || !d.waterRadius || b.mothballed || b.done === false) continue;
+      n++;
+    }
+    return n;
+  },
+
+  dredgeRate(s) {
+    let w = 0;
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d || !d.dredge || b.mothballed || b.done === false || b.block) continue;
+      w += (b.staff || 0) * (d.dredgePower || 1);
+    }
+    return w * TUNE.SILT.dredgePerWorker;
+  },
+
+  siltForecast(s) {
+    const gain = Econ.siltSources(s) * TUNE.SILT.perSource;
+    const clear = Econ.dredgeRate(s);
+    const net = gain - clear;
+    const silt = s.silt || 0;
+    if (net <= 0) {
+      return { net, gain, clear, silt, secs: Infinity,
+               text: silt > 0.01 ? 'the crews are gaining on it' : 'the channels run clear' };
+    }
+
+    const secs = (1 - silt) / (net * Econ.M);
+    return { net, gain, clear, silt, secs,
+             text: Math.round(secs) + 's until the canals choke' };
+  },
+
+  canalReach(s) {
+    if (!Econ.canalActive(s)) return 1;
+    return Math.max(0, 1 - TUNE.SILT.reachLoss * (s.silt || 0));
+  },
+
+  siltTick(s, offline) {
+    const C = G.cache;
+    C.siltNet = 0;
+    if (!Econ.canalActive(s)) { C.siltChoked = false; return; }
+    const f = Econ.siltForecast(s);
+    C.siltNet = f.net;
+
+    if (!offline) s.silt = Util.clamp((s.silt || 0) + f.net * Econ.M, 0, 1);
+    C.siltChoked = (s.silt || 0) >= 0.999;
+
+    if (offline) return;
+    if ((s.silt || 0) < TUNE.SILT.rearmAt) C.siltTold = 0;
+    else if (!C.siltTold && (s.silt || 0) >= TUNE.SILT.warnAt) {
+      C.siltTold = 1;
+      Econ.log(s, '\u{1F6F6}', 'The channels are silting — the wells reach less ground than they did.');
+      UI.toast('\u{1F6F6} THE CANALS ARE SILTING — ' + Math.round((s.silt || 0) * 100) +
+        '% choked, and every well is already reaching less ground. ' +
+        Econ.siltSources(s) + ' wells lay down ' + (f.gain * TUNE.TEMPO).toFixed(2) +
+        '/min; your crews clear ' + (f.clear * TUNE.TEMPO).toFixed(2) +
+        '/min. Build a DREDGING CREW — about one per two wells. Another well makes it worse, ' +
+        'not better: it is one more channel to keep clear.', 15000);
+    }
+  },
+
   HERD_NAMES: { mammoth: 'woolly mammoth', bison: 'steppe bison', rhino: 'woolly rhinoceros', sabertooth: 'sabertooth' },
   HERD_ICON: { mammoth: '\u{1F9A3}', bison: '\u{1F9AC}', rhino: '\u{1F98F}', sabertooth: '\u{1F405}' },
 
@@ -1997,6 +2067,20 @@ const Econ = {
 
   stampWater(s) {
     const C = G.cache;
+
+    if (Econ.canalActive(s)) {
+      const reach = Econ.canalReach(s);
+      C.water.fill(0);
+      for (const b of s.buildings) {
+        const d = DEF(b.type);
+        if (!d.waterRadius || b.done === false || b.mothballed) continue;
+
+        const r = Math.max(TUNE.SILT.reachFloor,
+                           Math.round((d.waterRadius + rankRadiusBonus(b)) * reach));
+        Grid.stampRadiusCircle(C.water, b, r);
+      }
+      return;
+    }
     if (!Econ.tankActive(s)) return;
     const dry = (s.stock.water || 0) <= 0;
     C.brownout = dry;
