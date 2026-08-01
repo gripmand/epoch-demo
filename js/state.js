@@ -29,6 +29,7 @@ const Game = {
       eraBase: { flour: 0, food: 0, stone: 0 },
       giftHousing: 0,
       giftStore: 0,
+      giftRank: 0,
 
       stock: Game.startStock(granted),
 
@@ -250,6 +251,7 @@ const Game = {
 
       giftHousing: s.giftHousing | 0,
       giftStore: s.giftStore | 0,
+      giftRank: s.giftRank | 0,
 
       nile: s.nile ? { phase: s.nile.phase | 0, left: Math.round(s.nile.left) } : null,
 
@@ -567,6 +569,7 @@ const Game = {
       pendingGift: d.pendingGift ? 1 : 0,
       giftHousing: d.giftHousing | 0,
       giftStore: d.giftStore | 0,
+      giftRank: d.giftRank | 0,
       nile: (d.nile && typeof d.nile === 'object')
         ? { phase: Util.clamp(d.nile.phase | 0, 0, 2), left: Math.max(1, d.nile.left | 0) }
         : null,
@@ -619,7 +622,7 @@ const Game = {
           beerWageCredit: +b.beerWageCredit || 0,
           name: typeof b.name === 'string' && b.name ? b.name.slice(0, 40) : undefined,
 
-          rank: Util.clamp(Math.round(+b.rank || 1), 1, RANK.max),
+          rank: Util.clamp(Math.round(+b.rank || 1), 1, RANK.max + (d.giftRank | 0)),
 
           delivered: b.delivered || {},
           complete: BUILDINGS[b.type].monument ? (b.delivered === undefined ? true : !!b.complete) : false,

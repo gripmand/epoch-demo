@@ -962,7 +962,7 @@ const UI = {
       if (rankOutMult(b) > 1.001) rBits.push('+' + Math.round((rankOutMult(b) - 1) * 100) + '% output');
       if (rankPriceMult(b) > 1.001) rBits.push('+' + Math.round((rankPriceMult(b) - 1) * 100) + '% price');
       rows += '<div class="insp-row"><span>Rank</span><span class="' + (r > 1 ? 'good' : '') + '">' +
-        r + ' of ' + RANK.max + (rBits.length ? ' · ' + rBits.join(' · ') : ' (base)') +
+        r + ' of ' + rankMax(G.s) + (rBits.length ? ' · ' + rBits.join(' · ') : ' (base)') +
         '</span></div>';
     }
     const row = (l, v) => '<div class="insp-row"><span>' + l + '</span><span>' + v + '</span></div>';
@@ -1497,7 +1497,7 @@ const UI = {
 
     if (rankUpgradable(d)) {
       const r = rankOf(b);
-      if (r < RANK.max) {
+      if (r < rankMax(G.s)) {
 
         const disc = Econ.rankDiscount(s);
         const cost = Math.round(rankUpCost(d, r) * disc / 10) * 10;
@@ -1675,7 +1675,7 @@ const UI = {
     };
     const buyRank = asPrice => {
       const r = rankOf(b);
-      if (r >= RANK.max) return;
+      if (r >= rankMax(G.s)) return;
 
       const cost = s.freeRank ? 0 : Math.round(rankUpCost(d, r) * Econ.rankDiscount(s) / 10) * 10;
       if (s.money < cost) return;

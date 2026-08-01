@@ -497,6 +497,11 @@ const ERA_TERRA_LOCK = {
     water: 'the river is the river — Egypt is given one Nile and builds around what it does, ' +
       'and a channel you dug yourself would make the Inundation something you could opt out of',
   },
+
+  14: {
+    fertile: 'there is no deep soil to buy in the Petén — it is a few inches of leaf mould over ' +
+      'limestone, and the only rich ground here is ground you made with ash and terraces',
+  },
 };
 function terraCost(kind, era) {
   const e = rungOf(era || (window.G && G.s && G.s.era) || START_ERA);
@@ -1830,6 +1835,167 @@ const BUILDINGS = {
       '+1 housing capacity for EVERY home within 20 tiles — the shared ground a Maya city forms ' +
       'around. One is enough; a second adds nothing to a home already covered.',
   },
+
+  deepcenote: {
+    name: 'Deep Cenote Stair', tier: 'infra', era: 14, w: 2, h: 2, cost: 1120, upkeep: 0.86,
+    icon: '\u{1F573}\u{FE0F}', color: '#5da4c9', workers: 3, onWater: true,
+    out: { water: 3.6 },
+    desc: 'Cut further down to the water table, with a second stair: 3.6 water/min, and it still ' +
+      'ignores the season entirely.',
+  },
+  swiddenfield: {
+    name: 'Swidden Field', tier: 'food', era: 14, w: 3, h: 3, cost: 1000, upkeep: 0.82,
+    icon: '\u{1F33D}', color: '#9cb464', workers: 4, dryLand: true,
+    out: { grain: 8.4 },
+    desc: 'Cut, burned and cropped on a proper rotation: 8.4 maize/min. Rain-fed like the Milpa, ' +
+      'so it keeps feeding the city straight through a brown-out.',
+  },
+  chinampa: {
+    name: 'Chinampa Bed', tier: 'food', era: 14, w: 3, h: 3, cost: 1200, upkeep: 0.94,
+    icon: '\u{1F33E}', color: '#7fae72', workers: 4, needsWater: true,
+    out: { grain: 6.8 },
+    desc: 'Muck dredged onto staked beds in standing water: 6.8 maize/min off ground that never dries.',
+  },
+  hiverow: {
+    name: 'Stacked Hive Row', tier: 'food', era: 14, w: 2, h: 2, cost: 1120, upkeep: 0.74,
+    icon: '\u{1F41D}', color: '#c9a24e', workers: 3,
+    out: { honey: 3.0 },
+    desc: 'Log hives stacked three high: 3 honey/min. Needs no water and no road — still the one ' +
+      'thing the city eats when the tank is dry.',
+  },
+  deepquarry: {
+    name: 'Terraced Quarry', tier: 'food', era: 14, w: 3, h: 3, cost: 1380, upkeep: 1.16,
+    icon: '\u{26CF}\u{FE0F}', color: '#c2b9a4', workers: 4, onRock: true, industry: true,
+    out: { stone: 8.0 },
+    desc: 'Worked in benches instead of scraped off the top: 8 stone/min. The rock still runs out.',
+  },
+  marlworks: {
+    name: 'Marl Works', tier: 'food', era: 14, w: 2, h: 2, cost: 1060, upkeep: 0.82,
+    icon: '\u{1FAB5}', color: '#a89478', workers: 3, industry: true,
+    out: { clay: 11.4 },
+    desc: 'Sascab dug from a proper shaft and screened: 11.4 marl/min.',
+  },
+  cacaoterrace: {
+    name: 'Shaded Cacao Walk', tier: 'food', era: 14, w: 3, h: 3, cost: 1520, upkeep: 1.02,
+    icon: '\u{1F36B}', color: '#7a5a3f', workers: 4, nearWater: 3,
+    out: { cacao: 4.8 },
+    desc: 'Cacao under a canopy of planted shade trees, watered from the rejollada: 4.8 cacao/min.',
+  },
+
+  limehouse: {
+    name: 'Lime House', tier: 'food', era: 14, w: 2, h: 2, cost: 1630, upkeep: 1.14,
+    icon: '\u{1F35E}', color: '#e0c9a0', workers: 4, needsWater: true, industry: true, grainMill: true,
+    procIn: 'grain', procRate: 12.88, procOut: 'flour', procRatio: 0.65,
+    desc: 'Maize boiled with lime in bulk and ground on fresh metates: 12.88 masa/min.',
+  },
+  sculptorscourt: {
+    name: 'Sculptors\' Court', tier: 'craft', era: 14, w: 2, h: 2, cost: 1840, upkeep: 1.34,
+    icon: '\u{1F5FF}', color: '#b8b0a0', workers: 5, needsWater: true, industry: true,
+    procIn: 'stone', procRate: 7.42, procOut: 'blocks', procRatio: 0.5,
+    desc: 'Dressed and carved to a line rather than squared off: 7.42 blocks/min.',
+  },
+  twinkiln: {
+    name: 'Twin-Chamber Kiln', tier: 'craft', era: 14, w: 2, h: 2, cost: 1460, upkeep: 1.02,
+    icon: '\u{1F3FA}', color: '#c47a52', workers: 4, needsWater: true, industry: true, nearTrees: 4,
+    procIn: 'clay', procRate: 9.8, procOut: 'pottery', procRatio: 0.5,
+    desc: 'Two chambers fired in alternation so one is always cooling: 9.8 vessels/min. Still wants ' +
+      'four standing tree tiles within 3.',
+  },
+  frothhouse: {
+    name: 'Frothing House', tier: 'craft', era: 14, w: 2, h: 2, cost: 2650, upkeep: 1.62,
+    icon: '\u{1F36B}', color: '#5f4030', workers: 4, needsWater: true, industry: true,
+    procIn: 'cacao', procRate: 4.34, procOut: 'chocolate', procRatio: 0.5,
+    desc: 'Poured from height between vessels until it stands in foam: 4.34 chocolate/min.',
+  },
+
+  masaarcade: {
+    name: 'Masa Arcade', tier: 'commerce', era: 14, w: 2, h: 2, cost: 2300, upkeep: 1.34,
+    icon: '\u{1F32E}', color: '#d8b878', workers: 4, needsWater: true, needsRoad: true,
+    sells: 'flour', sellRate: 5.2, sellPrice: 9.5, custRadius: 7, custMin: 8,
+    desc: 'A colonnade of griddles rather than a square: 5.2 masa/min sold.',
+  },
+  blockexchange: {
+    name: 'Cut-Stone Exchange', tier: 'commerce', era: 14, w: 2, h: 2, cost: 2400, upkeep: 1.42,
+    icon: '\u{1F3D7}\u{FE0F}', color: '#b8b0a0', workers: 4, needsWater: true, needsRoad: true,
+    sells: 'blocks', sellRate: 2.6, sellPrice: 16.2, custRadius: 7, custMin: 10,
+    desc: 'Blocks sold against a standing order book: 2.6 blocks/min.',
+  },
+  polychromegallery: {
+    name: 'Painters\' Gallery', tier: 'commerce', era: 14, w: 2, h: 2, cost: 2540, upkeep: 1.72,
+    icon: '\u{1F3FA}', color: '#c47a52', workers: 3, needsWater: true, needsRoad: true,
+    sells: 'pottery', sellRate: 4.8, sellPrice: 21, custRadius: 7, custMin: 12,
+    desc: 'Signed work shown under a roof: 4.8 painted vessels/min.',
+  },
+  cacaocourt: {
+    name: 'Cacao Court', tier: 'commerce', era: 14, w: 2, h: 2, cost: 3400, upkeep: 2.0,
+    icon: '\u{1F36B}', color: '#5f4030', workers: 3, needsWater: true, needsRoad: true,
+    sells: 'chocolate', sellRate: 3.0, sellPrice: 52, custRadius: 7, custMin: 14,
+    desc: 'Where the beans are also the money: 3 chocolate/min at $52. The richest thing in the age.',
+  },
+  tributeplaza: {
+    name: 'Tribute Arcade', tier: 'commerce', era: 14, w: 2, h: 2, cost: 1480, upkeep: 1.0,
+    icon: '\u{1F6D2}', color: '#c2a878', workers: 3, needsWater: true,
+    sellsRaw: ['stone', 'clay', 'cacao', 'honey', 'pottery'], sellRate: 14.6,
+    custRadius: 7, custMin: 8,
+    desc: 'The whole plaza given over to raw tribute: clears 14.6 goods/min.',
+  },
+
+  bottlecistern: {
+    name: 'Bottle Cistern', tier: 'infra', era: 14, w: 1, h: 1, cost: 800, upkeep: 0.22,
+    icon: '\u{1F4A7}', color: '#8fb4c4', storeWater: 176,
+    desc: 'Plastered wider at the belly than the neck: holds 176 water, and it still needs no road, ' +
+      'no water coverage and no workers — the thing that holds the water cannot require the water.',
+  },
+  raisedchannel: {
+    name: 'Raised Channel', tier: 'infra', era: 14, w: 1, h: 1, cost: 1040, upkeep: 0.64,
+    icon: '\u{1F309}', color: '#9db3c9', waterRadius: 16, tankFed: true,
+    desc: 'Carried on piers to hold its fall: waters 16 tiles. Goes dark with the tank, like every channel.',
+  },
+  whiteroad: {
+    name: 'White Road', tier: 'infra', era: 14, w: 1, h: 1, cost: 100, upkeep: 0,
+    icon: '\u{1F6E3}\u{FE0F}', color: '#ddd6c4', onWater: true, bridge: true,
+    desc: 'Limestone-surfaced and raised above the wet: carries the road across, and shows at night.',
+  },
+  burnbeds: {
+    name: 'Burn Beds', tier: 'infra', era: 14, w: 1, h: 1, cost: 690, upkeep: 0.24,
+    icon: '\u{1F5D1}\u{FE0F}', color: '#8a7a5c', soilRadius: 10,
+    desc: 'Ash and muck carted and turned in beds: fields within 10 tiles recover x3.',
+  },
+  hillsidesteps: {
+    name: 'Hillside Steps', tier: 'food', era: 14, w: 2, h: 2, cost: 880, upkeep: 0.30,
+    icon: '\u{1F9F1}', color: '#9a9384', threshing: true,
+    desc: 'Terraces stepped up the whole slope: +25% to every field they touch.',
+  },
+  vaultedbath: {
+    name: 'Vaulted Bath', tier: 'civic', era: 14, w: 1, h: 1, cost: 1010, upkeep: 0.18,
+    icon: '\u{2668}\u{FE0F}', color: '#b09a86', amenityRadius: 12,
+    desc: 'A corbel-vaulted sweat house with its own furnace: contentment out to 12 tiles.',
+  },
+  ringcourt: {
+    name: 'Ring Court', tier: 'civic', era: 14, w: 2, h: 4, cost: 2800, upkeep: 0.88,
+    icon: '\u{1F3DF}\u{FE0F}', color: '#c9b48a', capRadius: 29,
+    desc: 'Sloping benches, stone rings, and room for the whole city: +1 housing capacity within 29 tiles.',
+  },
+  royaltreasury: {
+    name: 'Royal Treasury', tier: 'civic', era: 14, w: 2, h: 2, cost: 3200, upkeep: 0.88,
+    icon: '\u{1F3E6}', color: '#c9a878', needsRoad: true,
+    depot: true, storeGrain: 63000, storeFlour: 15750, storeCraft: 700,
+    desc: 'The whole tribute of a polity under one roof: 63,000 maize, 15,750 masa and 700 craft goods.',
+  },
+  scribalacademy: {
+    name: 'Scribal Academy', tier: 'civic', era: 14, w: 1, h: 1, cost: 1480, upkeep: 0.42,
+    icon: '\u{1F4D6}', color: '#d8c9a0', needsWater: true, keepsTally: true,
+    desc: 'Where the day-count and the tribute rolls are kept and taught: the city reads its own books.',
+  },
+
+  plasterrange: {
+    name: 'Plaster Range', tier: 'housing', era: 14, w: 1, h: 1, cost: 1400, upkeep: 0.30,
+    icon: '\u{1F3E0}', color: '#c9bda4', cap: 17, needsWater: true, needsRoad: true,
+    levels: ['Plaster Room', 'Plaster Range', 'Vaulted Range', 'Painted Range',
+             'Lord\'s Range', 'Ancestor Range'],
+    desc: 'A true corbel vault over plastered walls: houses 17.',
+  },
+
   stela: {
     name: 'Stela', tier: 'beauty', era: 14, w: 1, h: 1, cost: 130, upkeep: 0,
     icon: '\u{1F5FC}', color: '#bdb49c',
@@ -1940,6 +2106,22 @@ const MONUMENT_GIFT = {
            '25% more.',
     log: 'Their gift: the administration of a surplus — every store the city will ever build holds more.',
     apply(s) { s.giftStore = (s.giftStore | 0) + 1; },
+  },
+
+  14: {
+    key: 'rank',
+    icon: '\u{1F5FF}',
+    title: 'The Count Goes On',
+    lead: 'The Temple-Pyramid is finished. The last stela is carved, and the date on it runs past the end of the world.',
+    body: 'They counted in millions of days — forward past every king who would ever stand here, and back to a ' +
+          'morning before the sky was raised. A people who measure that far do not build a thing once. They ' +
+          'build it, and cut the date, and build it better, and cut that date too.',
+    grant: '<b>Every building you own, in this age and every age after it, can be refined ONE RANK further ' +
+           'than its craft would otherwise allow.</b>',
+    toast: '\u{1F5FF} The Long Count is yours. Every building can now take one more rank than before — ' +
+           'in this age and in every age after.',
+    log: 'Their gift: the habit of measuring again — every building can be refined one rank further.',
+    apply(s) { s.giftRank = (s.giftRank | 0) + 1; },
   },
 
 };
@@ -2147,7 +2329,11 @@ function rankUpgradable(d) {
 
   return !!(d.out || d.procIn || d.sells || d.waterRadius || d.warmRadius || d.soilRadius || d.threshing);
 }
-function rankOf(b) { return Util.clamp(Math.round(b && b.rank || 1), 1, RANK.max); }
+
+function rankMax(s) {
+  return RANK.max + (((s || G.s) && ((s || G.s).giftRank | 0)) || 0);
+}
+function rankOf(b) { return Util.clamp(Math.round(b && b.rank || 1), 1, rankMax()); }
 
 function rankOutMult(b) {
   const rateRanks = Math.max(0, rankOf(b) - 1 - (b && b.rankPrice || 0));
@@ -2231,6 +2417,32 @@ const UPGRADES = {
   ferryquay:     { to: 'stonecauseway',        cost: 225, era: 5, label: 'Stone Causeway' },
   temple:        { to: 'greattemple',       cost: 900, era: 5, label: 'Great Temple' },
 
+  cenote:        { to: 'deepcenote',        cost: 1120, era: 14, label: 'Deep Cenote Stair' },
+  milpa:         { to: 'swiddenfield',      cost: 1000, era: 14, label: 'Swidden Field' },
+  raisedfield:   { to: 'chinampa',          cost: 1200, era: 14, label: 'Chinampa Bed' },
+  apiary:        { to: 'hiverow',       cost: 1120, era: 14, label: 'Stacked Hive Row' },
+  quarry:        { to: 'deepquarry',        cost: 1380, era: 14, label: 'Terraced Quarry' },
+  marlpit:       { to: 'marlworks',         cost: 1060, era: 14, label: 'Marl Works' },
+  cacaogrove:    { to: 'cacaoterrace',      cost: 1520, era: 14, label: 'Shaded Cacao Walk' },
+  nixtamal:      { to: 'limehouse',    cost: 970,  era: 14, label: 'Lime House' },
+  stonecutter:   { to: 'sculptorscourt',       cost: 1100, era: 14, label: 'Sculptors\' Court' },
+  polykiln:      { to: 'twinkiln',          cost: 875,  era: 14, label: 'Twin-Chamber Kiln' },
+  grindinghouse: { to: 'frothhouse',        cost: 1590, era: 14, label: 'Frothing House' },
+  tortillaplaza: { to: 'masaarcade',    cost: 1725, era: 14, label: 'Masa Arcade' },
+  stoneyard:     { to: 'blockexchange',     cost: 1800, era: 14, label: 'Cut-Stone Exchange' },
+  vasemarket:    { to: 'polychromegallery', cost: 1905, era: 14, label: 'Painters\' Gallery' },
+  chocolatehouse:{ to: 'cacaocourt',        cost: 2550, era: 14, label: 'Cacao Court' },
+  marketplaza:   { to: 'tributeplaza',      cost: 1110, era: 14, label: 'Tribute Arcade' },
+  chultun:       { to: 'bottlecistern',      cost: 600,  era: 14, label: 'Bottle Cistern' },
+  aqueduct:      { to: 'raisedchannel',     cost: 780,  era: 14, label: 'Raised Channel' },
+  sacbe:         { to: 'whiteroad',        cost: 60,   era: 14, label: 'White Road' },
+  ashspread:     { to: 'burnbeds',    cost: 520,  era: 14, label: 'Burn Beds' },
+  terracewall:   { to: 'hillsidesteps',      cost: 660,  era: 14, label: 'Hillside Steps' },
+  temazcal:      { to: 'vaultedbath',     cost: 760,  era: 14, label: 'Vaulted Bath' },
+  ballcourt:     { to: 'ringcourt',    cost: 2100, era: 14, label: 'Ring Court' },
+  tributestore:  { to: 'royaltreasury', cost: 2415, era: 14, label: 'Royal Treasury' },
+  codexhouse:    { to: 'scribalacademy',   cost: 1110, era: 14, label: 'Scribal Academy' },
+  stonehouse:    { to: 'plasterrange',   cost: 1050, era: 14, label: 'Plaster Range' },
   catchment: { to: 'aguada',     cost: 1150, era: 14, label: 'Aguada Reservoir' },
 
   hearth:   { to: 'longfire',  cost: 160, era: 1, label: 'Longfire & Melt Row' },
