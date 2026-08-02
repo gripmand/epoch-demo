@@ -3559,6 +3559,14 @@ const BUILDINGS = {
       'look unaffordable from down at the bay.',
   },
 
+  amurcapits: {
+    name: 'The Amurca Pits', tier: 'infra', era: 7, w: 1, h: 1, cost: 190, upkeep: 0.18,
+    icon: '\u{1FAD9}', color: '#8f8354', soilRadius: 7,
+    desc: 'Sunk jars of the black lees drawn off under the pressed oil, carried out and poured along ' +
+      'the terrace risers. Land within 7 tiles recovers from salt 3× faster. NO workers and no road. ' +
+      '★ Pair it with a spell of fallow — the emmer will exhaust one plot if you crop it forever.',
+  },
+
   emmerplot: {
     name: 'Emmer Plot', tier: 'food', era: 7, w: 2, h: 2, cost: 210, upkeep: 0.34,
     icon: '\u{1F33E}', color: '#c8b45c', workers: 2, needsWater: true,
@@ -4011,6 +4019,14 @@ const BUILDINGS = {
     icon: '\u{1F42B}', color: '#b09873', workers: 2, needsRoad: true, depot: true,
     desc: 'Standing corrals, fodder and a night watch, so a train can leave at first light instead of ' +
       'being made up first. A stronger SUPPLY POINT: the spine and the bay stop being two economies.',
+  },
+
+  foldingground: {
+    name: 'The Folding Ground', tier: 'infra', era: 7, w: 1, h: 1, cost: 400, upkeep: 0.26,
+    icon: '\u{1F411}', color: '#9a8f5f', soilRadius: 9,
+    desc: 'Hurdles moved down the terrace a strip at a time, so the flock beds on the fallow and ' +
+      'dungs it where it stands, and the lees go on behind them. Land within 9 tiles recovers three ' +
+      'times as fast. Still no workers and no road.',
   },
 
   bakequarter: {
@@ -5697,6 +5713,8 @@ const UPGRADES = {
   mulepost:      { to: 'caravanyard',     cost: 860,  era: 7, label: 'Caravan Yard' },
   ovencourt:     { to: 'bakequarter',     cost: 340,  era: 7, label: 'Bake-House Quarter' },
 
+  amurcapits:    { to: 'foldingground',   cost: 380,  era: 7, label: 'The Folding Ground' },
+
   emmerplot:     { to: 'temenosfield',    cost: 420,  era: 7, label: 'Temenos Field' },
   figorchard:    { to: 'vinefiggarden',   cost: 1080, era: 7, label: 'Vine and Fig Garden' },
   seinenet:      { to: 'tunnywatch',      cost: 680,  era: 7, label: 'Tunny Watch' },
@@ -5955,7 +5973,7 @@ const FOOD_CHAIN = (function () {
 })();
 function inFoodChain(kind) { return !!kind && !!FOOD_CHAIN[kind]; }
 
-(function auditDataTables() {
+function auditDataTables() {
   const bad = [];
   const say = m => bad.push(m);
 
@@ -6065,12 +6083,27 @@ function inFoodChain(kind) { return !!kind && !!FOOD_CHAIN[kind]; }
           'name "' + a.name + '"');
   }
 
+  {
+    for (const rung of WRITTEN_RUNGS) {
+      const defs = Object.keys(BUILDINGS).map(k => BUILDINGS[k]).filter(d => defEra(d) === rung);
+      const salts = defs.some(d => d.out && (d.out.grain || d.slowSalt));
+      if (!salts) continue;
+      const v = eraVoice(rung);
+      if (!v || !v.saltAnswers)
+        say('rung ' + rung + ' salts its own ground (a d.out.grain producer) but eraVoice(' + rung +
+            ') has no `saltAnswers` — Econ.soilTick\'s crisis toast prints "undefined" to the player');
+      if (!defs.some(d => d.soilRadius) && !defs.some(d => d.saltProof))
+        say('rung ' + rung + ' salts its own ground and has NEITHER a `soilRadius` manuring ' +
+            'building NOR a `saltProof` crop — the staple fades to TUNE.SOIL.minYield with no answer');
+    }
+  }
+
   if (bad.length) {
     console.warn('EPOCH DATA INTEGRITY — ' + bad.length + ' problem(s):');
     for (const m of bad) console.warn('  · ' + m);
   }
   return bad;
-})();
+}
 
 const ERA_FOOD_LABEL = { 7: 'Meal issued this age',
                          0: 'Forage laid down this age',
@@ -6170,6 +6203,10 @@ const ERA_VOICE = {
       'None of it was meant to outlast the year.',
     ration: 'The founding issue is finished — from here the magazine feeds the roll.',
     saltName: 'the terrace soil thinning under the vines',
+
+    saltAnswers: 'the AMURCA PITS in range (×3 recovery), a spell fallow — the plot will rest itself ' +
+      'if you leave it — or convert to FIG ORCHARDS, which thrive on ruined ground and are never on ' +
+      'the roll either',
   },
   6: {
 
@@ -6343,3 +6380,5 @@ function goodLabel(era, key) {
   const a = eraStaple(era).goodNames;
   return (a && a[key]) || (key.charAt(0).toUpperCase() + key.slice(1));
 }
+
+auditDataTables();
