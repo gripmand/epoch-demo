@@ -22,6 +22,8 @@ const UI = {
     UI.els.silt = document.getElementById('hud-silt');
     UI.els.rangeChip = document.getElementById('chip-range');
     UI.els.range = document.getElementById('hud-range');
+    UI.els.gridChip = document.getElementById('chip-grid');
+    UI.els.grid = document.getElementById('hud-grid');
     UI.els.herdChip = document.getElementById('chip-herd');
     UI.els.herd = document.getElementById('hud-herd');
     UI.els.levyChip = document.getElementById('chip-levy');
@@ -429,6 +431,17 @@ const UI = {
     return false;
   },
 
+  toggleBlocks() {
+    if (!Econ.gridActive(G.s)) return;
+    Rend.showBlocks = !Rend.showBlocks;
+    Rend.refreshBlockSets();
+    UI.firstToast('overlayblocks', '\u{1F4D0} Block map: GREEN is a qualifying block. AMBER is a ' +
+      'rectangle that is the right size and fully ringed and is only short of built tiles — fill ' +
+      'those and it counts. Press G again to turn it off.');
+    Rend.rebakeAll(G.s);
+    Rend._overlayDirty = true;
+  },
+
   toggleOverlays() {
     const btn = document.getElementById('btn-overlay');
     const salt = UI.saltActive(G.s);
@@ -458,6 +471,8 @@ const UI = {
 
     if (era === 3) return 'ridge';
     if (era <= 4) return 'anunnaki';
+
+    if (era === 6) return 'indus';
     if (era <= 9) return 'egypt';
     if (era <= 13) return 'classical';
     if (era <= 14) return 'jungle';
@@ -821,6 +836,42 @@ const UI = {
             Math.round(TUNE.MOVING.slow * 100) + '% less work.' : '');
     }
 
+    const showGrid = Econ.gridActive(s);
+    if (UI.els.gridChip) {
+      UI.els.gridChip.classList.toggle('hidden', !showGrid);
+      UI.els.gridChip.style.display = showGrid ? '' : 'none';
+    }
+    if (showGrid && UI.els.grid) {
+      const g = Econ.gridForecast(s);
+      UI.els.grid.textContent = Math.round(g.frac * 100) + '%' +
+        (g.blocks ? ' · ' + g.inBlocks : '') +
+        (g.atRiskBuildings > 0 ? ' · ⚠' + g.atRiskBuildings : '');
+
+      const short = g.frac < TUNE.GRID.gateFrac;
+      UI.els.gridChip.classList.toggle('bad', short && g.atRiskBuildings > 0);
+      UI.els.gridChip.classList.toggle('warn',
+        (short || g.atRiskBuildings > 0) && !(short && g.atRiskBuildings > 0));
+      const swept = G.cache.swept
+        ? ' The Sweeping Order is PAYING: every drain reaches ' + TUNE.SWEEP.radius + ' tiles.'
+        : (s.policySweep ? ' The Sweeping Order is ON BUT NOT PAYING — no brick in store, so the ' +
+            'drains are back to ' + TUNE.GRID.drainRadius + ' tiles.' : '');
+      UI.els.gridChip.title = (g.blocks
+        ? g.blocks + ' qualifying block' + (g.blocks === 1 ? '' : 's') + ', holding ' + g.inBlocks +
+          ' building' + (g.inBlocks === 1 ? '' : 's') + ' at +' +
+          Math.round(TUNE.GRID.bonus * 100) + '% output and −' +
+          Math.round(TUNE.GRID.upkeepCut * 100) + '% upkeep. ' +
+          Math.round(g.frac * 100) + '% of your built ground is planned; the age turns at ' +
+          Math.round(TUNE.GRID.gateFrac * 100) + '%.'
+        : 'NO BLOCKS YET. A rectangle 5–8 tiles a side, road on ALL FOUR SIDES, every tile inside it ' +
+          'built, and the whole thing inside a Covered Drain’s reach.' +
+          (g.best ? ' Closest: a ' + g.best.short + ' that is ' + g.best.missing +
+            ' tile' + (g.best.missing === 1 ? '' : 's') + ' short of being filled.' : '')) +
+        (g.atRiskBuildings > 0
+          ? ' ⚠ ' + g.atRiskBuildings + ' of them are standing on a SINGLE drain — mothball or ' +
+            'demolish it and they all stop counting at once.'
+          : '') + swept;
+    }
+
     const showHerd = Econ.trophicActive(s);
     if (UI.els.herdChip) {
       UI.els.herdChip.classList.toggle('hidden', !showHerd);
@@ -990,6 +1041,14 @@ const UI = {
         ? 'THE CANALS ARE ' + Math.round((G.s.silt || 0) * 100) + '% SILTED — out of what the wells still reach'
         : G.cache.brownout ? 'BROWNED OUT — the tank is empty' : 'NO WATER coverage', 'bad'],
       no_power: ['NO POWER', 'bad'],
+
+      no_block: [(() => {
+        const g = Econ.gridForecast(G.s);
+        if (g.best) return 'NOT IN A BLOCK — the nearest ' + g.best.short + ' is ' + g.best.missing +
+          ' tile' + (g.best.missing === 1 ? '' : 's') + ' short of being filled';
+        return 'NOT IN A BLOCK — it needs a rectangle 5–8 tiles a side with road on all four sides, ' +
+          'every tile inside it built, and a Covered Drain in reach';
+      })(), 'bad'],
 
       no_warmth: [G.cache.dark ? 'THE FIRES ARE DARK — no fuel' : 'OUTSIDE every hearth circle', 'bad'],
 
@@ -2080,6 +2139,7 @@ const UI = {
     const s = G.s;
     const STATUS = {
       no_road: 'no road to the ' + anchorFor(s.era).short, no_water: 'no water coverage', no_power: 'no power',
+      no_block: 'not inside a qualifying block',
       no_staff: 'no workers', no_input: 'nothing to work with',
       no_customers: 'not enough customers nearby', building: 'still under construction',
       dry_season: 'the dry season — collecting nothing',
@@ -2465,7 +2525,7 @@ const UI = {
         'Now: ' + STAP.hungerFix + '.');
     }
 
-    const LOUD = { no_road: 1, no_water: 1, no_power: 1, no_warmth: 1, no_staff: 1,
+    const LOUD = { no_road: 1, no_water: 1, no_power: 1, no_warmth: 1, no_staff: 1, no_block: 1,
                    no_input: 1, no_customers: 1, stand_spent: 1, hungry: 1 };
     const fmap = {};
     for (const b of B) {

@@ -44,6 +44,11 @@ const Grid = {
          fertileTo: 3, dryFrom: 4, edgeJitter: 1.2,
          beyond: 'SALT', saltAt: 0.10, rockAt: 0.92 },
 
+    6: { trunkW: 4.2, trunkW2: 3.8, branch: 3, secondW: 2.6, wander: 0.48,
+         fertileTo: 5, dryFrom: 7, edgeJitter: 3.5,
+         beyond: 'SALT', saltAt: 0.55, rockAt: 0.94, peakR: 6,
+         rockEdge: 3 },
+
     14: { noTrunk: true, cenoteEvery: 34, cenoteR: 1.7, peakR: 6,
           trunkW: 0, trunkW2: 0, branch: 0, secondW: 0, wander: 0.30,
           fertileTo: 2, dryFrom: 5, edgeJitter: 2.0,
@@ -243,6 +248,16 @@ const Grid = {
         for (let x = 0; x < W; x++) {
           const edge = W - depth - Math.round(nz(x, 11, 17) * 6) + 3;
           if (y >= edge) t[Grid.key(x, y)] = TERRAIN.WATER;
+        }
+    }
+
+    if (P.rockEdge) {
+      const depth = P.rockEdge;
+      for (let x = W - depth - 4; x < W; x++)
+        for (let y = 0; y < W; y++) {
+          const edge = W - depth - Math.round(nz(y, 23, 19) * 5) + 2;
+          const k = Grid.key(x, y);
+          if (x >= edge && t[k] !== TERRAIN.WATER) t[k] = TERRAIN.ROCK;
         }
     }
 
@@ -598,6 +613,18 @@ const Grid = {
       if (ok && !d.onWood && Grid.treeAt(s, tx, ty)) ok = false;
     }, rot);
 
+    if (ok && d.needsBlock) {
+      let inside = false;
+      for (const bk of (G.cache.blocks || [])) {
+        let all = true;
+        Grid.footTiles(type, x, y, (tx, ty) => {
+          if (tx < bk.x || ty < bk.y || tx >= bk.x + bk.w || ty >= bk.y + bk.h) all = false;
+        }, rot);
+        if (all) { inside = true; break; }
+      }
+      if (!inside) ok = false;
+    }
+
     if (ok && d.onWood) {
       let wood = 0;
       Grid.footTiles(type, x, y, (tx, ty) => { if (Grid.inB(tx, ty) && Grid.treeAt(s, tx, ty)) wood++; }, rot);
@@ -669,6 +696,25 @@ const Grid = {
     if (d.onWater && dry) return 'a ' + d.name + ' stands IN the water — every tile of it must sit on a channel';
     if (!d.onWater && water) return 'that is in the water';
     if (wrong) return 'the ground there will not take a building';
+
+    if (d.needsBlock) {
+      let inside = false;
+      for (const bk of (G.cache.blocks || [])) {
+        let all = true;
+        Grid.footTiles(type, x, y, (tx, ty) => {
+          if (tx < bk.x || ty < bk.y || tx >= bk.x + bk.w || ty >= bk.y + bk.h) all = false;
+        }, rot);
+        if (all) { inside = true; break; }
+      }
+      if (!inside) {
+        const g = (typeof Econ !== 'undefined' && Econ.gridForecast) ? Econ.gridForecast(s) : null;
+        return 'a ' + d.name + ' can only stand INSIDE a qualifying block' +
+          (g && g.best ? ' — the nearest ' + g.best.short + ' is ' + g.best.missing +
+            ' tile' + (g.best.missing === 1 ? '' : 's') + ' short of being filled' :
+           ' — a rectangle 5-8 tiles a side with road on all four sides, every tile inside it ' +
+           'built, and a Covered Drain in reach. Press G for the block map');
+      }
+    }
 
     if (d.onWood) {
       let wood = 0;
@@ -764,6 +810,8 @@ const Grid = {
     Grid.recomputeConnectivity(s);
     Grid.recomputeWater(s);
     Econ.stampMidden(s);
+
+    Grid.recomputeBlocks(s);
     Grid.recomputeAdjacency(s);
     C.dirty = false;
     if (window.Rend && Rend.onWorldChange) Rend.onWorldChange();
@@ -816,6 +864,139 @@ const Grid = {
       }
     });
     return found;
+  },
+
+  recomputeBlocks(s) {
+    const C = G.cache;
+    C.blocks = []; C.gridFrac = 0; C.blockNearMiss = null;
+
+    for (const b of s.buildings) b.inBlock = false;
+    if (!Econ.gridActive(s)) return;
+
+    const T = TUNE.GRID, W = TUNE.WORLD;
+
+    const drains = [], posts = [];
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d) continue;
+      const live = Econ.campLive(b) && (!d.needsRoad || b.conn);
+      if (!live) continue;
+      if (d.drainRadius) drains.push({ b, r: Econ.drainReach(s, d) });
+      if (d.blockRadius) posts.push({ b, r: d.blockRadius,
+        maxSide: d.blockMaxSide || T.maxSide, tol: d.blockTolerance || T.tolerance });
+    }
+
+    const seen = new Set();
+    const wall = (x, y) => {
+      if (!Grid.inB(x, y)) return true;
+      if (!Grid.owned(x, y)) return true;
+      const k = Grid.key(x, y);
+      if (C.road[k]) return true;
+      if (C.terrain[k] === TERRAIN.WATER) return true;
+      return false;
+    };
+
+    const tiles = [];
+    for (const key of s.owned) {
+      const p = key.split(','), cx = +p[0] | 0, cy = +p[1] | 0;
+      for (let dy = 0; dy < TUNE.CHUNK; dy++)
+        for (let dx = 0; dx < TUNE.CHUNK; dx++)
+          tiles.push([cx * TUNE.CHUNK + dx, cy * TUNE.CHUNK + dy]);
+    }
+
+    let builtTiles = 0;
+    for (const [x, y] of tiles) {
+      if (!Grid.inB(x, y)) continue;
+      const occ = C.occ[Grid.key(x, y)];
+      if (occ < 0) continue;
+      const ob = C.byId.get(occ);
+      if (!ob || ob.type === 'road' || DEF(ob.type).bridge) continue;
+      builtTiles++;
+    }
+
+    let inBlockTiles = 0;
+    for (const [sx, sy] of tiles) {
+      if (wall(sx, sy)) continue;
+      const sk = Grid.key(sx, sy);
+      if (seen.has(sk)) continue;
+
+      let minX = sx, maxX = sx, minY = sy, maxY = sy, n = 0;
+      const stack = [[sx, sy]];
+      seen.add(sk);
+      const cells = [];
+      while (stack.length) {
+        const [x, y] = stack.pop();
+        n++; cells.push([x, y]);
+        if (x < minX) minX = x; if (x > maxX) maxX = x;
+        if (y < minY) minY = y; if (y > maxY) maxY = y;
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const nx = x + dx, ny = y + dy;
+          if (wall(nx, ny)) continue;
+          const nk = Grid.key(nx, ny);
+          if (seen.has(nk)) continue;
+          seen.add(nk); stack.push([nx, ny]);
+        }
+      }
+      const w = maxX - minX + 1, h = maxY - minY + 1;
+      if (n !== w * h) continue;
+
+      let maxSide = T.maxSide, tol = T.tolerance;
+      for (const p of posts) {
+        const pd = Grid.dimsOf(p.b);
+        let far = 0;
+        for (const [cxx, cyy] of [[minX, minY], [maxX, minY], [minX, maxY], [maxX, maxY]])
+          far = Math.max(far, Util.rectDist(p.b.x, p.b.y, pd.w, pd.h, cxx, cyy, 1, 1));
+        if (far > p.r) continue;
+        if (p.maxSide > maxSide) maxSide = p.maxSide;
+        if (p.tol > tol) tol = p.tol;
+      }
+      if (w < T.minSide || h < T.minSide || w > maxSide || h > maxSide) continue;
+
+      let ringOk = true;
+      for (let x = minX - 1; x <= maxX + 1 && ringOk; x++)
+        for (const y of [minY - 1, maxY + 1])
+          if (!Grid.inB(x, y) || !C.road[Grid.key(x, y)]) { ringOk = false; break; }
+      for (let y = minY; y <= maxY && ringOk; y++)
+        for (const x of [minX - 1, maxX + 1])
+          if (!Grid.inB(x, y) || !C.road[Grid.key(x, y)]) { ringOk = false; break; }
+      if (!ringOk) continue;
+
+      let empty = 0;
+      for (const [x, y] of cells) if (C.occ[Grid.key(x, y)] < 0) empty++;
+
+      const cover = [];
+      for (const dr of drains) {
+        const dd = Grid.dimsOf(dr.b);
+        let far = 0;
+        for (const [cxx, cyy] of [[minX, minY], [maxX, minY], [minX, maxY], [maxX, maxY]])
+          far = Math.max(far, Util.rectDist(dr.b.x, dr.b.y, dd.w, dd.h, cxx, cyy, 1, 1));
+        if (far <= dr.r) cover.push(dr.b.id);
+      }
+
+      if (empty > tol || !cover.length) {
+
+        if (!cover.length) continue;
+        const miss = empty - tol;
+        if (!C.blockNearMiss || miss < C.blockNearMiss.missing)
+          C.blockNearMiss = { x: minX, y: minY, w, h, missing: miss,
+                              short: w + '×' + h };
+        continue;
+      }
+
+      const inside = new Set();
+      for (const [x, y] of cells) {
+        const occ = C.occ[Grid.key(x, y)];
+        if (occ >= 0) inside.add(occ);
+      }
+      for (const id of inside) {
+        const ob = C.byId.get(id);
+        if (ob) ob.inBlock = true;
+      }
+
+      inBlockTiles += (n - empty);
+      C.blocks.push({ x: minX, y: minY, w, h, tiles: n, count: inside.size, drains: cover });
+    }
+    C.gridFrac = builtTiles > 0 ? inBlockTiles / builtTiles : 0;
   },
 
   stampRadius(map, b, radius) {
@@ -963,7 +1144,8 @@ const Grid = {
         const nearTemple = temples.some(o => within(b, o, 2));
         const nearInd = industry.some(o => Grid.adjacent(b, o));
 
-        b.cap = Math.max(1, houseCap(d, b) + ((nearPark || nearShrine) ? 1 : 0) + (nearTemple ? 1 : 0) - (nearInd ? 1 : 0));
+        b.cap = Math.max(1, houseCap(d, b) + ((nearPark || nearShrine) ? 1 : 0) + (nearTemple ? 1 : 0) - (nearInd ? 1 : 0)
+          + (b.inBlock ? TUNE.GRID.capBonus : 0) + ((s.giftDrain | 0)));
 
         if (s.policyHuddle && Econ.trophicActive(s))
           b.cap = Math.max(1, Math.round(b.cap * (1 - TUNE.HUDDLE.capCut)));
@@ -993,7 +1175,8 @@ const Grid = {
       }
 
       if (d.plowed) {
-        b.oxNear = byres.filter(o => within(b, o, TUNE.OX.radius)).map(o => o.id);
+
+        b.oxNear = byres.filter(o => within(b, o, Econ.oxRadius(DEF(o.type)))).map(o => o.id);
       }
 
       if (d.mines) {

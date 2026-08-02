@@ -54,6 +54,16 @@ body[data-era-theme="oregorge"]  { --chip-bg: rgba(28, 16, 12, 0.91); --chip-bor
    pair the Ridge Track is measured against (auditRoadContrast). */
 body[data-era-theme="ridge"]     { --chip-bg: rgba(26, 22, 17, 0.91); --chip-border: rgba(205, 190, 155, 0.34); --accent: #ddc9a0; }
 body[data-era-theme="anunnaki"]  { --chip-bg: rgba(20, 18, 30, 0.90); --chip-border: rgba(160, 140, 220, 0.28); --accent: #c9b8f0; }
+/* ★ rung 6, the Indus Valley. A THEME NAME WITH NO RULE HERE SILENTLY LOSES ALL
+   CHIP STYLING — the variables simply fall back to the defaults and the age
+   wears no clothes at all, which is a bug with nothing on screen to describe.
+   The two colours are the age's own materials and nothing borrowed: the chip
+   body is ERA_ROAD[6]'s fired brick (0x7a3d2a) taken right down, and the accent
+   is ERA_GRADE[6]'s pale loess apron (0xc9b48a) lifted. It has to sit apart from
+   `egypt` (#e8c96a, gold) and `oregorge` (#cbd2d4, cold stone) because it is
+   between them on the ladder: #d9bb8e is warm like Egypt's but 26 points less
+   saturated and far browner, which is the difference between gilding and mud. */
+body[data-era-theme="indus"]     { --chip-bg: rgba(30, 20, 14, 0.91); --chip-border: rgba(201, 180, 138, 0.34); --accent: #d9bb8e; }
 body[data-era-theme="egypt"]     { --chip-bg: rgba(38, 28, 12, 0.90); --chip-border: rgba(212, 175, 55, 0.40); --accent: #e8c96a; }
 body[data-era-theme="jungle"]    { --chip-bg: rgba(14, 30, 18, 0.90); --chip-border: rgba(110, 190, 130, 0.35); --accent: #8fd9a0; }
 body[data-era-theme="classical"] { --chip-bg: rgba(28, 30, 36, 0.90); --chip-border: rgba(220, 220, 230, 0.35); --accent: #e8e6e0; }

@@ -177,7 +177,8 @@ const Econ = {
       const dOx = DEF(b.type);
       if (!dOx || !dOx.oxTeam) continue;
       if (b.block || !b.staff) continue;
-      const want = TUNE.OX.fodder * (b.staff / dOx.workers) * Econ.M;
+
+      const want = Econ.oxFodder(dOx) * (b.staff / dOx.workers) * Econ.M;
       if (want > 0 && s.stock.grain >= want) {
         s.stock.grain -= want;
         Econ.note('grain', 0, want);
@@ -226,6 +227,27 @@ const Econ = {
       C.ration = true;
     }
 
+    const wasSwept = !!C.swept;
+    C.swept = false;
+    if (s.policySweep && Econ.gridActive(s)) {
+      let live = 0;
+      for (const b of s.buildings) {
+        const d = DEF(b.type);
+        if (!d || !d.drainRadius || !Econ.campLive(b) || (d.needsRoad && !b.conn)) continue;
+        live++;
+      }
+      const need = TUNE.SWEEP.perDrain * live * Econ.M;
+
+      const on = wasSwept ? (s.stock.brick >= need) : (s.stock.brick >= need * 3);
+      if (need > 0 && on) {
+        s.stock.brick -= need;
+        Econ.note('brick', 0, need);
+        C.swept = true;
+      }
+    }
+
+    if (!!C.swept !== wasSwept && !offline) Grid.recomputeBlocks(s);
+
     C.offerRelief = 0;
     if (Econ.trophicActive(s)) {
       let best = 0;
@@ -264,6 +286,8 @@ const Econ = {
         if (b.resting) uBase *= TUNE.FALLOW_UPKEEP;
         else if (d.workers) uBase *= TUNE.STAFF_UPKEEP_FLOOR +
           (1 - TUNE.STAFF_UPKEEP_FLOOR) * (b.staff / d.workers);
+
+        uBase *= Econ.blockUpkeep(s, b);
         const uFull = uBase * b.supply * b.trade;
         upkeep += uFull * Econ.M;
         premium += (uFull - uBase) * Econ.M;
@@ -352,11 +376,11 @@ const Econ = {
         b.soil = Grid.soilUnder(b);
         const soilMult = TUNE.SOIL.minYield + (1 - TUNE.SOIL.minYield) * b.soil;
 
-        const oxen = (b.oxNear || []).some(id => C.fedByres.has(id)) ? TUNE.OX.bonus : 0;
+        const oxen = Econ.oxBonusFor(b);
 
         const mult = (1 + TUNE.FERTILE_BONUS * (b.fertile || 0)) *
                      (1 + (b.adjBoost || 0)) * (1 + oxen) * soilMult * rankOutMult(b) *
-                     Econ.groundMult(b) * Econ.forageMult(s, b);
+                     Econ.siteMult(s, b);
 
         made = d.out.grain * staffEff * mult * Econ.M * (1 + C.beerBonus) * (C.nileMult || 1);
         Econ.addStock(s, 'grain', made);
@@ -364,8 +388,7 @@ const Econ = {
       } else if (d.out.clay || d.out.wool) {
 
         const kind = d.out.clay ? 'clay' : 'wool';
-        const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b) * Econ.groundMult(b) *
-          Econ.forageMult(s, b);
+        const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b) * Econ.siteMult(s, b);
         made = d.out[kind] * staffEff * mult * Econ.M * (1 + C.beerBonus);
         Econ.addStock(s, kind, made);
         outKind = kind;
@@ -374,10 +397,9 @@ const Econ = {
 
         const kind = Object.keys(d.out)[0];
 
-        const oxen = (b.oxNear || []).some(id => C.fedByres.has(id)) ? TUNE.OX.bonus : 0;
+        const oxen = Econ.oxBonusFor(b);
 
-        let mult = (1 + (b.adjBoost || 0)) * (1 + oxen) * rankOutMult(b) * Econ.groundMult(b) *
-          Econ.forageMult(s, b);
+        let mult = (1 + (b.adjBoost || 0)) * (1 + oxen) * rankOutMult(b) * Econ.siteMult(s, b);
         if (d.saltProof) {
           b.soil = Grid.soilUnder(b);
           if (b.soil < 0.3) mult *= 1.5;
@@ -393,8 +415,7 @@ const Econ = {
         const left = Econ.cutterWoodLeft(b);
         b.woodLeft = left;
 
-        const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b) * Econ.groundMult(b) *
-          Econ.forageMult(s, b);
+        const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b) * Econ.siteMult(s, b);
         made = left > 0 ? Math.min(left, d.out.deadwood * staffEff * mult * Econ.M * (1 + C.beerBonus)) : 0;
 
         made = Math.min(made, Math.max(0, Econ.capOf(s, 'deadwood') - s.stock.deadwood));
@@ -414,8 +435,7 @@ const Econ = {
           b.status = 'dry_season'; b.rate = 0; b.lastStaffEff = staffEff;
           continue;
         }
-        const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b) * Econ.groundMult(b) *
-          Econ.forageMult(s, b);
+        const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b) * Econ.siteMult(s, b);
         made = d.out[kind] * staffEff * mult * Econ.M * (1 + C.beerBonus);
         Econ.addStock(s, kind, made);
         outKind = kind;
@@ -427,8 +447,8 @@ const Econ = {
 
         const rf = good === 'stone' ? (0.5 + 0.5 * (b.rockFrac || 0)) : 1;
 
-        const mult = rf * (1 + (b.adjBoost || 0)) * rankOutMult(b) * Econ.groundMult(b) *
-          Econ.mineMult(s, b) * Econ.forageMult(s, b);
+        const mult = rf * (1 + (b.adjBoost || 0)) * rankOutMult(b) *
+          Econ.mineMult(s, b) * Econ.siteMult(s, b);
         made = left > 0 ? d.out[good] * staffEff * mult * Econ.M * (1 + C.beerBonus) : 0;
 
         made = Math.min(made, Math.max(0, Econ.capOf(s, good) - s.stock[good]));
@@ -444,8 +464,8 @@ const Econ = {
       } else if (d.out) {
 
         const kind = Object.keys(d.out)[0];
-        const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b) * Econ.groundMult(b) *
-          Econ.mineMult(s, b) * Econ.forageMult(s, b);
+        const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b) *
+          Econ.mineMult(s, b) * Econ.siteMult(s, b);
         made = d.out[kind] * staffEff * mult * Econ.M * (1 + C.beerBonus);
         Econ.addStock(s, kind, made);
         outKind = kind;
@@ -474,8 +494,10 @@ const Econ = {
 
       b.bureauSlow = Econ.anyAuraLive(b.bureauSlowBy);
       const slow = b.bureauSlow ? (1 - TUNE.BUREAU.slow) : 1;
+
       const want = d.procRate * staffEff * (1 + (b.adjBoost || 0)) *
-        rankOutMult(b) * slow * Econ.M * (1 + C.beerBonus) * Econ.mineMult(s, b);
+        rankOutMult(b) * slow * Econ.M * (1 + C.beerBonus) * Econ.mineMult(s, b) *
+        Econ.blockMult(s, b);
       const use = Math.min(want, s.stock[d.procIn]);
       s.stock[d.procIn] -= use;
       Econ.note(d.procIn, 0, use);
@@ -621,7 +643,9 @@ const Econ = {
       if (cust < d.custMin) { b.status = 'no_customers'; b.rate = 0; continue; }
 
       const scribeMult = b.scribed ? (1 + TUNE.SCRIBE.bonus) : 1;
-      const throughput = staffEff * scribeMult * rankOutMult(b) * Econ.M * (1 + C.beerBonus);
+
+      const throughput = staffEff * scribeMult * rankOutMult(b) * Econ.blockMult(s, b) *
+        Econ.M * (1 + C.beerBonus);
 
       b.weighed = Econ.anyAuraLive(b.weighedBy);
       b.bureau = Econ.anyAuraLive(b.bureauBy);
@@ -969,6 +993,27 @@ const Econ = {
     return Grid.goodGround(G.s, b) ? (1 + (TUNE.TERRAIN_BONUS || 0)) : 1;
   },
 
+  siteMult(s, b) {
+    return Econ.groundMult(b) * Econ.forageMult(s, b) * Econ.blockMult(s, b);
+  },
+
+  oxFodder(d) { return (d && d.oxFodder) || TUNE.OX.fodder; },
+  oxRadius(d) { return (d && d.oxRadius) || TUNE.OX.radius; },
+  oxBonus(d)  { return (d && d.oxBonus)  || TUNE.OX.bonus; },
+
+  oxBonusFor(b) {
+    const by = G.cache.byId, fed = G.cache.fedByres;
+    let best = 0;
+    for (const id of (b.oxNear || [])) {
+      if (!fed || !fed.has(id)) continue;
+      const o = by && by.get ? by.get(id) : null;
+      if (!o) continue;
+      const v = Econ.oxBonus(DEF(o.type));
+      if (v > best) best = v;
+    }
+    return best;
+  },
+
   woodTiles(s, b) {
     const d = DEF(b.type), R = d.woodRadius;
     const out = [];
@@ -1220,6 +1265,12 @@ const Econ = {
     return Math.min(3, Math.floor(p.frac * 3.999));
   },
 
+  monumentRate(s, k) {
+    const base = MONUMENT_RATE[k] || 6;
+    if (!Econ.gridActive(s)) return base;
+    return base * (TUNE.GRID.monBase + TUNE.GRID.monPerFrac * (G.cache.gridFrac || 0));
+  },
+
   monumentReserve(s) {
     const res = {};
     for (const b of s.buildings) {
@@ -1232,7 +1283,7 @@ const Econ = {
         const want = need[k] - ((b.delivered || {})[k] || 0);
         if (want <= 0) continue;
         res[k] = (res[k] || 0) +
-          Math.min(want, (MONUMENT_RATE[k] || 6) * Econ.M * TUNE.MON_RESERVE_TICKS);
+          Math.min(want, Econ.monumentRate(s, k) * Econ.M * TUNE.MON_RESERVE_TICKS);
       }
     }
     return res;
@@ -1263,7 +1314,7 @@ const Econ = {
       for (const k in need) {
         let want = need[k] - (b.delivered[k] || 0);
         if (want <= 0) continue;
-        const rate = (MONUMENT_RATE[k] || 6) * Econ.M;
+        const rate = Econ.monumentRate(s, k) * Econ.M;
         if (k === 'money') {
 
           if (b.beerWages) {
@@ -1382,6 +1433,8 @@ const Econ = {
 
   ERA_EXTRA_GATE: {
     2: (s, base) => (s.cum.tributePaid || 0) - (base.tributePaid || 0) >= TUNE.TRIBUTE.gate,
+
+    6: (s) => (G.cache.gridFrac || 0) >= TUNE.GRID.gateFrac,
   },
   eraExtraGate(s) {
     const f = Econ.ERA_EXTRA_GATE[rungOf(s.era)];
@@ -1624,6 +1677,8 @@ const Econ = {
     if (d.needsWarm && (!G.cache.warm || !Grid.covered(G.cache.warm, b))) return 'no_warmth';
 
     if (d.mines && G.s && G.s.struck && Econ.levyActive(G.s)) return 'struck';
+
+    if (d.needsBlock && !b.inBlock) return 'no_block';
     return null;
   },
 
@@ -1765,6 +1820,39 @@ const Econ = {
       lost[kind] = (lost[kind] || 0) + base * (1 - m);
     }
     return { raw, actual, frac: raw > 0 ? actual / raw : 1, crowded, camps, lost };
+  },
+
+  gridActive(s) { return rungOf(s.era) === 6; },
+
+  drainReach(s, d) {
+    const own = (d && d.drainRadius) || TUNE.GRID.drainRadius;
+    return (G.cache && G.cache.swept) ? Math.max(own, TUNE.SWEEP.radius) : own;
+  },
+
+  blockLive(s, b) { return !!(b && b.inBlock) && Econ.gridActive(s); },
+
+  blockMult(s, b) { return Econ.blockLive(s, b) ? 1 + TUNE.GRID.bonus : 1; },
+  blockUpkeep(s, b) { return Econ.blockLive(s, b) ? 1 - TUNE.GRID.upkeepCut : 1; },
+
+  gridForecast(s) {
+    const C = G.cache;
+    const out = { frac: 0, blocks: 0, inBlocks: 0, atRisk: 0, atRiskBuildings: 0,
+                  best: null, text: 'no blocks yet' };
+    if (!Econ.gridActive(s)) return out;
+    out.frac = C.gridFrac || 0;
+    out.blocks = (C.blocks || []).length;
+    for (const b of s.buildings) if (b.inBlock) out.inBlocks++;
+    for (const blk of (C.blocks || [])) {
+      if (blk.drains.length !== 1) continue;
+      out.atRisk++;
+      out.atRiskBuildings += blk.count;
+    }
+
+    out.best = C.blockNearMiss || null;
+    out.text = out.blocks
+      ? out.blocks + (out.blocks === 1 ? ' block' : ' blocks') + ' · ' + out.inBlocks + ' inside'
+      : (out.best ? out.best.short + ' is ' + out.best.missing + ' tiles short' : 'no blocks yet');
+    return out;
   },
 
   levyActive(s) { return rungOf(s.era) === 2; },

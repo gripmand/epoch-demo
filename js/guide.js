@@ -11,7 +11,8 @@ const ERA_ANCHOR = {
 
   4:  { name: 'Temple Household',   short: 'É',          note: 'The É — the god\'s house. In Sumer the temple, not a palace, collected the harvest, stored the seed and issued the rations.' },
   5:  { name: 'Nomarch\'s Estate',  short: 'Per-Nesu',   note: 'The provincial governor\'s seat, which assessed the flood, counted the cattle and set the grain tax.' },
-  6:  { name: 'The Granary Platform', short: 'Platform', note: 'Harappa left no palace and no temple anyone has identified. What governed was the raised granary, the standard brick and the drains — administration as plumbing.' },
+
+  6:  { name: 'The Granary Platform', short: 'Platform', note: 'No palace, no temple and no royal tomb has ever been identified here. What governed was a raised brick podium nobody can put a name to, the standard brick and the drains — administration as plumbing.' },
   7:  { name: 'The Palace Store',   short: 'Palace',     note: 'Everything comes in and everything goes back out. The Linear B tablets are not literature; they are stock lists.' },
   8:  { name: 'The Ancestral Hall', short: 'Ancestral Hall', note: 'Shang kingship ran on divination and rite. The cracked oracle bones under the floor are the state archive.' },
   9:  { name: 'The Marae',          short: 'Marae',      note: 'Open ground, not a building. Lineage is recited here and a voyage is sanctioned here before a hull is ever cut.' },
@@ -92,6 +93,12 @@ const ERA_RECORD = {
         chronicle: 'The Papyrus Annals', chronBtn: 'Annals',
         chronSub: 'Written in ink as it happened. The rolls keep the last 200 entries.',
         keeper: 'a House of Books' },
+
+  6:  { icon: '\u{1FAA7}', tally: 'The Sealed Tally', tallyBtn: 'Sealed Tally',
+        tallySub: 'Stamped into clay at the mouth of every bale, in a script nobody has read.',
+        chronicle: 'The Seal Impressions', chronBtn: 'Impressions',
+        chronSub: 'Pressed into clay as it happened, under six signs nobody alive can read. The impressions keep the last 200 entries.',
+        keeper: 'a Seal Cutter’s Office' },
   14: { icon: '\u{1F4D6}', tally: 'The Codex Tally', tallyBtn: 'Codex Tally',
         tallySub: 'Painted on bark paper, against the day-count.',
         chronicle: 'The Long Count', chronBtn: 'Long Count',
@@ -271,6 +278,25 @@ const ERA_SITE = {
       '<b>Inundation Basin’s</b> eleven. Press <b>O</b> to see it.',
     extra: [],
   },
+  6: {
+    roadYes: '<b>Courtyard Houses, Merchant Block Houses, the Covered Drain, the Cord &amp; Peg Post, ' +
+      'the Bale Warehouse, the Bullock-Cart Station, the Hall of Standards, the Seal Cutter’s Office, ' +
+      'the Great Granary, every shop, and the Great Bath</b>',
+    roadNo: 'Levee Fields, Cotton Fields, Til Fields, the Clay Cut, the Shell Bed, the Cane Cut, the ' +
+      'Agate Camp, the Quern Mill, the Kiln, the Spinner’s Court, the Bead Works, the Zebu Byre, the ' +
+      'Silt Ditch, the Brick Weir, the Ber &amp; Date Garden and the wells',
+    water: 'Most buildings must sit inside a <b>Brick-Lined Well’s</b> six tiles or a <b>Stepped ' +
+      'Well’s</b> nine. ★ THE RIVER WATERS NOTHING — only a well does. Press <b>O</b> to see the rings.',
+    extra: [
+      '<b>The grid.</b> A rectangle 5–8 tiles a side, road on ALL FOUR SIDES, every interior tile ' +
+      'built, and the whole thing inside a Covered Drain’s ten tiles: that is a BLOCK, and everything ' +
+      'in it runs +30% for −10% upkeep with +1 resident a home. Streets cost 21–31% of your ground, ' +
+      'so lay them BEFORE you buy anything — a 5×5 barely pays, an 8×8 pays well, and blocks laid ' +
+      'against each other SHARE their streets, so the second one costs half what the first did.',
+      '<b>The drain is the fragile part.</b> Mothball one and every block in its circle stops counting ' +
+      'at once. The \u{1F4D0} chip shows how many buildings are standing on a single drain.',
+    ],
+  },
   14: {
     roadYes: '<b>Stone Houses, the Tortilla Plaza, the Stone Yard, the Vase Market, the Chocolate House, ' +
       'the Tribute Storehouse and the Temple-Pyramid</b>',
@@ -449,6 +475,36 @@ const ERA_GUIDES = {
       'Put a Temple within two tiles of your housing for the population bonus.',
     ],
     mistake: 'Expanding farmland without storage. A good flood you cannot store is wasted.',
+  },
+
+  6: {
+    headline: 'Lay the streets first. The buildings go in the holes.',
+    mechanic: 'THE GRID. A rectangle 5 to 8 tiles a side, ROAD ON ALL FOUR SIDES, every tile inside ' +
+      'it built, and the whole rectangle inside a COVERED DRAIN’s ten tiles, is a BLOCK: +30% output, ' +
+      '−10% upkeep, +1 resident in every home, and it is the only place a Merchant Block House can ' +
+      'stand. Streets take 21–31% of your ground, so a 5×5 barely pays and an 8×8 pays well — and a ' +
+      'block laid against one you already have shares its street, so the second costs half the first. ' +
+      'Mothball the drain and every block in its circle stops counting at once. Watch the 📐 chip.',
+    chain: [
+      'Levee Field → Quern Mill → Grain Street Market  ·  $54/min. Feeds the city, and it needs no well',
+      'Sarkanda Cane Cut → Matting Court → Crate Counter  ·  $91/min. Cheapest to stand up, and it never made anyone rich',
+      'Clay Cut → Fired-Brick Kiln → Standard Brick Yard  ·  $99/min. Your drains and your Bath eat from this pile',
+      'Cotton Field → Spinner’s Court → Bale House  ·  $129/min. Sold to Mesopotamia, which called this place Meluhha',
+      'Chank Shell Bed → Bangle Sawyer’s Court → Bangle Counter  ·  $129/min. Cotton’s money, off the bank instead of the levee',
+      'Til Field ×2 → Sesame Oil Mill → Oil Row  ·  $134/min. TWO fields per mill — the one chain that is not 1:1:1',
+      'Agate Camp → Bead Drilling Works → Seal & Bead House  ·  $135/min. +50% on the chert ridge, at the far edge of the map',
+    ],
+    firstSteps: [
+      'LEVEE FIELDS first. They need no well, no road and no street, so the founding party can work them the moment you place them — which is what releases the other eight into the labour pool.',
+      'Then PAINT THE ROAD: a 7×7 ring with a 5×5 hole in it, 24 tiles, $240. This is the first age where the street comes BEFORE the building, and it is the whole idea.',
+      'Then a COVERED DRAIN beside the street. It needs a road and no workers, its ten tiles cover the whole block and more — and WITHOUT IT THE BLOCK EARNS NOTHING AT ALL. It is the step a first player skips, and it is $200.',
+      'Now FILL THE HOLE, EXACTLY 25 TILES. Four 2×2s in the corners — QUERN MILL, GRAIN STREET MARKET, TIL FIELD and a second LEVEE FIELD — and the nine tiles left in the middle make a cross.',
+      '★ THE FOUR ARMS OF THAT CROSS TOUCH THE STREET AND THE CENTRE FIVE DO NOT, which decides what goes where: COURTYARD HOUSES on the arms, because a house needs a road — and in the middle a BRICK-LINED WELL, a BATHING PLATFORM, a SUNKEN JAR ROW, a SILT DITCH and a PEEPAL TREE COURT, because none of those does. That is a Harappan block: doors on the lane, the well and the tree in the courtyard.',
+      'Then a BER & DATE GARDEN outside, on the worst ground you own. It needs no water, no road and no street, and it is what feeds you through anything.',
+      'Grow by laying the NEXT block against the first. Its ring shares your existing street, so it costs 13 tiles instead of 24 — the grid gets cheaper the more of it you have.',
+    ],
+    mistake: 'Filling a block with houses. Twenty-five Courtyard Houses is $5,000 and the block still ' +
+      'only pays +30% — put the mill, the market and a field INSIDE it and the houses in the next one.',
   },
   14: {
 

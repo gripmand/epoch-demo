@@ -31,12 +31,15 @@ const TUNE = {
                  bone: 0, ochre: 0, carvings: 0, ivory: 0,
 
                  ore: 0, concentrate: 0, malachite: 0, gold: 0,
-                 goldleaf: 0, copper: 0, bitumen: 0, pitch: 0 },
+                 goldleaf: 0, copper: 0, bitumen: 0, pitch: 0,
+
+                 brick: 0, cotton: 0, cottoncloth: 0,
+                 carnelian: 0, beads: 0, shell: 0, bangles: 0 },
 
   FOUNDING_CREW: 10,
 
   ERA_STARTER: { 1: 'deadwoodcutter', 2: 'terraceplot', 3: 'snailbeds', 4: 'farm',
-                 5: 'emmerfield', 14: 'milpa' },
+                 5: 'emmerfield', 6: 'leveefield', 14: 'milpa' },
 
   ERA_START_MONEY: { 0: 1080 },
 
@@ -74,6 +77,9 @@ const TUNE = {
 
   ORE_CAP: 40, CONCENTRATE_CAP: 23, MALACHITE_CAP: 30, GOLD_CAP: 24,
   GOLDLEAF_CAP: 15, COPPER_CAP: 19, BITUMEN_CAP: 30, PITCH_CAP: 19,
+
+  BRICK_CAP: 53, COTTON_CAP: 53, COTTONCLOTH_CAP: 33,
+  CARNELIAN_CAP: 40, BEADS_CAP: 26, SHELL_CAP: 53, BANGLES_CAP: 33,
   PRICES: { grain: 0.5, flour: 2, stone: 1, blocks: 4,
             clay: 0.6, pottery: 4, wool: 1.2, cloth: 7, beer: 3,
             dates: 1.8, fish: 1.5, salt: 1.5, reeds: 0.35, baskets: 8.9,
@@ -86,7 +92,10 @@ const TUNE = {
             bone: 1.2, ochre: 1.5, carvings: 13, ivory: 18,
 
             ore: 0.9, concentrate: 2.4, malachite: 1.1, gold: 10,
-            goldleaf: 21.3, copper: 5.32, bitumen: 1.2, pitch: 9.5 },
+            goldleaf: 21.3, copper: 5.32, bitumen: 1.2, pitch: 9.5,
+
+            brick: 3.90, cotton: 1.56, cottoncloth: 9.10,
+            carnelian: 2.34, beads: 33.81, shell: 1.56, bangles: 7.30 },
 
   NO_EXPORT: { water: 1 },
 
@@ -154,6 +163,22 @@ const TUNE = {
     slow: 0.20,
 
   },
+
+  GRID: {
+    minSide: 5,
+    maxSide: 8,
+    bonus: 0.30,
+    upkeepCut: 0.10,
+    capBonus: 1,
+    drainRadius: 10,
+    tolerance: 0,
+
+    monBase: 0.6, monPerFrac: 0.8,
+
+    gateFrac: 0.45,
+  },
+
+  SWEEP: { perDrain: 0.15, radius: 14 },
 
   TRIBUTE: {
     share: 0.35,
@@ -296,6 +321,8 @@ const TUNE = {
     4: { kind: 'grain', price: 2, who: 'A caravan sold the city', unit: 'sack' },
 
     5: { kind: 'grain', price: 2, who: 'A river barge sold the estate', unit: 'sack' },
+
+    6: { kind: 'grain', price: 2, who: 'A boat up from Lothal sold the city', unit: 'sack' },
     14: { kind: 'grain', price: 2, who: 'A highland trader sold the city', unit: 'load' },
   },
 
@@ -430,7 +457,7 @@ function eraInfo(era) {
   return r === 0 ? ERA_PROLOGUE : (ERAS[r - 1] || ERA_PROLOGUE);
 }
 
-const WRITTEN_RUNGS = [0, 1, 2, 3, 4, 5, 14];
+const WRITTEN_RUNGS = [0, 1, 2, 3, 4, 5, 6, 14];
 
 const START_ERA = WRITTEN_RUNGS[0];
 function nextWrittenEra(era) {
@@ -473,7 +500,7 @@ function eraReq(n) {
 
     food: Math.round(3500 * Math.pow(ERA_GROWTH, n - 5) * g),
 
-    stone: n >= 7 ? Math.round(2500 * Math.pow(ERA_GROWTH, n - 7) * g) : 0,
+    stone: n >= 8 ? Math.round(2500 * Math.pow(ERA_GROWTH, n - 8) * g) : 0,
   };
 }
 
@@ -622,6 +649,13 @@ const ERA_TERRA_LOCK = {
   5: {
     water: 'the river is the river — Egypt is given one Nile and builds around what it does, ' +
       'and a channel you dug yourself would make the Inundation something you could opt out of',
+  },
+
+  6: {
+    rock: 'there is no stone on this plain — the city is made of its own mud because it has nothing ' +
+      'else, and the one chert ridge on the map is a place you travel to rather than a thing you buy',
+    mountain: 'no mountains, no timber and no defensible height anywhere in Sindh. Everything this ' +
+      'civilisation is, it had to manufacture',
   },
 
   14: {
@@ -2815,6 +2849,640 @@ const BUILDINGS = {
     desc: '+1 housing capacity for Houses within 2 tiles. Stacks with Parks.',
   },
 
+  brickwell: {
+    name: 'Brick-Lined Well', tier: 'infra', era: 6, w: 1, h: 1, cost: 100, upkeep: 0.17,
+    icon: '\u{26F2}', color: '#7fb4c9', waterRadius: 6,
+    desc: 'A shaft of wedge-shaped bricks, each one cut to the curve before anyone dug the hole, so the ' +
+      'ring locks itself as it goes down. Waters 6 tiles. ★ THE RIVER WATERS NOTHING — only a well ' +
+      'does, and every building that says it needs water means this.',
+  },
+
+  stepwell: {
+    name: 'Stepped Well', tier: 'infra', era: 6, w: 1, h: 1, cost: 330, upkeep: 0.27,
+    icon: '\u{1F6B0}', color: '#6fa8c4', waterRadius: 9,
+    desc: 'Steps cut down to the water table, so a jar is carried up rather than hauled. Waters 9 ' +
+      'tiles — the well a whole block can queue at.',
+  },
+
+  drain: {
+    name: 'Covered Drain', tier: 'infra', era: 6, w: 1, h: 2, cost: 200, upkeep: 0.17,
+    icon: '\u{1F6BF}', color: '#8fa4ae', needsRoad: true, drainRadius: 10,
+    desc: 'A brick channel under the street, corbelled over, with lifting slabs every few metres for ' +
+      'inspection. ★ A BLOCK ONLY COUNTS WHILE IT IS DRAINED: every qualifying rectangle inside its ' +
+      '10 tiles earns +30% output, −10% upkeep and +1 resident a home. Mothball this and every one of ' +
+      'them stops counting at once. Needs no water and no workers.',
+  },
+
+  riverjetty: {
+    name: 'Brick Jetty', tier: 'infra', era: 6, w: 1, h: 1, cost: 200, upkeep: 0.09,
+    icon: '\u{1F6E4}\u{FE0F}', color: '#9c6a4a', onWater: true, bridge: true,
+    desc: 'Fired brick on a timber raft, which is how you cross a river that moves. Carries the road ' +
+      'over water — lay a line of them bank to bank. ★ Water is a WALL for a block, so a jetty can ' +
+      'carry a street and can never be inside one.',
+  },
+
+  jarrow: {
+    name: 'Sunken Jar Row', tier: 'infra', era: 6, w: 1, h: 1, cost: 130, upkeep: 0.07,
+    icon: '\u{1F3FA}', color: '#b08a5a', storeGrain: 39, storeFlour: 23,
+    desc: 'Storage jars sunk to the shoulder in a brick floor. +39 barley and +23 flour, NO workers ' +
+      'and no road — the famine buffer that does not eat.',
+  },
+
+  balestore: {
+    name: 'Bale Warehouse', tier: 'infra', era: 6, w: 2, h: 2, cost: 330, upkeep: 0.34,
+    icon: '\u{1F4E6}', color: '#a88f68', workers: 2, needsRoad: true, depot: true, storeCraft: 26,
+    desc: 'Racked shelves and sealed bales, each stamped with a seal nobody can read. +26 capacity for ' +
+      'EVERY craft good while staffed, and it counts as a SUPPLY POINT for carting. Bank goods through ' +
+      'a shop\'s bad spell instead of dumping them abroad at half list.',
+  },
+
+  cartstation: {
+    name: 'Bullock-Cart Station', tier: 'infra', era: 6, w: 1, h: 2, cost: 330, upkeep: 0.43,
+    icon: '\u{1F402}', color: '#a58c62', workers: 1, needsRoad: true, depot: true,
+    desc: 'A yard of solid-wheeled bullock carts, the same design still made in Sindh. Counts as a ' +
+      'SUPPLY POINT — one station out on the chert erases the frontier\'s carting premium, which is ' +
+      'the entire reason the Agate Camp is affordable at that distance.',
+  },
+
+  siltditch: {
+    name: 'Silt Ditch', tier: 'infra', era: 6, w: 1, h: 1, cost: 150, upkeep: 0.14,
+    icon: '\u{1F4A6}', color: '#8a7a5c', soilRadius: 6,
+    desc: 'A cut that lets fresh silt onto tired ground and lets the salt back out. Land within 6 ' +
+      'tiles recovers three times as fast. No road, no water, no workers.',
+  },
+
+  brickhouse: {
+    name: 'Courtyard House', tier: 'housing', era: 6, w: 1, h: 1, cost: 200, upkeep: 0.09,
+    icon: '\u{1F3E0}', color: '#c98f6a', cap: 5, needsWater: true, needsRoad: true,
+    desc: 'Rooms around a courtyard, a blank wall to the street, and a bathing floor with its own chute ' +
+      'down to the drain. Homes 3 when it goes up, rising to 18 — and one more again inside a ' +
+      'qualifying block. It is the same house everywhere in the Indus, which is the strangest thing ' +
+      'about this civilisation.',
+  },
+
+  blockhouse: {
+    name: 'Merchant Block House', tier: 'housing', era: 6, w: 2, h: 2, cost: 1560, upkeep: 0.52,
+    icon: '\u{1F3D8}\u{FE0F}', color: '#b5794f', cap: 30,
+    needsWater: true, needsRoad: true, needsBlock: true,
+    levels: ['Walled Yard', 'Merchant Compound', 'Gated Compound',
+             'Two-Storey Compound', 'Great Compound', 'Citadel Compound'],
+    desc: 'A merchant\'s compound filling a quarter of a planned block — 15 residents when it goes up, ' +
+      'rising to 105, all behind one wall sharing one drain and one gate. ★ IT CAN ONLY STAND INSIDE A ' +
+      'QUALIFYING BLOCK. More people per tile than anything else in the era, at a worse price per ' +
+      'head: density is bought with planning.',
+  },
+
+  bathcourt: {
+    name: 'Bathing Platform', tier: 'civic', era: 6, w: 1, h: 1, cost: 150, upkeep: 0.14,
+    icon: '\u{1F6C1}', color: '#a8bcc4', amenityRadius: 9,
+    desc: 'A raised brick floor, a run-off channel and a jar of water. Homes within 9 tiles can climb ' +
+      'their rungs. Bathing was not a luxury here; it was plumbing, and every house had it.',
+  },
+
+  hallstandards: {
+    name: 'Hall of Standards', tier: 'civic', era: 6, w: 2, h: 3, cost: 830, upkeep: 0.77,
+    icon: '\u{2696}\u{FE0F}', color: '#c9b46a', workers: 4, needsRoad: true, needsWater: true,
+    weighRadius: 12,
+    desc: 'Cubical chert weights in a strict 1:2:4:8:16 series, accurate to a fraction of a gram from ' +
+      'here to the Persian Gulf. Every shop within 12 tiles sells at a higher price. This is what the ' +
+      'Indus had instead of a king.',
+  },
+
+  sealcutter: {
+    name: "Seal Cutter's Office", tier: 'civic', era: 6, w: 1, h: 2, cost: 330, upkeep: 0.21,
+    icon: '\u{1F4DC}', color: '#cbb98a', needsRoad: true, keepsTally: true,
+    desc: 'Steatite stamp seals: a one-horned beast, a manger, and six signs nobody alive can read. ' +
+      '+10% throughput at every shop within 20 tiles. One covers a quarter; a second adds nothing to a ' +
+      'shop already counted.',
+  },
+
+  greatgranary: {
+    name: 'Great Granary', tier: 'civic', era: 6, w: 4, h: 4, cost: 1500, upkeep: 0.60,
+    icon: '\u{1F33E}', color: '#c9a86a', workers: 6, needsRoad: true, needsWater: true,
+    depot: true, storeGrain: 374, storeFlour: 234,
+    desc: 'A ventilated brick podium the size of a city block, with air ducts running under the floor. ' +
+      'Nobody knows what the real ones held — this one holds your grain and flour, counts as a SUPPLY ' +
+      'POINT, collects head money from residents within 20 tiles, and issues its stores directly in a ' +
+      'famine.',
+  },
+
+  gridpost: {
+    name: 'Cord & Peg Post', tier: 'civic', era: 6, w: 1, h: 1, cost: 580, upkeep: 0.52,
+    icon: '\u{1F4D0}', color: '#c2ac82', needsRoad: true,
+    blockRadius: 24, blockMaxSide: 10, blockTolerance: 1,
+    desc: 'Cord, peg and a level eye. Blocks within 24 tiles may run to 10 tiles a side and may leave ' +
+      'ONE interior tile unbuilt — a 10x10 builds on 82.6% of its ground against an 8x8\'s 79.0%, and ' +
+      'the tolerance is the difference between a district you can rebuild and one you must not touch.',
+  },
+
+  claycut: {
+    name: 'River Clay Cut', tier: 'food', era: 6, w: 2, h: 2, cost: 180, upkeep: 0.26,
+    icon: '\u{1FAA8}', color: '#9c7b52', workers: 2, nearWater: 3,
+    out: { clay: 2.11 },
+    desc: 'Alluvium cut off the bank and levigated through settling tanks: 2.11 clay/min, +50% within ' +
+      '3 tiles of water. This is the ONLY raw material the plain has, and everything you will ever ' +
+      'build here is made of it.',
+  },
+
+  brickkiln: {
+    name: 'Fired-Brick Kiln', tier: 'food', era: 6, w: 2, h: 2, cost: 430, upkeep: 0.48,
+    icon: '\u{1F9F1}', color: '#a5643c', workers: 3, needsWater: true, industry: true,
+    procIn: 'clay', procOut: 'brick', procRate: 2.64, procRatio: 0.5,
+    desc: 'Fires 2.64 clay/min into 1.32 standardised bricks — 1:2:4, the same size from Harappa to ' +
+      'Lothal for seven hundred years. Sun-dried brick is for walls; FIRED brick is for drains, ' +
+      'platforms and anything that has to meet water. Industry: a poor neighbour for houses.',
+  },
+
+  standardyard: {
+    name: 'Standard Brick Yard', tier: 'commerce', era: 6, w: 2, h: 2, cost: 400, upkeep: 0.52,
+    icon: '\u{1F9F1}', color: '#c07a52', workers: 2, needsRoad: true, needsWater: true,
+    sells: 'brick', sellRate: 0.66, sellPrice: 14.95, custRadius: 7, custMin: 7,
+    desc: 'Stacks of graded brick sold by the standard course: 0.66/min at $14.95. Needs 7 residents. ' +
+      'Your drains and your Great Bath eat out of the same pile, so a yard that sells everything is a ' +
+      'yard that stopped your monument.',
+  },
+
+  cottonfield: {
+    name: 'Cotton Field', tier: 'food', era: 6, w: 2, h: 2, cost: 220, upkeep: 0.26,
+    icon: '\u{1F33F}', color: '#b9c4a0', workers: 2, needsWater: true, slowSalt: true,
+    out: { cotton: 1.32 },
+    desc: 'The oldest cotton anyone has found was spun near here thousands of years before this city ' +
+      'was laid out, and it wants the same watered silt your barley wants. 1.32 cotton/min, +50% on ' +
+      'fertile ground, and it salts the soil at HALF the barley rate.',
+  },
+
+  spinnery: {
+    name: "Spinner's Court", tier: 'food', era: 6, w: 2, h: 2, cost: 500, upkeep: 0.52,
+    icon: '\u{1F9F5}', color: '#c2b48a', workers: 3, needsWater: true, industry: true,
+    procIn: 'cotton', procOut: 'cottoncloth', procRate: 2.11, procRatio: 0.5,
+    desc: 'Spindle whorls by the thousand in an open courtyard: 2.11 cotton/min into 1.06 cloth. ' +
+      'Mesopotamia called the country it came from MELUHHA, and paid silver for it.',
+  },
+
+  balehouse: {
+    name: 'Bale House', tier: 'commerce', era: 6, w: 2, h: 2, cost: 530, upkeep: 0.60,
+    icon: '\u{1F9F6}', color: '#b98b6a', workers: 2, needsRoad: true, needsWater: true,
+    sells: 'cottoncloth', sellRate: 0.53, sellPrice: 24.38, custRadius: 7, custMin: 10,
+    desc: 'Baled, sealed and stamped for the boats down to Lothal and out to Dilmun: 0.53 cloth/min at ' +
+      '$24.38. Needs 10 residents.',
+  },
+
+  agatecamp: {
+    name: "Agate Gatherer's Camp", tier: 'food', era: 6, w: 2, h: 2, cost: 220, upkeep: 0.26,
+    icon: '\u{1F536}', color: '#b5502f', workers: 2, onRock: true,
+    out: { carnelian: 0.80 },
+    desc: 'Nodules of carnelian agate off a chert ridge — heated, cracked and carried home. 0.80/min, ' +
+      'and +50% standing ON the rock. Rock is 1% of this map and all of it is at one edge, which is why ' +
+      'this is the richest thing you can make and the furthest from your city. Bring a Cart Station.',
+  },
+
+  beadworks: {
+    name: 'Bead Drilling Works', tier: 'food', era: 6, w: 2, h: 2, cost: 600, upkeep: 0.55,
+    icon: '\u{1F4FF}', color: '#a4485a', workers: 3, needsWater: true, industry: true,
+    procIn: 'carnelian', procOut: 'beads', procRate: 1.26, procRatio: 0.5,
+    desc: 'Long barrel beads bored with an ernestite drill bit — replication says days of work for ' +
+      'each one — then etched white with alkali. 1.26 carnelian/min into 0.63 beads; half the stone ' +
+      'goes as dust. These turn up in the Royal Cemetery at Ur, which is where rung 4\'s luxuries came ' +
+      'from.',
+  },
+
+  beadhouse: {
+    name: 'Seal & Bead House', tier: 'commerce', era: 6, w: 2, h: 2, cost: 530, upkeep: 0.60,
+    icon: '\u{1F48E}', color: '#c0563f', workers: 2, needsRoad: true, needsWater: true,
+    sells: 'beads', sellRate: 0.40, sellPrice: 33.81, custRadius: 7, custMin: 10,
+    desc: 'Beads, seals and weights on one counter: 0.40/min at $33.81, the richest trade in the era ' +
+      'and the furthest from home. Needs 10 residents.',
+  },
+
+  leveefield: {
+    name: 'Levee Field', tier: 'food', era: 6, w: 2, h: 2, cost: 170, upkeep: 0.26,
+    icon: '\u{1F33E}', color: '#a8c26a', workers: 2,
+    out: { grain: 1.56 },
+    desc: 'Barley and wheat sown on the silt the flood left behind, watered by nothing but the ground ' +
+      'it stands on. 1.56 barley/min, +50% on fertile, +25% touching a Quern Mill, +20% inside a fed ' +
+      'Zebu Byre\'s ring — and it needs no well, no road and no street, so your founding party can ' +
+      'work it the moment it goes down.',
+  },
+
+  quernmill: {
+    name: 'The Quern Mill', tier: 'food', era: 6, w: 2, h: 2, cost: 420, upkeep: 0.43,
+    icon: '\u{2699}\u{FE0F}', color: '#b09a7e', workers: 3, needsWater: true, industry: true,
+    grainMill: true,
+    procIn: 'grain', procOut: 'flour', procRate: 4.68, procRatio: 0.6,
+    desc: 'Saddle and rotary querns under one roof: grinds 4.68 barley/min into 2.81 flour — and 5.85 ' +
+      'when it touches a field, because the +25% raises both sides. One mill wants three fields, or two ' +
+      'on fertile. Industry: a poor neighbour for houses.',
+  },
+
+  grainstreet: {
+    name: 'Grain Street Market', tier: 'commerce', era: 6, w: 2, h: 2, cost: 420, upkeep: 0.52,
+    icon: '\u{1F3EA}', color: '#c97f7f', workers: 2, needsRoad: true, needsWater: true,
+    sells: 'flour', sellRate: 0.94, sellPrice: 5.72, custRadius: 6, custMin: 6,
+    desc: 'Barrows of flour along a swept arterial street, sold by the standard measure: 0.94/min at ' +
+      '$5.72. Needs 6 residents. Bread is the cheapest thing in the city and the reason anyone lives ' +
+      'in it.',
+  },
+
+  shellbed: {
+    name: 'Chank Shell Bed', tier: 'food', era: 6, w: 2, h: 2, cost: 220, upkeep: 0.26,
+    icon: '\u{1F41A}', color: '#d8cbb4', workers: 2, nearWater: 2,
+    out: { shell: 1.32 },
+    desc: 'Divers working the creeks for the sacred chank, brought up whole and carried inland. 1.32 ' +
+      'shell/min, +50% within 2 tiles of water. It wants the same bank your clay and your weir want.',
+  },
+
+  banglecourt: {
+    name: "Bangle Sawyer's Court", tier: 'food', era: 6, w: 2, h: 2, cost: 500, upkeep: 0.52,
+    icon: '\u{1F4BF}', color: '#c9bda8', workers: 3, needsWater: true, industry: true,
+    procIn: 'shell', procOut: 'bangles', procRate: 2.11, procRatio: 0.5,
+    desc: 'A bronze saw and a fixed jig: the shell is cut in a spiral so one whorl yields five or six ' +
+      'rings and the core goes out as inlay. 2.11 shell/min into 1.06 bangles.',
+  },
+
+  banglecounter: {
+    name: 'Bangle & Inlay Counter', tier: 'commerce', era: 6, w: 2, h: 2, cost: 530, upkeep: 0.60,
+    icon: '\u{1F48D}', color: '#cbbfa4', workers: 2, needsRoad: true, needsWater: true,
+    sells: 'bangles', sellRate: 0.66, sellPrice: 19.50, custRadius: 7, custMin: 8,
+    desc: 'Bangles by the armful and shell inlay by the sheet: 0.66/min at $19.50. Needs 8 residents. ' +
+      'Four-fifths the price of a bale of cloth and a quarter more of them out the door — the same ' +
+      'money, taken off different ground.',
+  },
+
+  tilfield: {
+    name: 'Til Field', tier: 'food', era: 6, w: 2, h: 2, cost: 180, upkeep: 0.21,
+    icon: '\u{1F33B}', color: '#b5b062', workers: 2, needsWater: true, slowSalt: true,
+    out: { sesame: 0.79 },
+    desc: 'Sesame — til — grown at Harappa before anywhere else on earth. 0.79/min, and it salts the ' +
+      'ground at HALF the barley rate. ★ ONE FIELD CANNOT KEEP A MILL BUSY: this is the era\'s only ' +
+      '2:1:1 chain, and that is the point of it.',
+  },
+
+  oilmill: {
+    name: 'Sesame Oil Mill', tier: 'food', era: 6, w: 2, h: 2, cost: 430, upkeep: 0.48,
+    icon: '\u{1FAD2}', color: '#a89143', workers: 3, needsWater: true, industry: true,
+    procIn: 'sesame', procOut: 'oil', procRate: 2.64, procRatio: 0.5,
+    desc: 'A stone mortar and a turning pestle driven by an ox: crushes 2.64 sesame/min into 1.32 oil. ' +
+      'Two Til Fields keep it fed; one leaves it idle 40% of the time.',
+  },
+
+  oilrow: {
+    name: 'Oil Row', tier: 'commerce', era: 6, w: 2, h: 2, cost: 540, upkeep: 0.70,
+    icon: '\u{1FAD9}', color: '#bfa14e', workers: 2, needsRoad: true, needsWater: true,
+    sells: 'oil', sellRate: 0.79, sellPrice: 16.90, custRadius: 6, custMin: 6,
+    desc: 'Sealed jars of til oil along one street: lamp fuel, cooking fat and skin balm, 0.79/min at ' +
+      '$16.90. Needs 6 residents. The cheapest chain in the era to stand up and the fussiest to feed.',
+  },
+
+  canecut: {
+    name: 'Sarkanda Cane Cut', tier: 'food', era: 6, w: 2, h: 2, cost: 170, upkeep: 0.17,
+    icon: '\u{1FAB4}', color: '#8fae72', workers: 2, nearWater: 2,
+    out: { reeds: 1.58 },
+    desc: 'Sarkanda cane cut off the marsh edge: 1.58/min, +50% within 2 tiles of water. Nearly ' +
+      'worthless raw, and the frame of every roof, crate, screen and boat in the valley. Build its ' +
+      'Matting Court or you have bought a pile of grass.',
+  },
+
+  mattingcourt: {
+    name: 'Matting Court', tier: 'food', era: 6, w: 2, h: 2, cost: 430, upkeep: 0.48,
+    icon: '\u{1F9FA}', color: '#c2a86b', workers: 3, needsWater: true, industry: true,
+    procIn: 'reeds', procOut: 'baskets', procRate: 2.64, procRatio: 0.5,
+    desc: 'Screens, crates, cordage and roofing panels woven flat on the ground: 2.64 cane/min into ' +
+      '1.32 finished matting.',
+  },
+
+  cratecounter: {
+    name: 'Crate & Mat Counter', tier: 'commerce', era: 6, w: 2, h: 2, cost: 400, upkeep: 0.52,
+    icon: '\u{1F4E6}', color: '#c2a067', workers: 2, needsRoad: true, needsWater: true,
+    sells: 'baskets', sellRate: 0.79, sellPrice: 11.57, custRadius: 6, custMin: 6,
+    desc: 'Crates stamped for the boats and screens for every courtyard in the quarter: 0.79/min at ' +
+      '$11.57. Needs 6 residents. Cheap to stand up, cheap to keep, and it never made anybody rich.',
+  },
+
+  brickweir: {
+    name: 'The Brick Weir', tier: 'food', era: 6, w: 1, h: 3, cost: 270, upkeep: 0.26,
+    icon: '\u{1F41F}', color: '#6f9fb5', workers: 2, onWater: true,
+    out: { fish: 1.87 },
+    desc: 'A brick-and-cane fence set across the current: 1.87 fish/min, eaten at 75% of flour\'s ' +
+      'worth. Food that owes nothing to your soil, your salt, your mill or your streets — it stands ' +
+      'IN the water, so it can never be part of a block and can never lose one.',
+  },
+
+  bergarden: {
+    name: 'Ber & Date Garden', tier: 'food', era: 6, w: 3, h: 3, cost: 420, upkeep: 0.34,
+    icon: '\u{1F334}', color: '#8fae62', workers: 3,
+    out: { dates: 2.34 }, saltProof: true,
+    desc: 'Ber and date, walled and underplanted, rooting straight into the water table. 2.34/min, ' +
+      'eaten like flour, and it IGNORES the salt clock entirely — +50% on ground already ruined. ' +
+      'Needs no water coverage, no road and no street: the one food nothing in this age can take away.',
+  },
+
+  zebubyre: {
+    name: 'Zebu Byre & Plow Team', tier: 'food', era: 6, w: 2, h: 4, cost: 670, upkeep: 0.52,
+    icon: '\u{1F402}', color: '#9c7f5c', workers: 2, needsWater: true, oxTeam: true,
+    desc: 'The humped bull — the second beast on the seals, after the one-horned one nobody can name — ' +
+      'in a byre with a plow team. Eats 0.4 barley/min as fodder and plows EVERY ploughed field within ' +
+      '14 tiles to +20%, however many there are. It breaks even at two fields and is profit after. ' +
+      'Site the byre first and lay the fields around it.',
+  },
+
+  unicornseal: {
+    name: 'Unicorn Seal Stone', tier: 'beauty', era: 6, w: 1, h: 1, cost: 40, upkeep: 0,
+    icon: '\u{1FAA7}', color: '#b8a888', cosmetic: true, nameable: true,
+    desc: 'A steatite seal stone set upright at a corner — the one-horned beast, a manger, and six ' +
+      'signs nobody alive can read. No output, no upkeep. Click it to name the quarter.',
+  },
+
+  peepal: {
+    name: 'Peepal Tree Court', tier: 'beauty', era: 6, w: 1, h: 1, cost: 70, upkeep: 0,
+    icon: '\u{1F333}', color: '#6faf62', cosmetic: true,
+    desc: 'A fig tree in a brick surround — the same tree that appears on the seals with a figure ' +
+      'standing in its fork. Pure beauty: zero output, zero upkeep, and it was probably sacred.',
+  },
+
+  cutbank: {
+    name: 'Levigation Cutbank', tier: 'food', era: 6, w: 2, h: 2, cost: 430, upkeep: 0.36,
+    icon: '\u{1FAB5}', color: '#8a6c48', workers: 3, nearWater: 3,
+    out: { clay: 4.22 },
+    desc: 'The bank cut back in courses and the spoil washed through three settling tanks instead of ' +
+      'one: 4.22 clay/min, and the fines come out clean enough for a seal blank.',
+  },
+
+  cottonrows: {
+    name: 'Irrigated Cotton Rows', tier: 'food', era: 6, w: 2, h: 2, cost: 530, upkeep: 0.36,
+    icon: '\u{1F33E}', color: '#c9d1b0', workers: 3, needsWater: true, slowSalt: true,
+    out: { cotton: 2.64 },
+    desc: 'Ridge and furrow, hand-watered from a channel and picked twice: 2.64 cotton/min, still at ' +
+      'half the barley\'s salt rate.',
+  },
+
+  agateworkings: {
+    name: 'Chert Ridge Workings', tier: 'food', era: 6, w: 2, h: 2, cost: 530, upkeep: 0.36,
+    icon: '\u{1F5FB}', color: '#a8452c', workers: 3, onRock: true,
+    out: { carnelian: 1.60 },
+    desc: 'A standing camp on the ridge with fire pits, water and a track down: 1.60 carnelian/min, ' +
+      '+50% on the rock. Still gathers nodules rather than cutting the ridge, so it never runs the ' +
+      'outcrop out.',
+  },
+
+  inundationfield: {
+    name: 'Inundation Field', tier: 'food', era: 6, w: 2, h: 2, cost: 410, upkeep: 0.36,
+    icon: '\u{1F33E}', color: '#93b85c', workers: 3,
+    out: { grain: 3.12 },
+    desc: 'Bunded on all four sides so the flood is held on the plot and let off once the seed is in: ' +
+      '3.12 barley/min, and still not one drop of it comes from a well.',
+  },
+
+  chankbank: {
+    name: 'Chank Dredging Bank', tier: 'food', era: 6, w: 2, h: 2, cost: 530, upkeep: 0.36,
+    icon: '\u{1F41A}', color: '#cbbda0', workers: 3, nearWater: 2,
+    out: { shell: 2.64 },
+    desc: 'Weighted rakes worked from a moored boat instead of divers holding their breath: 2.64 ' +
+      'shell/min, and it works the deep beds a diver cannot reach.',
+  },
+
+  tilterrace: {
+    name: 'Banked Til Beds', tier: 'food', era: 6, w: 2, h: 2, cost: 430, upkeep: 0.29,
+    icon: '\u{1F33B}', color: '#c9b672', workers: 3, needsWater: true, slowSalt: true,
+    out: { sesame: 1.58 },
+    desc: 'Levelled beds with a lip that holds the water a day longer: 1.58 sesame/min — ★ one of ' +
+      'these keeps a Sesame Oil Mill fed on its own, so the 2:1:1 chain becomes 1:1:1.',
+  },
+
+  canebeds: {
+    name: 'Managed Cane Beds', tier: 'food', era: 6, w: 2, h: 2, cost: 410, upkeep: 0.24,
+    icon: '\u{1F33E}', color: '#8fae72', workers: 3, nearWater: 2,
+    out: { reeds: 3.16 },
+    desc: 'Cut on a three-year rotation instead of stripped bare: 3.16 cane/min, and the bed comes ' +
+      'back every year instead of once.',
+  },
+
+  weirpens: {
+    name: 'Sluiced Weir & Pens', tier: 'food', era: 6, w: 1, h: 3, cost: 650, upkeep: 0.36,
+    icon: '\u{1F420}', color: '#5f93aa', workers: 3, onWater: true,
+    out: { fish: 3.74 },
+    desc: 'A permanent weir with brick sluices and holding pens, so the catch stays alive until it is ' +
+      'wanted: 3.74 fish/min. Still stands IN the water, so it still cannot be part of a block — and ' +
+      'still cannot lose one.',
+  },
+
+  berorchard: {
+    name: 'Walled Ber Orchard', tier: 'food', era: 6, w: 3, h: 3, cost: 1010, upkeep: 0.48,
+    icon: '\u{1F334}', color: '#7f9e54', workers: 4,
+    out: { dates: 4.68 }, saltProof: true,
+    desc: 'Walled, watered by hand from a stepped well and underplanted with melon and gourd — the ' +
+      'three-storey orchard the valley actually ran: 4.68/min. Still no water coverage, no road and ' +
+      'no street. Still the food nothing can take away.',
+  },
+
+  doublekiln: {
+    name: 'Double-Chamber Kiln', tier: 'craft', era: 6, w: 2, h: 2, cost: 710, upkeep: 0.62,
+    icon: '\u{1F525}', color: '#96522f', workers: 4, needsWater: true, industry: true,
+    procIn: 'clay', procOut: 'brick', procRate: 3.70, procRatio: 0.5,
+    desc: 'Two chambers on one flue, so the second is drying while the first is firing: 3.70 clay/min ' +
+      'into 1.85 brick, and far fewer warped courses.',
+  },
+
+  whorlhall: {
+    name: 'Whorl Hall', tier: 'craft', era: 6, w: 2, h: 2, cost: 830, upkeep: 0.68,
+    icon: '\u{1F9F5}', color: '#cbbf94', workers: 4, needsWater: true, industry: true,
+    procIn: 'cotton', procOut: 'cottoncloth', procRate: 2.95, procRatio: 0.5,
+    desc: 'Roofed, lit and worked in shifts: 2.95 cotton/min into 1.48 cloth, by people who own their ' +
+      'own whorls.',
+  },
+
+  drillhall: {
+    name: 'Ernestite Drill Hall', tier: 'craft', era: 6, w: 2, h: 2, cost: 990, upkeep: 0.77,
+    icon: '\u{1F4FF}', color: '#8f3d4c', workers: 4, needsWater: true, industry: true,
+    procIn: 'carnelian', procOut: 'beads', procRate: 1.76, procRatio: 0.5,
+    desc: 'Bow drills in a row, tipped with the hardest stone anyone in the Bronze Age has: 1.76 ' +
+      'carnelian/min into 0.88 beads. ★ 1.76 takes TWO Agate Camps, or one Chert Ridge Workings.',
+  },
+
+  millingcourt: {
+    name: 'The Milling Court', tier: 'food', era: 6, w: 2, h: 2, cost: 690, upkeep: 0.60,
+    icon: '\u{1F35E}', color: '#c4ab86', workers: 4, needsWater: true, industry: true,
+    grainMill: true,
+    procIn: 'grain', procOut: 'flour', procRate: 6.55, procRatio: 0.6,
+    desc: 'A walled court of querns worked in shifts by the granary gang: 6.55 barley/min into 3.93 ' +
+      'flour. Still raises an adjacent field +25%, both ways.',
+  },
+
+  sawyershall: {
+    name: "Sawyers' Hall", tier: 'craft', era: 6, w: 2, h: 2, cost: 830, upkeep: 0.68,
+    icon: '\u{1F4BF}', color: '#bfb192', workers: 4, needsWater: true, industry: true,
+    procIn: 'shell', procOut: 'bangles', procRate: 2.95, procRatio: 0.5,
+    desc: 'Fixed jigs, a copper saw kept wet, and a boy whose whole job is the sand: 2.95 shell/min ' +
+      'into 1.48 bangles, and the cores go out as inlay instead of spoil.',
+  },
+
+  beammill: {
+    name: 'Beam Oil Mill', tier: 'craft', era: 6, w: 2, h: 2, cost: 710, upkeep: 0.62,
+    icon: '\u{1FAD2}', color: '#b59a5f', workers: 4, needsWater: true, industry: true,
+    procIn: 'sesame', procOut: 'oil', procRate: 3.70, procRatio: 0.5,
+    desc: 'A weighted beam over the mortar instead of an ox walking in a circle: 3.70 sesame/min into ' +
+      '1.85 oil, and the cake comes out dry enough to feed the byre.',
+  },
+
+  cordagecourt: {
+    name: 'Crate & Cordage Court', tier: 'craft', era: 6, w: 2, h: 2, cost: 710, upkeep: 0.60,
+    icon: '\u{1FAA2}', color: '#b59a70', workers: 4, needsWater: true, industry: true,
+    procIn: 'reeds', procOut: 'baskets', procRate: 3.70, procRatio: 0.5,
+    desc: 'Cane split, retted and laid up into rope as well as woven flat: 3.70 cane/min into 1.85 ' +
+      'finished goods, and rope is what a boat is actually made of.',
+  },
+
+  coursemarket: {
+    name: 'Graded Course Market', tier: 'shop', era: 6, w: 2, h: 2, cost: 800, upkeep: 0.73,
+    icon: '\u{1F9F1}', color: '#c98f5f', workers: 3, needsRoad: true, needsWater: true,
+    sells: 'brick', sellRate: 1.32, sellPrice: 14.95, custRadius: 7, custMin: 7,
+    desc: 'Brick graded by course and sold against a sealed tally: 1.32/min, double the yard. Your ' +
+      'monument still eats out of the same pile.',
+  },
+
+  balewharf: {
+    name: 'Bale Wharf', tier: 'shop', era: 6, w: 2, h: 2, cost: 1060, upkeep: 0.84,
+    icon: '\u{1F6A2}', color: '#a87f60', workers: 3, needsRoad: true, needsWater: true,
+    sells: 'cottoncloth', sellRate: 1.06, sellPrice: 24.38, custRadius: 7, custMin: 10,
+    desc: 'A brick quay with a warehouse behind it and a boat waiting: 1.06 bales/min out to Lothal ' +
+      'and Dilmun, twice the house it replaces.',
+  },
+
+  sealbeadhall: {
+    name: 'Seal & Bead Hall', tier: 'shop', era: 6, w: 2, h: 2, cost: 1060, upkeep: 0.84,
+    icon: '\u{1F48E}', color: '#a8452c', workers: 3, needsRoad: true, needsWater: true,
+    sells: 'beads', sellRate: 0.80, sellPrice: 33.81, custRadius: 7, custMin: 10,
+    desc: 'A hall with a standing stock and a weighman at the door: 0.80 beads/min at $33.81. Still ' +
+      'the richest counter in the era, now moving twice as much.',
+  },
+
+  grainarcade: {
+    name: 'Arterial Grain Arcade', tier: 'shop', era: 6, w: 2, h: 2, cost: 840, upkeep: 0.73,
+    icon: '\u{1F3EA}', color: '#c07070', workers: 3, needsRoad: true, needsWater: true,
+    sells: 'flour', sellRate: 1.88, sellPrice: 5.72, custRadius: 6, custMin: 6,
+    desc: 'A roofed arcade the length of the arterial street rather than a row of barrows: 1.88 ' +
+      'flour/min. Bread is still the cheapest thing in the city.',
+  },
+
+  bangleexchange: {
+    name: 'Bangle Exchange', tier: 'shop', era: 6, w: 2, h: 2, cost: 1060, upkeep: 0.84,
+    icon: '\u{1F48D}', color: '#bfb192', workers: 3, needsRoad: true, needsWater: true,
+    sells: 'bangles', sellRate: 1.32, sellPrice: 19.50, custRadius: 7, custMin: 8,
+    desc: 'Bangles graded by bore and sold by the hundred: 1.32/min. Volume was always this chain\'s ' +
+      'argument and now it has twice as much of it.',
+  },
+
+  oilwharf: {
+    name: 'Oil Jar Wharf', tier: 'shop', era: 6, w: 2, h: 2, cost: 1080, upkeep: 0.98,
+    icon: '\u{1FAD9}', color: '#a8912f', workers: 3, needsRoad: true, needsWater: true,
+    sells: 'oil', sellRate: 1.58, sellPrice: 16.90, custRadius: 6, custMin: 6,
+    desc: 'Sealed jars stacked four deep against a loading quay: 1.58 oil/min. It wants four Til ' +
+      'Fields behind it, or two of the banked beds.',
+  },
+
+  cratewharf: {
+    name: 'Crate & Mat Wharf', tier: 'shop', era: 6, w: 2, h: 2, cost: 800, upkeep: 0.73,
+    icon: '\u{1F4E6}', color: '#b59a6b', workers: 3, needsRoad: true, needsWater: true,
+    sells: 'baskets', sellRate: 1.58, sellPrice: 11.57, custRadius: 6, custMin: 6,
+    desc: 'Crates stamped and stacked on the quay for the river boats: 1.58/min. Still the cheapest ' +
+      'chain in the era, still nobody\'s fortune.',
+  },
+
+  greatdrain: {
+    name: 'Great Corbelled Drain', tier: 'infra', era: 6, w: 1, h: 2, cost: 420, upkeep: 0.29,
+    icon: '\u{1F573}\u{FE0F}', color: '#7e94a0', needsRoad: true, drainRadius: 15,
+    desc: 'A man-high corbelled sewer with brick manholes and a sump at every junction: it drains 15 ' +
+      'tiles instead of 10 — two and a quarter times the ground, which is four or five blocks off one ' +
+      'building. Still needs no water and no workers.',
+  },
+
+  surveyoffice: {
+    name: "Surveyor's Office", tier: 'civic', era: 6, w: 1, h: 1, cost: 1220, upkeep: 0.75,
+    icon: '\u{1F4CF}', color: '#b39c72', needsRoad: true,
+    blockRadius: 35, blockMaxSide: 12, blockTolerance: 2,
+    desc: 'A standing office with a chest of measuring cords, plumb bobs and a bronze level. Blocks ' +
+      'within 35 tiles may run to 12 tiles a side and leave TWO interior tiles unbuilt. A 12x12 builds ' +
+      'on 85.2% of its ground — the best geometry available in the era.',
+  },
+
+  sealedjarvault: {
+    name: 'Sealed Jar Vault', tier: 'infra', era: 6, w: 1, h: 1, cost: 270, upkeep: 0.10,
+    icon: '\u{1F3FA}', color: '#c2a06b', storeGrain: 57, storeFlour: 33,
+    desc: 'Pitch-sealed jars in a brick-lined cellar, each one stamped: +57 barley and +33 flour. ' +
+      'Still no workers, still no road.',
+  },
+
+  sealingrooms: {
+    name: 'The Sealing Rooms', tier: 'infra', era: 6, w: 2, h: 2, cost: 690, upkeep: 0.49,
+    icon: '\u{1F4D2}', color: '#9c8460', workers: 3, needsRoad: true, depot: true, storeCraft: 38,
+    desc: 'Racks, sealed bales and a clerk who knows what is in each one: +38 capacity for every craft ' +
+      'good, and still a supply point.',
+  },
+
+  cartyard: {
+    name: 'Bullock-Cart Yard', tier: 'infra', era: 6, w: 1, h: 2, cost: 690, upkeep: 0.62,
+    icon: '\u{1F69A}', color: '#96794f', workers: 2, needsRoad: true, depot: true, storeCraft: 26,
+    desc: 'A walled yard with a repair shed, a spare axle rack and a night watchman: still a SUPPLY ' +
+      'POINT, and now +26 capacity for every craft good as well. The frontier stops being a place you ' +
+      'have to come home from every trip.',
+  },
+
+  bathinghall: {
+    name: 'Great Bathing Court', tier: 'civic', era: 6, w: 1, h: 1, cost: 320, upkeep: 0.20,
+    icon: '\u{1F6C1}', color: '#93aeb8', amenityRadius: 13,
+    desc: 'A colonnaded court with a sunk floor, a drain of its own and hot water carried in: homes ' +
+      'within 13 tiles can climb their rungs.',
+  },
+
+  weightsoffice: {
+    name: 'Office of Weights & Measures', tier: 'civic', era: 6, w: 2, h: 3, cost: 1740, upkeep: 1.32,
+    icon: '\u{2696}\u{FE0F}', color: '#d1bd76', workers: 5, needsRoad: true, needsWater: true,
+    weighRadius: 17,
+    desc: 'The full binary series in chert, checked against a master set and stamped: every shop within ' +
+      '17 tiles sells higher. The weights really were this consistent across a thousand miles, which is ' +
+      'the part nobody can explain.',
+  },
+
+  sealarchive: {
+    name: 'Seal Archive', tier: 'civic', era: 6, w: 1, h: 2, cost: 690, upkeep: 0.36,
+    icon: '\u{1F5C3}\u{FE0F}', color: '#c2ae7e', workers: 1, needsRoad: true,
+    keepsTally: true, storeCraft: 26,
+    desc: 'Every seal impression kept, filed and cross-checked — the closest thing this civilisation ' +
+      'has to a state archive. Still +10% throughput within 20 tiles, and now +26 craft capacity, ' +
+      'because a sealed bale is a bale somebody is answerable for.',
+  },
+
+  twinpodium: {
+    name: 'Twin-Podium Granary', tier: 'civic', era: 6, w: 4, h: 4, cost: 3150, upkeep: 1.03,
+    icon: '\u{1F3DB}\u{FE0F}', color: '#d1b077', workers: 7, needsRoad: true, needsWater: true,
+    depot: true, storeGrain: 542, storeFlour: 339,
+    desc: 'A second ventilated podium raised alongside the first and joined by a covered ramp: 542 ' +
+      'barley and 339 flour under seal, and the dole never runs dry mid-famine.',
+  },
+
+  inundationcut: {
+    name: 'Inundation Cut', tier: 'infra', era: 6, w: 1, h: 1, cost: 320, upkeep: 0.20,
+    icon: '\u{1F30A}', color: '#7d8f76', soilRadius: 9,
+    desc: 'A gated cut with a sluice, so the flood can be let onto tired ground on purpose and let off ' +
+      'again before it drowns the seed: land within 9 tiles recovers three times as fast.',
+  },
+
+  zebuspan: {
+    name: 'Great Zebu Span', tier: 'food', era: 6, w: 2, h: 4, cost: 1410, upkeep: 0.90,
+    icon: '\u{1F404}', color: '#8a6f4e', workers: 3, needsWater: true,
+    oxTeam: true, oxRadius: 20, oxFodder: 0.60, oxBonus: 0.20,
+    desc: 'Four spans working in rotation with a proper byre, a fodder store and a man who does ' +
+      'nothing but the yokes: plows every ploughed field within 20 tiles to +20%, and eats 0.6 ' +
+      'barley/min doing it.',
+  },
+
+  brickcauseway: {
+    name: 'Brick Causeway', tier: 'infra', era: 6, w: 1, h: 1, cost: 420, upkeep: 0.13,
+    icon: '\u{1F309}', color: '#8a5c3e', onWater: true, bridge: true, depot: true,
+    desc: 'A built causeway on brick piers rather than a raft that has to be re-moored every flood: it ' +
+      'carries the road across AND counts as a SUPPLY POINT, so the far bank stops paying the carting ' +
+      'premium the moment the crossing is finished.',
+  },
+
   cenote: {
     name: 'Cenote Steps', tier: 'infra', era: 14, w: 2, h: 2, cost: 560, upkeep: 0.50,
     icon: '\u{1F573}\u{FE0F}', color: '#4f9ab5', workers: 2, onWater: true,
@@ -3751,6 +4419,9 @@ const HOUSE_LEVELS = {
 
   4: ['Reed Hut', 'Mudbrick House', 'Courtyard House', 'Two-Storey House', "Merchant's Compound", 'Anunnaki Hall'],
   5: ['Mud Hut', 'Mudbrick Villa', 'Columned Villa', 'Garden Villa', "Nomarch's House", 'Temple Villa'],
+
+  6: ['Reed-Mat Shelter', 'Brick Courtyard House', 'Bathing-Room House',
+      'Two-Storey Court House', "Merchant's House", 'Citadel House'],
   14: ['Thatch House', 'Stone House', 'Corbelled House', 'Terraced House', 'Noble Compound', 'Lineage Palace'],
   30: ['Tenement Room', 'Brick Terrace', 'Merchant Townhouse', 'Mansion Flat', 'City Mansion', 'Merchant Palace'],
 };
@@ -3877,6 +4548,23 @@ const MONUMENT_GIFT = {
     apply(s) { s.giftRank = (s.giftRank | 0) + 1; },
   },
 
+  6: {
+    key: 'drain',
+    icon: '\u{1F6BF}',
+    title: 'The Covered Street',
+    lead: 'The Bath is sealed. Two courses of fired brick, gypsum mortar, and a damp-course of bitumen between them.',
+    body: 'There is no palace in this record, no royal tomb, no army and no name. What this city built ' +
+          'instead was a tank the whole town could stand in, a weight that meant the same thing a ' +
+          'thousand miles away, and a drain under every street. The tank is what you will be remembered ' +
+          'for. The drain is what you actually leave behind.',
+    grant: '<b>Every home you ever build, in this age and every age after it, holds ONE MORE RESIDENT — ' +
+           'whether or not it stands in a block.</b>',
+    toast: '\u{1F6BF} The covered street is yours. Every home in this age and every age after it holds ' +
+           'one more resident.',
+    log: 'Their gift: the drain under the street — every home the city will ever build holds one more.',
+    apply(s) { s.giftDrain = (s.giftDrain | 0) + 1; },
+  },
+
 };
 function monumentGift(era) { return MONUMENT_GIFT[rungOf(era)] || null; }
 
@@ -3930,6 +4618,16 @@ const ERA_POLICY = {
     off: 'The corvée is stood down. The flood will be idle time.',
   },
 
+  6: {
+    key: 'policySweep', icon: '\u{1F9F9}', name: 'The Sweeping Order',
+    tip: 'The drains are swept and re-kerbed daily: every Covered Drain reaches ' +
+      TUNE.SWEEP.radius + ' tiles instead of ' + TUNE.GRID.drainRadius + ' — nearly twice the ground — ' +
+      'for ' + (TUNE.SWEEP.perDrain * TUNE.TEMPO).toFixed(1) + ' brick per drain per minute. It stops ' +
+      'the moment the brick runs dry, and the blocks it was holding stop counting with it.',
+    on: 'The sweepers go out. Every drain reaches further, and every rectangle inside the new circles counts.',
+    off: 'The order is lifted. The drains go back to ten tiles — check the \u{1F4D0} chip before the streets do.',
+  },
+
   14: {
     key: 'policyRation', icon: '\u{1F4A7}', name: 'The Reservoir Ration',
     tip: 'The city draws ' + Math.round(TUNE.RATION.drawCut * 100) + '% less water — and every ' +
@@ -3979,6 +4677,12 @@ const ERA_ROAD = {
   5: { flavour: 'Processional Way', color: 0xf0e8dc, hw: 0.34,
        desc: 'Dressed limestone laid flat and swept white. Egypt built roads to move stone and ' +
              'to walk gods along — wider than a track, and it shows. $10 a tile, nothing to keep.' },
+
+  6: { flavour: 'Paved Street', color: 0x7a3d2a, hw: 0.36,
+       desc: 'Fired brick laid on edge in a herringbone, with a covered drain running under the middle ' +
+             'of it and inspection slabs every few metres. ★ IN THIS AGE THE STREET COMES FIRST: a ' +
+             'rectangle of ground with road on all four sides is a BLOCK, and everything inside it ' +
+             'works harder. $10 a tile, nothing to keep.' },
   14: { flavour: 'Sacbé', color: 0xe6e0d2, hw: 0.38,
         desc: 'A raised roadbed of rubble faced with cut stone and finished in white lime plaster — ' +
               'dead straight, and visible from a long way off. With no carts and no draft animals, ' +
@@ -4007,6 +4711,11 @@ const MONUMENTS = [
   { id: 'levelledcourt', name: 'The Levelled Court', era: 2, cost: 2330,  icon: '\u{1F3DB}\u{FE0F}', desc: 'A walled precinct with gold-sheathed lintels, storerooms the camp cannot open, and a court levelled flat for something to arrive on.' },
   { id: 'ziggurat',    name: 'Ziggurat',        era: 4,  cost: 4000,      icon: '\u{1F53A}', desc: 'The first temple-mountain. Anchors the Anunnaki economy.' },
   { id: 'pyramid',     name: 'Great Pyramid',   era: 5,  cost: 14000,     icon: '\u{1F3DC}️', desc: 'A mountain of casing stone on the west bank.' },
+
+  { id: 'greatbath',   name: 'The Great Bath',  era: 6,  cost: 8690,      icon: '\u{1F6C1}',
+    desc: 'A watertight tank twelve metres by seven, sunk into a brick platform — two courses of fired ' +
+      'brick in gypsum mortar with a damp-course of bitumen between them, steps at both ends, and a ' +
+      'corbelled outlet drain. The oldest public water tank anyone has excavated.' },
   { id: 'templePyr',   name: 'Temple-Pyramid',  era: 14, cost: 46000,     icon: '\u{1F3EF}', desc: 'Stepped limestone crowned with a roof-comb.' },
   { id: 'temploMayor', name: 'Templo Mayor',    era: 26, cost: 150000,    icon: '⛩️', desc: 'Twin shrines above the sacred precinct.' },
   { id: 'parthenon',   name: 'Parthenon',       era: 10, cost: 480000,    icon: '\u{1F3DB}️', desc: 'Pentelic marble, refined to the millimetre.' },
@@ -4103,13 +4812,39 @@ const RP_WEIGHT = {
   pedlarsrow: 1.6, lamprow: 0.3, sortingfloors: 0.8, sealedbin: 0.3,
   assemblyyard: 0.3, nightsoilrounds: 0.3, reckoningpost: 0.7, ridgerelay: 0.4,
   countinghouse: 0.6, cutstair: 0.15,
+
+  brickwell: 0.1, stepwell: 0.15, drain: 0.2, greatdrain: 0.3,
+  gridpost: 0.6, surveyoffice: 0.8, riverjetty: 0.1, brickcauseway: 0.2,
+  jarrow: 0.2, sealedjarvault: 0.3, balestore: 0.6, sealingrooms: 0.9,
+  cartstation: 0.3, cartyard: 0.5, siltditch: 0.2, inundationcut: 0.3,
+  brickhouse: 0.3, blockhouse: 0.3,
+  bathcourt: 0.2, bathinghall: 0.3, hallstandards: 1.0, weightsoffice: 1.4,
+  sealcutter: 0.5, sealarchive: 0.7, greatgranary: 1.2, twinpodium: 1.6,
+  claycut: 1.0, cutbank: 1.3, brickkiln: 1.6, doublekiln: 2.0,
+  standardyard: 2.6, coursemarket: 3.4,
+  cottonfield: 1.0, cottonrows: 1.3, spinnery: 1.8, whorlhall: 2.2,
+  balehouse: 3.0, balewharf: 3.8,
+  agatecamp: 1.0, agateworkings: 1.3, beadworks: 2.8, drillhall: 3.3,
+  beadhouse: 3.0, sealbeadhall: 3.8,
+  leveefield: 1.0, inundationfield: 1.3, quernmill: 1.6, millingcourt: 2.0,
+  grainstreet: 2.4, grainarcade: 3.1,
+  shellbed: 1.0, chankbank: 1.3, banglecourt: 1.8, sawyershall: 2.2,
+  banglecounter: 3.0, bangleexchange: 3.8,
+  tilfield: 1.0, tilterrace: 1.3, oilmill: 2.2, beammill: 2.6,
+  oilrow: 2.8, oilwharf: 3.5,
+  canecut: 1.0, canebeds: 1.3, mattingcourt: 2.0, cordagecourt: 2.4,
+  cratecounter: 2.4, cratewharf: 3.1,
+  brickweir: 1.0, weirpens: 1.3, bergarden: 1.0, berorchard: 1.3,
+  zebubyre: 0.8, zebuspan: 1.0,
+  unicornseal: 0, peepal: 0,
 };
 for (const k in RP_WEIGHT) if (BUILDINGS[k]) BUILDINGS[k].rp = RP_WEIGHT[k];
 
 for (const t of ROAD_REQUIRED) if (BUILDINGS[t]) BUILDINGS[t].needsRoad = true;
 for (const k in BUILDINGS) if (BUILDINGS[k].monument) BUILDINGS[k].needsRoad = true;
 
-const PLOWED = ['farm', 'estate', 'farm2', 'sesamefield', 'terraceplot', 'irrigatedbank'];
+const PLOWED = ['farm', 'estate', 'farm2', 'sesamefield', 'terraceplot', 'irrigatedbank',
+                'leveefield', 'inundationfield', 'tilfield', 'tilterrace'];
 for (const t of PLOWED) if (BUILDINGS[t]) BUILDINGS[t].plowed = true;
 
 const QUARRIED = ['quarry', 'deepquarry', 'granitequarry', 'desertquarry',
@@ -4128,6 +4863,8 @@ const MONUMENT_BUILD = {
   levelledcourt: { money: 2100, gold: 160, deadwood: 450 },
 
   enclosure: { money: 2791, stone: 783, carvings: 87, beer: 261 },
+
+  greatbath: { money: 7820, brick: 980, beads: 196 },
   ziggurat:  { money: 3600, clay: 900, beer: 300 },
   pyramid:   { money: 12000, clay: 2200, stone: 900 },
   templePyr: { money: 40000, stone: 3000, blocks: 1200 },
@@ -4136,7 +4873,9 @@ const MONUMENT_BUILD = {
 const MONUMENT_RATE = { money: 24, clay: 6, beer: 2, stone: 6, blocks: 3, pottery: 2, cloth: 1,
                         ochre: 6, charcoal: 2, carvings: 1,
 
-                        gold: 1.06, deadwood: 3 };
+                        gold: 1.06, deadwood: 3,
+
+                        brick: 3, beads: 0.6 };
 
 function monumentBuild(type, era) {
   return MONUMENT_BUILD[type] || { money: Math.round((BUILDINGS[type] || {}).cost * 0.9) || 1000 };
@@ -4294,6 +5033,47 @@ const UPGRADES = {
   houseofbooks:  { to: 'templearchive', cost: 480, era: 5, label: 'Temple Archive' },
   ferryquay:     { to: 'stonecauseway',        cost: 225, era: 5, label: 'Stone Causeway' },
   temple:        { to: 'greattemple',       cost: 900, era: 5, label: 'Great Temple' },
+
+  brickwell:     { to: 'stepwell',        cost: 270,  era: 6, label: 'Stepped Well' },
+  drain:         { to: 'greatdrain',      cost: 300,  era: 6, label: 'Great Corbelled Drain' },
+  gridpost:      { to: 'surveyoffice',    cost: 870,  era: 6, label: "Surveyor's Office" },
+  riverjetty:    { to: 'brickcauseway',   cost: 300,  era: 6, label: 'Brick Causeway' },
+
+  claycut:       { to: 'cutbank',         cost: 360,  era: 6, label: 'Levigation Cutbank' },
+  cottonfield:   { to: 'cottonrows',      cost: 440,  era: 6, label: 'Irrigated Cotton Rows' },
+  agatecamp:     { to: 'agateworkings',   cost: 440,  era: 6, label: 'Chert Ridge Workings' },
+  leveefield:    { to: 'inundationfield', cost: 340,  era: 6, label: 'Inundation Field' },
+  shellbed:      { to: 'chankbank',       cost: 440,  era: 6, label: 'Chank Dredging Bank' },
+  tilfield:      { to: 'tilterrace',      cost: 360,  era: 6, label: 'Banked Til Beds' },
+  canecut:       { to: 'canebeds',        cost: 340,  era: 6, label: 'Managed Cane Beds' },
+  brickweir:     { to: 'weirpens',        cost: 540,  era: 6, label: 'Sluiced Weir & Pens' },
+  bergarden:     { to: 'berorchard',      cost: 840,  era: 6, label: 'Walled Ber Orchard' },
+
+  brickkiln:     { to: 'doublekiln',      cost: 430,  era: 6, label: 'Double-Chamber Kiln' },
+  spinnery:      { to: 'whorlhall',       cost: 500,  era: 6, label: 'Whorl Hall' },
+  beadworks:     { to: 'drillhall',       cost: 600,  era: 6, label: 'Ernestite Drill Hall' },
+  quernmill:     { to: 'millingcourt',      cost: 420,  era: 6, label: 'The Milling Court' },
+  banglecourt:   { to: 'sawyershall',     cost: 500,  era: 6, label: "Sawyers' Hall" },
+  oilmill:       { to: 'beammill',        cost: 430,  era: 6, label: 'Beam Oil Mill' },
+  mattingcourt:  { to: 'cordagecourt',    cost: 430,  era: 6, label: 'Crate & Cordage Court' },
+
+  standardyard:  { to: 'coursemarket',    cost: 600,  era: 6, label: 'Graded Course Market' },
+  balehouse:     { to: 'balewharf',       cost: 800,  era: 6, label: 'Bale Wharf' },
+  beadhouse:     { to: 'sealbeadhall',    cost: 800,  era: 6, label: 'Seal & Bead Hall' },
+  grainstreet:   { to: 'grainarcade',     cost: 630,  era: 6, label: 'Arterial Grain Arcade' },
+  banglecounter: { to: 'bangleexchange',  cost: 800,  era: 6, label: 'Bangle Exchange' },
+  oilrow:        { to: 'oilwharf',        cost: 810,  era: 6, label: 'Oil Jar Wharf' },
+  cratecounter:  { to: 'cratewharf',      cost: 600,  era: 6, label: 'Crate & Mat Wharf' },
+
+  jarrow:        { to: 'sealedjarvault',  cost: 200,  era: 6, label: 'Sealed Jar Vault' },
+  balestore:     { to: 'sealingrooms', cost: 500,  era: 6, label: 'The Sealing Rooms' },
+  cartstation:   { to: 'cartyard',        cost: 500,  era: 6, label: 'Bullock-Cart Yard' },
+  bathcourt:     { to: 'bathinghall',     cost: 230,  era: 6, label: 'Great Bathing Court' },
+  hallstandards: { to: 'weightsoffice',   cost: 1250, era: 6, label: 'Office of Weights & Measures' },
+  sealcutter:    { to: 'sealarchive',     cost: 500,  era: 6, label: 'Seal Archive' },
+  greatgranary:  { to: 'twinpodium',      cost: 2250, era: 6, label: 'Twin-Podium Granary' },
+  siltditch:     { to: 'inundationcut',   cost: 230,  era: 6, label: 'Inundation Cut' },
+  zebubyre:      { to: 'zebuspan',        cost: 1010, era: 6, label: 'Great Zebu Span' },
 
   cenote:        { to: 'deepcenote',        cost: 1120, era: 14, label: 'Deep Cenote Stair' },
   milpa:         { to: 'swiddenfield',      cost: 1000, era: 14, label: 'Swidden Field' },
@@ -4646,7 +5426,8 @@ const ERA_FOOD_LABEL = { 0: 'Forage laid down this age',
                          1: 'Food put by this age', 2: 'Rations milled this age',
                          3: 'Food gathered this age',
                          4: 'Flour milled this age',
-                         5: 'Flour milled this age', 14: 'Food ground this age' };
+                         5: 'Flour milled this age',
+                         6: 'Flour milled this age', 14: 'Food ground this age' };
 function eraFoodLabel(era) { return ERA_FOOD_LABEL[rungOf(era)] || 'Food produced this age'; }
 
 const ERA_VOICE = {
@@ -4727,6 +5508,20 @@ const ERA_VOICE = {
     saltName: 'the black land going white',
     saltAnswers: 'a SILT SPREAD in range (×3 recovery), or a PALM GROVE, which ignores the salt ' +
       'clock entirely — and the flood renews whatever it reaches',
+  },
+  6: {
+
+    settlers: ['Cord-Setter', 'Kiln-Hand', 'Bath-Keeper', 'Straight-Street', 'Bangle-Wrist', 'Salt-Walker'],
+    place: 'city',
+    mill: 'The Quern Mill',
+    tally: "Seal Cutter's Office",
+    tallyLine: 'The seals are cut and the bales are stamped. Nobody will ever read the six signs on ' +
+      'them — but the count underneath is yours to see.',
+    ration: 'The founding stores are finished — the last of the issue goes out.',
+    saltName: 'the interfluve going white behind you',
+    saltAnswers: 'a SILT DITCH in range (×3 recovery), a TIL FIELD, which salts at half the rate, or ' +
+      'a BER & DATE GARDEN, which ignores the salt entirely — and note that ruined ground is still ' +
+      'perfectly good ground to PAVE, which is where your grid should have gone anyway',
   },
   14: {
 
@@ -4845,6 +5640,16 @@ const ERA_STAPLE = {
     shortNote: 'Each chain adds mouths and no flour — sow more Emmer Fields and a Quern House, or feed them from the palm groves and the fishery.',
     hungerFix: 'sow an Emmer Field and set a Quern House grinding',
     goodNames: { grain: 'Emmer' },
+  },
+  6: {
+    raw: 'grain', cooked: 'flour',
+    rawIcon: '\u{1F33E}', cookedIcon: '\u{1F35E}',
+    rawName: 'Barley', cookedName: 'Flour',
+    cookedVerb: 'milled', rawFrom: 'the levee fields',
+    rawNote: 'nothing else in this age drinks grain — there is no brewery here',
+    shortNote: 'Each chain adds mouths and no flour — sow more Levee Fields and a Quern Mill, or feed them from the Brick Weir and the ber garden.',
+    hungerFix: 'sow a Levee Field and set a Quern Mill grinding',
+    goodNames: { grain: 'Barley' },
   },
   14: {
     raw: 'grain', cooked: 'flour',

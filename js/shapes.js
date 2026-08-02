@@ -406,6 +406,8 @@ const Shapes = {
 
     4:  0xbd9967,
     5:  0xdcc196,
+    6:  0xc9a86e,
+
     10: 0xe0dcd0,
     13: 0xc9b9a2,
     14: 0xcfd0c2,
@@ -2493,6 +2495,8 @@ const Shapes = {
     3:  { robe: 'hidePale', torso: 'hideDark', head: 'hidePale', bulk: 1.06 },
     4:  { robe: 'plaster', torso: 'mudPale',  head: 'timber',   bulk: 1 },
     5:  { robe: 'plaster', torso: 'plaster',  head: 'timber',   bulk: 1 },
+
+    6:  { robe: 'ware',    torso: 'plaster',  head: 'timber',   bulk: 1 },
     14: { robe: 'ware',    torso: 'mudPale',  head: 'timber',   bulk: 1 },
   },
 

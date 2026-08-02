@@ -23,6 +23,8 @@ const Rend = {
   heights: null,
   showWater: false, showPower: false, showSoil: false,
 
+  showBlocks: false,
+
   layerDirty: true,
   chunksStale: false,
   materialsStale: false,
@@ -991,6 +993,11 @@ const Rend = {
             g.fillRect(x * px, y * px, px, px);
           }
         }
+
+        if (Rend.showBlocks && Rend._blockSet) {
+          if (Rend._blockSet.has(k)) { g.fillStyle = 'rgba(120,220,140,0.26)'; g.fillRect(x * px, y * px, px, px); }
+          else if (Rend._missSet && Rend._missSet.has(k)) { g.fillStyle = 'rgba(240,200,90,0.22)'; g.fillRect(x * px, y * px, px, px); }
+        }
         if (!Grid.owned(wx, wy)) { g.fillStyle = 'rgba(12,16,20,0.16)'; g.fillRect(x * px, y * px, px, px); }
         else if (tool.mode === 'buyland') { g.fillStyle = 'rgba(255,255,255,0.05)'; g.fillRect(x * px, y * px, px, px); }
       }
@@ -1632,10 +1639,14 @@ const Rend = {
     else if (d.capRadius) { rad = d.capRadius; ringCol = 0x8cd98c; }
     else if (d.amenityRadius) { rad = d.amenityRadius; ringCol = 0x8cd98c; }
     else if (d.ovenRadius) { rad = d.ovenRadius; ringCol = 0xe0a45f; }
-    else if (type === 'weighhouse') { rad = TUNE.WEIGH.radius; ringCol = 0xd8d8e0; }
-    else if (type === 'scribe') { rad = TUNE.SCRIBE.radius; ringCol = 0xd8c9a0; }
+
+    else if (d.drainRadius) { rad = Econ.drainReach(G.s, d); ringCol = 0x8fc4d8; }
+    else if (d.blockRadius) { rad = d.blockRadius; ringCol = 0xd8c48a; }
+
+    else if (d.weighRadius) { rad = d.weighRadius; ringCol = 0xd8d8e0; }
+    else if (d.keepsTally) { rad = TUNE.SCRIBE.radius; ringCol = 0xd8c9a0; }
     else if (type === 'templeGranary') { rad = TUNE.DUES.radius; ringCol = 0xe6c65a; }
-    else if (type === 'oxbyre') { rad = TUNE.OX.radius; ringCol = 0xa8b46a; }
+    else if (d.oxTeam) { rad = Econ.oxRadius(d); ringCol = 0xa8b46a; }
     else if (type === 'woolbureau') { rad = TUNE.BUREAU.radius; ringCol = 0xc9a0c0; }
     if (rad) {
 
@@ -1761,6 +1772,18 @@ const Rend = {
   },
 
   invalidateTerrain() { Rend.layerDirty = true; Rend._worldDirty = true; },
+
+  refreshBlockSets() {
+    Rend._blockSet = new Set(); Rend._missSet = new Set();
+    if (!Rend.showBlocks) return;
+    for (const bk of (G.cache.blocks || []))
+      for (let y = bk.y; y < bk.y + bk.h; y++)
+        for (let x = bk.x; x < bk.x + bk.w; x++) Rend._blockSet.add(Grid.key(x, y));
+    const m = G.cache.blockNearMiss;
+    if (m) for (let y = m.y; y < m.y + m.h; y++)
+      for (let x = m.x; x < m.x + m.w; x++) Rend._missSet.add(Grid.key(x, y));
+  },
+
   repaintChunk() { Rend._overlayDirty = true; Rend.miniDirty = true; },
 
   onWorldChange() { Rend._worldDirty = true; Rend._roadsDirty = true; Rend.miniDirty = true; Rend._citDirty = true; },
@@ -2266,7 +2289,7 @@ const Rend = {
 
     const toolKey = Input.tool.mode + ':' + (Input.tool.type || '') + ':' +
                     (Rend.showWater ? 1 : 0) + ':' + (Rend.showPower ? 1 : 0) + ':' +
-                    (Rend.showSoil ? 1 : 0);
+                    (Rend.showSoil ? 1 : 0) + (Rend.showBlocks ? 4 : 0);
     if (toolKey !== Rend._toolKey || Rend._overlayDirty) {
       Rend._toolKey = toolKey;
       Rend._overlayDirty = false;
@@ -2276,6 +2299,13 @@ const Rend = {
     if (Rend.showSoil) {
       Rend._soilBakeAt = Rend._soilBakeAt || 0;
       if (time - Rend._soilBakeAt > 4) { Rend._soilBakeAt = time; Rend.rebakeAll(s); }
+    }
+
+    if (Rend.showBlocks) {
+      Rend._blockBakeAt = Rend._blockBakeAt || 0;
+      if (time - Rend._blockBakeAt > 2) {
+        Rend._blockBakeAt = time; Rend.refreshBlockSets(); Rend.rebakeAll(s);
+      }
     }
 
     const carrying = Input.tool.mode === 'move' ? Input.tool.payload : null;

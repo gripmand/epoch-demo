@@ -36,6 +36,7 @@ const Game = {
       giftRank: 0,
       giftCrew: 0,
       giftLand: 0,
+      giftDrain: 0,
 
       stock: Game.startStock(granted, era),
 
@@ -75,6 +76,7 @@ const Game = {
       policyBeerRation: false,
       policyCorvee: false,
       policyRation: false,
+      policySweep: false,
       season: null,
 
       policyDoubleShift: false,
@@ -275,6 +277,7 @@ const Game = {
       giftRank: s.giftRank | 0,
       giftCrew: s.giftCrew | 0,
       giftLand: s.giftLand | 0,
+      giftDrain: s.giftDrain | 0,
 
       tribute: s.tribute ? { bank: +s.tribute.bank || 0, count: s.tribute.count | 0,
                              missed: s.tribute.missed | 0,
@@ -288,6 +291,7 @@ const Game = {
 
       season: s.season ? { phase: s.season.phase | 0, left: Math.round(s.season.left) } : null,
       policyRation: !!s.policyRation,
+      policySweep: !!s.policySweep,
 
       chill: +s.chill || 0,
 
@@ -605,6 +609,8 @@ const Game = {
       giftCrew: d.giftCrew | 0,
       giftLand: d.giftLand | 0,
 
+      giftDrain: d.giftDrain | 0,
+
       tribute: (d.tribute && typeof d.tribute === 'object')
         ? { bank: Math.max(0, +d.tribute.bank || 0), count: Math.max(0, d.tribute.count | 0),
             missed: Math.max(0, d.tribute.missed | 0),
@@ -622,6 +628,7 @@ const Game = {
         ? { phase: Util.clamp(d.season.phase | 0, 0, 1), left: Math.max(1, d.season.left | 0) }
         : null,
       policyRation: !!d.policyRation,
+      policySweep: !!d.policySweep,
       chill: Util.clamp(+d.chill || 0, 0, 1),
 
       silt: Util.clamp(+d.silt || 0, 0, 1),

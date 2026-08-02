@@ -524,6 +524,8 @@ const Input = {
       case 'g': case 'G': UI.togglePanel('guide-panel', UI.guideHTML); break;
       case 'o': case 'O': UI.toggleOverlays(); break;
 
+      case 'g': case 'G': UI.toggleBlocks(); break;
+
       case 'k': case 'K':
         Input.setKeepPlacing(!Input.keepPlacing);
         UI.toast(Input.keepPlacing
