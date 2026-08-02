@@ -263,6 +263,13 @@ const Gfx = {
       apron: 0xc9b48a, sunDir: [-70, 96, -52],
       water: { color: 0x6d7a5e, opacity: 0.93, shininess: 22, specular: 0x2a3024 },
     },
+
+    7: {
+      sky: ['#3f7fb8', '#9dc2d8', '#e6e2cf'], hemi: [0xe6e6d8, 0x8d8a70, 0.70],
+      sun: [0xfff6e0, 1.32], fog: 0xd9e2e6, fogN: 110, fogF: 380, expo: 0.94,
+      apron: 0xc9c2ac, sunDir: [-64, 104, -44],
+      water: { color: 0x1f6f96, opacity: 0.86, shininess: 46, specular: 0x88b6c8 },
+    },
     14: {
       sky: ['#79aecb', '#bfd2c6', '#dfe0c4'], hemi: [0xdfe4cf, 0x8f9a63, 0.68],
       sun: [0xfff3dc, 1.20], fog: 0xdfe4cf, fogN: 100, fogF: 320, expo: 1.05,

@@ -109,6 +109,9 @@ const Econ = {
 
     Econ.stampWater(s);
 
+    Econ.stampMagazine(s);
+    Econ.rationTick(s, offline);
+
     Econ.nileTick(s, offline);
 
     Econ.soilTick(s, offline);
@@ -134,6 +137,13 @@ const Econ = {
           b.type === 'breadoven' || b.type === 'templeGranary') ? 0 : 1;
       };
       byPlaced.sort((a, b) => foodFirst(a) - foodFirst(b) || a.placed - b.placed);
+    }
+
+    if (Econ.magazineActive(s)) {
+      const at = new Map();
+      byPlaced.forEach((b, i) => at.set(b, i));
+      const isMag = b => { const d = DEF(b.type); return (d && d.magazineRadius) ? 0 : 1; };
+      byPlaced.sort((a, b) => isMag(a) - isMag(b) || at.get(a) - at.get(b));
     }
 
     let pool = Game.housedResidents(s);
@@ -244,6 +254,14 @@ const Econ = {
         Econ.note('brick', 0, need);
         C.swept = true;
       }
+    }
+
+    const wasWide = !!C.wideIssue;
+    C.wideIssue = false;
+    if (s.policyWideIssue && Econ.magazineActive(s)) {
+      const per = TUNE.MAGAZINE.issuePer.oil * TUNE.WIDEISSUE.mult;
+      const hold = per * TUNE.MAGAZINE.reserveMin * (TUNE.MAGAZINE.freeAdmin + 1);
+      C.wideIssue = wasWide ? (s.stock.oil >= hold) : (s.stock.oil >= hold * 2);
     }
 
     if (!!C.swept !== wasSwept && !offline) Grid.recomputeBlocks(s);
@@ -1001,6 +1019,10 @@ const Econ = {
   oxRadius(d) { return (d && d.oxRadius) || TUNE.OX.radius; },
   oxBonus(d)  { return (d && d.oxBonus)  || TUNE.OX.bonus; },
 
+  ovenReach(d)   { return (d && d.ovenRadius)   || TUNE.OVEN.radius; },
+  scribeReach(d) { return (d && d.scribeRadius) || TUNE.SCRIBE.radius; },
+  weighReach(d)  { return (d && d.weighRadius)  || TUNE.WEIGH.radius; },
+
   oxBonusFor(b) {
     const by = G.cache.byId, fed = G.cache.fedByres;
     let best = 0;
@@ -1435,6 +1457,11 @@ const Econ = {
     2: (s, base) => (s.cum.tributePaid || 0) - (base.tributePaid || 0) >= TUNE.TRIBUTE.gate,
 
     6: (s) => (G.cache.gridFrac || 0) >= TUNE.GRID.gateFrac,
+
+    7: (s) => {
+      const f = Econ.rationForecast(s);
+      return f.billable > 0 && f.administered >= f.billable * TUNE.MAGAZINE.gateFrac;
+    },
   },
   eraExtraGate(s) {
     const f = Econ.ERA_EXTRA_GATE[rungOf(s.era)];
@@ -1679,6 +1706,8 @@ const Econ = {
     if (d.mines && G.s && G.s.struck && Econ.levyActive(G.s)) return 'struck';
 
     if (d.needsBlock && !b.inBlock) return 'no_block';
+
+    if (b.noIssue && Econ.magazineActive(G.s || {})) return 'no_magazine';
     return null;
   },
 
@@ -1852,6 +1881,109 @@ const Econ = {
     out.text = out.blocks
       ? out.blocks + (out.blocks === 1 ? ' block' : ' blocks') + ' · ' + out.inBlocks + ' inside'
       : (out.best ? out.best.short + ' is ' + out.best.missing + ' tiles short' : 'no blocks yet');
+    return out;
+  },
+
+  magazineActive(s) { return rungOf(s.era) === 7; },
+
+  onLedger(d) {
+    return !!d && !d.offLedger && !!(d.out || d.procIn || d.sells || d.sellsRaw);
+  },
+
+  magReach(s, d, b) {
+    if (!d || !d.magazineRadius) return 0;
+    return d.magazineRadius + (b ? rankRadiusBonus(b) : 0) + ((s && s.giftIssue) | 0) +
+      ((G.cache && G.cache.wideIssue) ? TUNE.WIDEISSUE.widen : 0);
+  },
+
+  stampMagazine(s) {
+    const C = G.cache;
+    C.magazine.fill(0);
+    if (!Econ.magazineActive(s)) return;
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d || !d.magazineRadius || b.mothballed) continue;
+      if (!b.conn || (d.workers && !(b.staff > 0))) continue;
+      Grid.stampRadiusCircle(C.magazine, b, Econ.magReach(s, d, b));
+    }
+  },
+
+  rationTick(s, offline) {
+    const C = G.cache;
+    C.roll = null;
+    if (!Econ.magazineActive(s)) return;
+
+    const mags = [];
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d || !d.magazineRadius || b.mothballed) continue;
+      if (!b.conn || (d.workers && !(b.staff > 0))) continue;
+      mags.push(b);
+    }
+    const roll = [];
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!Econ.onLedger(d)) continue;
+      b.noIssue = false;
+      if (b.done === false || b.mothballed || b.resting) continue;
+
+      if (b.block && b.block !== 'no_magazine') continue;
+      if (!Grid.covered(C.magazine, b)) { b.noIssue = true; continue; }
+      let near = Infinity;
+      for (const m of mags) { const g = Grid.gap(b, m); if (g < near) near = g; }
+      roll.push({ b, near });
+    }
+    roll.sort((x, y) => x.near - y.near || x.b.placed - y.b.placed);
+
+    const R = TUNE.MAGAZINE;
+    const mult = C.wideIssue ? TUNE.WIDEISSUE.mult : 1;
+    const legs = {};
+    let cap = Infinity, bind = null;
+    for (const g in R.issuePer) {
+      const per = R.issuePer[g] * mult;
+      const have = s.stock[g] || 0;
+      const n = Math.floor(have / (per * R.reserveMin));
+      legs[g] = { stock: have, per: per, cap: n };
+      if (n < cap) { cap = n; bind = g; }
+    }
+    cap = R.freeAdmin + (cap === Infinity ? 0 : cap);
+    const admin = Math.min(roll.length, cap);
+
+    const billed = Math.max(0, admin - R.freeAdmin);
+    for (const g in R.issuePer) {
+      const want = billed * R.issuePer[g] * mult * Econ.M;
+      if (want <= 0) continue;
+      const take = Math.min(want, s.stock[g] || 0);
+      s.stock[g] -= take;
+      Econ.note(g, 0, take);
+    }
+    for (let i = admin; i < roll.length; i++) roll[i].b.noIssue = true;
+
+    C.roll = { billable: roll.length, administered: admin, cap: cap,
+                 free: R.freeAdmin, legs: legs, bind: bind, mags: mags.length };
+  },
+
+  rationForecast(s) {
+    const out = { active: false, billable: 0, administered: 0, cap: 0, room: 0,
+                  short: 0, bind: null, mags: 0, text: 'no magazine yet', secs: 0 };
+    if (!Econ.magazineActive(s)) return out;
+    const r = (G.cache && G.cache.roll) || null;
+    out.active = true;
+    if (!r) return out;
+    out.billable = r.billable; out.administered = r.administered;
+    out.cap = r.cap; out.bind = r.bind; out.mags = r.mags;
+    out.room = Math.max(0, r.cap - r.billable);
+    out.short = Math.max(0, r.billable - r.administered);
+
+    const billed = Math.max(0, r.administered - r.free);
+    if (billed > 0 && r.bind) {
+      const perMin = billed * r.legs[r.bind].per;
+      if (perMin > 0) out.secs = (r.legs[r.bind].stock / perMin) / TUNE.TEMPO * 60;
+    }
+    out.text = r.billable
+      ? r.administered + ' / ' + r.billable + (out.short ? ' · ' + out.short + ' unissued'
+                                                         : ' · room for ' + out.room)
+      : 'nothing on the ledger';
     return out;
   },
 
@@ -2705,7 +2837,9 @@ const Econ = {
                 'forage',
 
                 'ore', 'concentrate', 'malachite', 'gold', 'goldleaf',
-                'copper', 'bitumen', 'pitch'],
+                'copper', 'bitumen', 'pitch',
+
+                'olives', 'unguent', 'purplecloth', 'saffron', 'tin', 'bronze'],
 
   capOf(s, kind) {
 

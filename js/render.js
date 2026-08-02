@@ -83,6 +83,17 @@ const Rend = {
       rock:     { color: 0xb0aaa2, tex: 'rock' },
       cliff: 0x7b7670, bed: 0x223d55, grain: 0.12, macro: 0.18,
     },
+
+    7: {
+      base:     { color: 0x8a8f6e, tex: 'silt' },
+      fertile:  { color: 0x9c5a3c, tex: 'field' },
+      salt:     { color: 0x9a968a, tex: 'salt' },
+      saltRidge: 0xb2ada0,
+      rock:     { color: 0xbdb6a6, tex: 'rock' },
+      cliff:    0xc8c1b0,
+      bed:      0x1f6f96,
+      grain: 0.13, macro: 0.16,
+    },
   },
 
   groundFor(era) {
@@ -1054,6 +1065,9 @@ const Rend = {
     14:  { tree: ['ceiba', 'jungle'], scrub: ['jungle'], scrubDensity: 0.18, marsh: [],
           rock: ['karst'], crag: ['karst'] },
     26:  { tree: ['ahuehuete', 'jungle'], scrub: ['agave'], scrubDensity: 0.14, marsh: [],
+          rock: ['boulder'], crag: ['crag'] },
+
+    7:  { tree: ['olive', 'cypress'], scrub: ['bush'], scrubDensity: 0.09, marsh: [],
           rock: ['boulder'], crag: ['crag'] },
     10:  { tree: ['olive', 'cypress'], scrub: ['bush'], scrubDensity: 0.12, marsh: [],
           rock: ['boulder'], crag: ['crag'] },

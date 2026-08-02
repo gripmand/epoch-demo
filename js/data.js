@@ -34,12 +34,17 @@ const TUNE = {
                  goldleaf: 0, copper: 0, bitumen: 0, pitch: 0,
 
                  brick: 0, cotton: 0, cottoncloth: 0,
-                 carnelian: 0, beads: 0, shell: 0, bangles: 0 },
+                 carnelian: 0, beads: 0, shell: 0, bangles: 0,
+
+                 olives: 0, unguent: 0, purplecloth: 0,
+                 saffron: 0, tin: 0, bronze: 0 },
 
   FOUNDING_CREW: 10,
 
   ERA_STARTER: { 1: 'deadwoodcutter', 2: 'terraceplot', 3: 'snailbeds', 4: 'farm',
-                 5: 'emmerfield', 6: 'leveefield', 14: 'milpa' },
+                 5: 'emmerfield', 6: 'leveefield',
+
+                 7: 'figorchard', 14: 'milpa' },
 
   ERA_START_MONEY: { 0: 1080 },
 
@@ -80,6 +85,9 @@ const TUNE = {
 
   BRICK_CAP: 53, COTTON_CAP: 53, COTTONCLOTH_CAP: 33,
   CARNELIAN_CAP: 40, BEADS_CAP: 26, SHELL_CAP: 53, BANGLES_CAP: 33,
+
+  OLIVES_CAP: 46, UNGUENT_CAP: 38, SAFFRON_CAP: 46,
+  TIN_CAP: 46, BRONZE_CAP: 29, PURPLECLOTH_CAP: 30,
   PRICES: { grain: 0.5, flour: 2, stone: 1, blocks: 4,
             clay: 0.6, pottery: 4, wool: 1.2, cloth: 7, beer: 3,
             dates: 1.8, fish: 1.5, salt: 1.5, reeds: 0.35, baskets: 8.9,
@@ -95,7 +103,10 @@ const TUNE = {
             goldleaf: 21.3, copper: 5.32, bitumen: 1.2, pitch: 9.5,
 
             brick: 3.90, cotton: 1.56, cottoncloth: 9.10,
-            carnelian: 2.34, beads: 33.81, shell: 1.56, bangles: 7.30 },
+            carnelian: 2.34, beads: 33.81, shell: 1.56, bangles: 7.30,
+
+            olives: 1.48, unguent: 19.28, purplecloth: 38.55,
+            saffron: 2.22, tin: 1.63, bronze: 7.89 },
 
   NO_EXPORT: { water: 1 },
 
@@ -179,6 +190,16 @@ const TUNE = {
   },
 
   SWEEP: { perDrain: 0.15, radius: 14 },
+
+  MAGAZINE: {
+    issuePer: { oil: 0.1017, dates: 0.1462 },
+    freeAdmin: 4,
+    reserveMin: 20,
+
+    gateFrac: 0.90,
+  },
+
+  WIDEISSUE: { mult: 2.0, widen: 8 },
 
   TRIBUTE: {
     share: 0.35,
@@ -320,6 +341,8 @@ const TUNE = {
     3: { kind: 'grain', price: 2, who: 'A band down from Karahan Tepe traded the town', unit: 'basket' },
     4: { kind: 'grain', price: 2, who: 'A caravan sold the city', unit: 'sack' },
 
+    7: { kind: 'grain', price: 2, who: 'A ship out of Egypt put in and left the palace', unit: 'measure' },
+
     5: { kind: 'grain', price: 2, who: 'A river barge sold the estate', unit: 'sack' },
 
     6: { kind: 'grain', price: 2, who: 'A boat up from Lothal sold the city', unit: 'sack' },
@@ -457,7 +480,7 @@ function eraInfo(era) {
   return r === 0 ? ERA_PROLOGUE : (ERAS[r - 1] || ERA_PROLOGUE);
 }
 
-const WRITTEN_RUNGS = [0, 1, 2, 3, 4, 5, 6, 14];
+const WRITTEN_RUNGS = [0, 1, 2, 3, 4, 5, 6, 7, 14];
 
 const START_ERA = WRITTEN_RUNGS[0];
 function nextWrittenEra(era) {
@@ -656,6 +679,13 @@ const ERA_TERRA_LOCK = {
       'else, and the one chert ridge on the map is a place you travel to rather than a thing you buy',
     mountain: 'no mountains, no timber and no defensible height anywhere in Sindh. Everything this ' +
       'civilisation is, it had to manufacture',
+  },
+
+  7: {
+    rock: 'the spine is the spine. This island is one long limestone ridge and the gypsum cut out of ' +
+      'it is the only reason the next age can be reached at all — you cannot put a scarp back',
+    water: 'the sea is where it is. Every bay on this map was cut by something older than the palace, ' +
+      'and there is no fresh water in any of it — that is what the Spring House is for',
   },
 
   14: {
@@ -3483,6 +3513,545 @@ const BUILDINGS = {
       'premium the moment the crossing is finished.',
   },
 
+  springhouse: {
+    name: 'Spring House', tier: 'infra', era: 7, w: 1, h: 1, cost: 130, upkeep: 0.23,
+    icon: '\u{26F2}', color: '#7fb9c4', waterRadius: 7,
+    desc: 'A vaulted chamber built over a karst spring, with a settling basin and a lion-head spout. ' +
+      'Waters 7 tiles. ★ THE SEA WATERS NOTHING. This island is ringed with water and none of it is ' +
+      'drinkable — coverage is stamped by a building, never by the ground, so a workshop on the ' +
+      'tideline still needs one of these.',
+  },
+
+  conduithouse: {
+    name: 'The Conduit House', tier: 'infra', era: 7, w: 1, h: 1, cost: 430, upkeep: 0.36,
+    icon: '\u{1F6B0}', color: '#6fa8c4', waterRadius: 10,
+    desc: 'Tapered terracotta pipe, each section socketed into the next so the flow scours its own ' +
+      'silt out instead of settling it. Waters 10 tiles — the plumbing that is genuinely the best in ' +
+      'the world for the next fifteen hundred years.',
+  },
+
+  stonemole: {
+    name: 'Stone Mole', tier: 'infra', era: 7, w: 1, h: 1, cost: 260, upkeep: 0.11,
+    icon: '\u{1F6E4}\u{FE0F}', color: '#9a9384', onWater: true, bridge: true,
+    desc: 'Rubble and dressed blocks tipped into the shallows until there is a road where there was a ' +
+      'bay. Carries the road over water — lay a line of them headland to headland.',
+  },
+
+  pithosrow: {
+    name: 'Sunken Pithos Row', tier: 'infra', era: 7, w: 1, h: 1, cost: 170, upkeep: 0.09,
+    icon: '\u{1F3FA}', color: '#b08a5a', storeGrain: 49, storeFlour: 29,
+    desc: 'Storage jars taller than a man, sunk to the shoulder in a cut floor and roped at the belly. ' +
+      '+49 emmer and +29 meal, NO workers and no road — the famine buffer that does not eat.',
+  },
+
+  stirrupstore: {
+    name: 'Stirrup-Jar Store', tier: 'infra', era: 7, w: 2, h: 2, cost: 430, upkeep: 0.45,
+    icon: '\u{1F4E6}', color: '#a88f68', workers: 2, needsRoad: true, depot: true, storeCraft: 30,
+    desc: 'Racks of coarse stirrup jars, each painted with what is in it and whose it is. +30 capacity ' +
+      'for EVERY craft good while staffed, and it counts as a SUPPLY POINT for carting.',
+  },
+
+  mulepost: {
+    name: 'Mule Train Post', tier: 'infra', era: 7, w: 1, h: 2, cost: 430, upkeep: 0.56,
+    icon: '\u{1F40E}', color: '#a58c62', workers: 1, needsRoad: true, depot: true,
+    desc: 'Pack mules and a tally board, stationed where the terrace road turns inland. Counts as a ' +
+      'SUPPLY POINT — one post up on the spine erases the carting premium that makes the Copper Adit ' +
+      'look unaffordable from down at the bay.',
+  },
+
+  emmerplot: {
+    name: 'Emmer Plot', tier: 'food', era: 7, w: 2, h: 2, cost: 210, upkeep: 0.34,
+    icon: '\u{1F33E}', color: '#c8b45c', workers: 2, needsWater: true,
+    out: { grain: 1.95 },
+    desc: 'Hulled emmer on terra rossa, sown between the olive rows. 1.95/min, +50% on FERTILE soil. ' +
+      'On the ledger like everything else that grows — if the palace cannot issue to it, it stops.',
+  },
+
+  palacemill: {
+    name: 'Palace Mill', tier: 'food', era: 7, w: 2, h: 2, cost: 540, upkeep: 0.56,
+    icon: '\u{2699}\u{FE0F}', color: '#b9a373', workers: 3, needsWater: true, industry: true,
+    procIn: 'grain', procOut: 'flour', procRate: 4.55, procRatio: 0.6,
+    desc: 'Saddle querns in a colonnade off the west court, and a tablet recording every woman at ' +
+      'them by name. 4.55 emmer/min into 2.73 meal.',
+  },
+
+  ovencourt: {
+    name: 'Oven Court', tier: 'food', era: 7, w: 2, h: 2, cost: 170, upkeep: 0.11,
+    icon: '\u{1F35E}', color: '#c6a06a', selfRun: true, ovenRadius: 8,
+    desc: 'A domed clay oven in a shared yard. Every home within 8 tiles eats 15% less, because bread ' +
+      'baked together goes further than bread baked eight times over. No workers.',
+  },
+
+  figorchard: {
+    name: 'Fig Orchard', tier: 'food', era: 7, w: 3, h: 3, cost: 540, upkeep: 0.45,
+    icon: '\u{1FAD2}', color: '#7f9c5a', workers: 3, offLedger: true, saltProof: true,
+    out: { dates: 2.92 },
+    desc: 'Figs on the terrace risers, where the soil is a hand deep and nothing else will hold. ' +
+      '2.92/min, +50% on ruined ground. ★ NEEDS NO WATER, NO ROAD AND NO PALACE — the one food that ' +
+      'is never on the roll, and the reason a city that has lost its issue can climb back.',
+  },
+
+  seinenet: {
+    name: 'Seine Net Station', tier: 'food', era: 7, w: 1, h: 3, cost: 340, upkeep: 0.34,
+    icon: '\u{1F41F}', color: '#6f93a8', workers: 2, onWater: true, offLedger: true,
+    out: { fish: 2.34 },
+    desc: 'A long net walked out from the beach by two crews and closed on the shoal. 2.34/min. ' +
+      '★ ALSO OFF THE ROLL: fish landed on the sand were never issued from a magazine, and a second ' +
+      'food outside the mechanic is what makes a bad minute a squeeze instead of a guillotine.',
+  },
+
+  oliveterrace: {
+    name: 'Olive Terrace', tier: 'food', era: 7, w: 2, h: 2, cost: 240, upkeep: 0.27,
+    icon: '\u{1FAD2}', color: '#8d9c6a', workers: 2, dryLand: true, offLedger: true,
+    out: { olives: 2.28 },
+    desc: 'Grafted olives on dry-stone risers up the limestone slope, beaten onto cloths in autumn. ' +
+      '2.28/min, +50% on dry ground. ★ OFF THE ROLL — the palace does not issue to its own groves, ' +
+      'and this is where the oil the roll is priced in comes from.',
+  },
+
+  pressroom: {
+    name: 'The Press Room', tier: 'food', era: 7, w: 2, h: 2, cost: 600, upkeep: 0.63,
+    icon: '\u{1FAD2}', color: '#a89a5e', workers: 3, industry: true, offLedger: true,
+    procIn: 'olives', procOut: 'oil', procRate: 3.03, procRatio: 0.5,
+    desc: 'A stone beam weighted with rubble, bearing down on stacked mats of crushed olives; the ' +
+      'must runs to a sunk vat and the oil is skimmed off the top. 3.03 olives/min into 1.52 oil. ' +
+      '★ ONE PRESS CARRIES FIFTEEN NAMES ON THE ROLL — that is the rule this age turns on.',
+  },
+
+  perfumery: {
+    name: 'Perfumery', tier: 'food', era: 7, w: 2, h: 2, cost: 640, upkeep: 0.68,
+    icon: '\u{1F9F4}', color: '#c9a6b8', workers: 3, industry: true, needsWater: true,
+    procIn: 'oil', procOut: 'unguent', procRate: 2.43, procRatio: 0.5,
+    desc: 'Oil steeped with coriander, cyperus and rose, boiled down and decanted into false-necked ' +
+      'jars. 2.43 oil/min into 1.22 unguent at $19.28 — the dearest thing the island ships, and it ' +
+      'competes for the same oil the roll is paid in.',
+  },
+
+  crocusmeadow: {
+    name: 'Crocus Meadow', tier: 'food', era: 7, w: 2, h: 2, cost: 210, upkeep: 0.23,
+    icon: '\u{1F337}', color: '#b48ac0', workers: 2, onSalt: true,
+    out: { saffron: 1.82 },
+    desc: 'Crocus sativus on the tephra upland, and three stigmas picked from each flower by hand at ' +
+      'dawn. 1.82/min, +50% on the ash. A raw the island never processes — the Saffron Gatherers of ' +
+      'the Thera fresco are picking exactly this and handing it straight to a seated woman.',
+  },
+
+  hillpasture: {
+    name: 'Hill Pasture', tier: 'food', era: 7, w: 2, h: 2, cost: 280, upkeep: 0.34,
+    icon: '\u{1F411}', color: '#b6ae94', workers: 2, dryLand: true,
+    out: { wool: 1.52 },
+    desc: 'Flocks walked up to the summer grazing and back down in autumn. 1.52 fleece/min, +50% on ' +
+      'dry ground. The Knossos tablets count around a hundred thousand sheep; this is one flock of them.',
+  },
+
+  spinningshed: {
+    name: 'Spinning Shed', tier: 'food', era: 7, w: 2, h: 2, cost: 640, upkeep: 0.68,
+    icon: '\u{1F9F5}', color: '#a8998a', workers: 3, industry: true,
+    procIn: 'wool', procOut: 'cloth', procRate: 2.43, procRatio: 0.5,
+    desc: 'Warp-weighted looms in a long room, wool issued to each weaver by weight and the finished ' +
+      'bolt weighed back in. 2.43 fleece/min into 1.22 cloth.',
+  },
+
+  purplevat: {
+    name: 'Purple Vat', tier: 'food', era: 7, w: 2, h: 2, cost: 690, upkeep: 0.79,
+    icon: '\u{1FAD9}', color: '#7a4f7d', workers: 3, industry: true, nearWater: 2,
+    procIn: 'cloth', procOut: 'purplecloth', procRate: 2.43, procRatio: 0.5,
+    desc: 'Crushed murex left to rot in lead-lined vats until the liquor turns; cloth steeped twice ' +
+      'comes out the colour of clotted blood. 2.43 cloth/min into 1.22 purple at $38.55. Ten thousand ' +
+      'shells to the gram, and the smell is why it is down on the shore.',
+  },
+
+  copperadit: {
+    name: 'Copper Adit', tier: 'food', era: 7, w: 2, h: 2, cost: 990, upkeep: 1.01,
+    icon: '\u{26CF}\u{FE0F}', color: '#9c7a52', workers: 3, onRock: true, rockRadius: 6,
+    quarried: true, out: { copper: 1.37 },
+    desc: 'A gallery driven into the malachite banding on the spine, worked with fire and stone mauls. ' +
+      '1.37/min. ★ IT EATS THE OUTCROP — the ledger is finite, it does not come back, and a worked-out ' +
+      'adit says so instead of reading "ok".',
+  },
+
+  tinlanding: {
+    name: 'Tin Landing', tier: 'food', era: 7, w: 2, h: 3, cost: 430, upkeep: 0.45,
+    icon: '\u{2693}', color: '#8a9099', workers: 2, onWater: true,
+    out: { tin: 1.67 },
+    desc: 'A beach where ingots come ashore off somebody else\'s ship. 1.67/min. ★ THE ISLAND HAS NO ' +
+      'TIN. Every gram of it crossed four thousand kilometres from Central Asia to get here, which is ' +
+      'the whole reason a Bronze Age is a TRADING age — and why this must sit on open water.',
+  },
+
+  bronzefoundry: {
+    name: 'Bronze Foundry', tier: 'food', era: 7, w: 2, h: 2, cost: 730, upkeep: 0.77,
+    icon: '\u{1F525}', color: '#a5713f', workers: 3, industry: true,
+    procIn: 'copper', procOut: 'bronze', procRate: 3.03, procRatio: 0.5,
+    desc: 'Crucibles, a stone mould and a pair of skin bellows worked by boys. 3.03 copper/min into ' +
+      '1.52 bronze at $7.89 — worth more than the metal that went into it, which is the only reason ' +
+      'anybody bothered.',
+  },
+
+  claybank: {
+    name: 'Clay Bank', tier: 'food', era: 7, w: 2, h: 2, cost: 240, upkeep: 0.34,
+    icon: '\u{1F9F1}', color: '#a9744f', workers: 2, nearWater: 3,
+    out: { clay: 2.43 },
+    desc: 'Clay cut out of a stream bank and left to weather over winter. 2.43/min, +50% within 3 ' +
+      'tiles of water.',
+  },
+
+  wheelshop: {
+    name: 'Wheel Workshop', tier: 'food', era: 7, w: 2, h: 2, cost: 560, upkeep: 0.63,
+    icon: '\u{1FAD6}', color: '#c08a5a', workers: 3, industry: true,
+    procIn: 'clay', procOut: 'pottery', procRate: 3.03, procRatio: 0.5,
+    desc: 'The fast wheel, a kiln with a proper firebox, and a shape repeated until the potter can ' +
+      'throw it without looking. 3.03 clay/min into 1.52 finished ware.',
+  },
+
+  gypsumcutter: {
+    name: 'Gypsum Cutter', tier: 'food', era: 7, w: 2, h: 2, cost: 640, upkeep: 0.68,
+    icon: '\u{1FAA8}', color: '#cfc9bd', workers: 3, onRock: true, rockRadius: 6,
+    quarried: true, out: { stone: 2.02 },
+    desc: 'Gypsum sawn out of the scarp in slabs, soft enough to cut with a toothless copper blade and ' +
+      'wet sand. 2.02/min. ★ THIS IS THE BUILDING THE AGE CANNOT BE LEFT WITHOUT — the next rung is ' +
+      'the first on the whole ladder to ask for stone. It eats the scarp, and the scarp is finite.',
+  },
+
+  ashlaryard: {
+    name: 'Ashlar Yard', tier: 'food', era: 7, w: 2, h: 2, cost: 820, upkeep: 0.86,
+    icon: '\u{1F9F1}', color: '#c4bda8', workers: 3, industry: true,
+    procIn: 'stone', procOut: 'blocks', procRate: 3.03, procRatio: 0.5,
+    desc: 'Slabs squared to a mason\'s mark and stacked by course. 3.03 stone/min into 1.52 dressed ' +
+      'blocks. ★ Squaring stone does not un-quarry it: the exit gate counts what came OUT of the ' +
+      'scarp, so working it up here costs the gate nothing.',
+  },
+
+  villamagazine: {
+    name: 'Villa Magazine', tier: 'commerce', era: 7, w: 2, h: 2, cost: 410, upkeep: 0.45,
+    icon: '\u{1F3E1}', color: '#b9a67e', workers: 2, needsRoad: true, depot: true,
+    offLedger: true, magazineRadius: 7,
+    sellsRaw: ['unguent', 'purplecloth', 'bronze', 'saffron', 'pottery', 'oil', 'tin', 'blocks'],
+    sellRate: 0.91, custRadius: 7, custMin: 7,
+    desc: 'A country house with a storeroom, a seal and somebody who can write. Administers 7 tiles ' +
+      'and ships 0.91 units/min. ★ THE FIRST ONE YOU BUILD — the palace itself comes later, and ' +
+      'nothing inside a disc runs until something is administering it.',
+  },
+
+  outmagazine: {
+    name: 'Outlying Magazine', tier: 'commerce', era: 7, w: 3, h: 3, cost: 690, upkeep: 0.72,
+    icon: '\u{1F3DB}\u{FE0F}', color: '#c2b183', workers: 4, needsRoad: true, depot: true,
+    offLedger: true, magazineRadius: 10,
+    sellsRaw: ['unguent', 'purplecloth', 'bronze', 'saffron', 'pottery', 'oil', 'tin', 'blocks'],
+    sellRate: 1.82, custRadius: 10, custMin: 10,
+    desc: 'A walled block of long rooms out at the edge of the estate, with its own scribe. ' +
+      'Administers 10 tiles and ships 1.82/min. Chain these outward — each one brings a quarter onto ' +
+      'the roll, and the roll is only as long as the oil pays for.',
+  },
+
+  palacemagazine: {
+    name: 'Palace Magazine', tier: 'commerce', era: 7, w: 4, h: 4, cost: 1330, upkeep: 1.40,
+    icon: '\u{1F3DB}\u{FE0F}', color: '#d6c48f', workers: 7, needsRoad: true, depot: true,
+    offLedger: true, magazineRadius: 14,
+    sellsRaw: ['unguent', 'purplecloth', 'bronze', 'saffron', 'pottery', 'oil', 'tin', 'blocks'],
+    sellRate: 3.64, custRadius: 14, custMin: 14,
+    desc: 'The west wing: eighteen parallel magazines, four hundred pithoi, and a clay tablet for ' +
+      'every jar. Administers 14 tiles and ships 3.64/min. ★ SEVEN WORKERS, AND THEY STAFF BEFORE ' +
+      'EVERY FIELD IN THE CITY — a magazine with nobody in it stamps no disc at all.',
+  },
+
+  tabletarchive: {
+    name: 'Tablet Archive', tier: 'civic', era: 7, w: 2, h: 2, cost: 430, upkeep: 0.27,
+    icon: '\u{1F4DC}', color: '#c3b58e', selfRun: true, keepsTally: true, scribeRadius: 20,
+    desc: 'Unfired clay tablets in baskets, filed by the month. Every magazine within 20 tiles ships ' +
+      'faster for being counted. ★ These survived only because the palace burned — a fired tablet is ' +
+      'a permanent tablet, and that is why the age can be read at all.',
+  },
+
+  sealoffice: {
+    name: 'Sealstone Office', tier: 'civic', era: 7, w: 2, h: 3, cost: 560, upkeep: 0.36,
+    icon: '\u{1F48D}', color: '#b8a9c9', workers: 1, weighRadius: 10,
+    desc: 'Engraved sealstones and a set of balance weights. Everything shipped within 10 tiles fetches ' +
+      'a better price, because a sealed consignment is a consignment nobody has been into.',
+  },
+
+  theatralcourt: {
+    name: 'Theatral Court', tier: 'civic', era: 7, w: 2, h: 2, cost: 170, upkeep: 0.11,
+    icon: '\u{1F3AD}', color: '#cfc3a4', selfRun: true, capRadius: 22, amenityRadius: 11,
+    desc: 'Shallow stone steps on two sides of a paved rectangle, facing nothing in particular. ' +
+      'Homes within 22 tiles hold more. Nobody knows what happened here and that is most of its charm.',
+  },
+
+  ashlarhouse: {
+    name: 'Ashlar House', tier: 'housing', era: 7, w: 1, h: 1, cost: 260, upkeep: 0.11,
+    icon: '\u{1F3E0}', color: '#c9bda2', cap: 5, needsRoad: true, needsWater: true,
+    desc: 'Squared blocks at the corners, rubble and timber between, a flat roof used as a room. ' +
+      'Homes 5 at its second rung — it opens at half that.',
+  },
+
+  townhouse: {
+    name: 'Town House', tier: 'housing', era: 7, w: 2, h: 2, cost: 640, upkeep: 0.25,
+    icon: '\u{1F3D8}\u{FE0F}', color: '#d3c7a8', cap: 9, needsRoad: true, needsWater: true,
+    needsIssueGround: true,
+    levels: ['Room Block', 'Town House', 'Pillared House', 'House of the Frescoes', 'Little Palace'],
+    desc: 'Two storeys round a light well, with a stair, a drain and painted plaster. Homes 9 at its ' +
+      'second rung. ★ CAN ONLY BE BUILT INSIDE A MAGAZINE\'S DISC — a town house is a house in the ' +
+      'administered quarter, and that is the only thing that makes it a town.',
+  },
+
+  horns: {
+    name: 'Horns of Consecration', tier: 'beauty', era: 7, w: 1, h: 1, cost: 130, upkeep: 0.07,
+    icon: '\u{1F402}', color: '#ddd2b4', amenityRadius: 7,
+    desc: 'A pair of stylised bull\'s horns cut from soft stone and set on a parapet. Every roofline ' +
+      'in the city carries them. ★ No shrine has been identified inside the palaces — what there is ' +
+      'is this shape, on everything, and a bench in a small room.',
+  },
+
+  temenosfield: {
+    name: 'Temenos Field', tier: 'food', era: 7, w: 2, h: 2, cost: 500, upkeep: 0.48,
+    icon: '\u{1F33E}', color: '#d4bf63', workers: 3, needsWater: true,
+    out: { grain: 3.90 },
+    desc: 'The sanctuary\'s own plot, ploughed first and reaped first: 3.90 emmer/min. The tablets ' +
+      'record land held "of the god" beside land held of the people, and this is that land.',
+  },
+
+  vinefiggarden: {
+    name: 'Vine and Fig Garden', tier: 'food', era: 7, w: 3, h: 3, cost: 1300, upkeep: 0.63,
+    icon: '\u{1FAD2}', color: '#8fae5f', workers: 4, offLedger: true, saltProof: true,
+    out: { dates: 5.84 },
+    desc: 'Figs under-planted with vines and a low wall against the goats: 5.84/min, +50% on ruined ' +
+      'ground. ★ STILL OFF THE ROLL, still no water and still no road — the improvement must not ' +
+      'acquire a predicate the original deliberately lacks.',
+  },
+
+  tunnywatch: {
+    name: 'Tunny Watch', tier: 'food', era: 7, w: 1, h: 3, cost: 820, upkeep: 0.48,
+    icon: '\u{1F41F}', color: '#7fa5bc', workers: 3, onWater: true, offLedger: true,
+    out: { fish: 4.68 },
+    desc: 'A lookout on the headland who signals the shoal down to the boats: 4.68/min. ★ Still off ' +
+      'the roll — the second food outside the mechanic stays outside it.',
+  },
+
+  graftedgrove: {
+    name: 'Grafted Grove', tier: 'food', era: 7, w: 2, h: 2, cost: 580, upkeep: 0.38,
+    icon: '\u{1FAD2}', color: '#9aab72', workers: 3, dryLand: true, offLedger: true,
+    out: { olives: 4.56 },
+    desc: 'Cuttings of a heavy-bearing tree grafted onto wild rootstock, which is the single most ' +
+      'valuable thing anyone learned to do with an olive: 4.56/min. ★ ONE GROVE AND ONE PRESS NOW ' +
+      'CARRY THIRTY NAMES — this is how the roll grows.',
+  },
+
+  pickingfloors: {
+    name: 'The Picking Floors', tier: 'food', era: 7, w: 2, h: 2, cost: 500, upkeep: 0.32,
+    icon: '\u{1F337}', color: '#c49ad0', workers: 3, onSalt: true,
+    out: { saffron: 3.64 },
+    desc: 'Shaded trestles where the stigmas are drawn and dried the same morning they are picked: ' +
+      '3.64/min, +50% on the ash. Dried within hours or the colour is gone.',
+  },
+
+  transhumancerun: {
+    name: 'Transhumance Run', tier: 'food', era: 7, w: 2, h: 2, cost: 670, upkeep: 0.48,
+    icon: '\u{1F411}', color: '#c4bc9e', workers: 3, dryLand: true,
+    out: { wool: 3.04 },
+    desc: 'A driving lane, watering points and a summer fold up on the spine: 3.04 fleece/min, +50% ' +
+      'on dry ground. The flock is worked as one animal across a whole mountain.',
+  },
+
+  deepgallery: {
+    name: 'Deep Gallery', tier: 'food', era: 7, w: 2, h: 2, cost: 2380, upkeep: 1.41,
+    icon: '\u{26CF}\u{FE0F}', color: '#8a6a44', workers: 4, onRock: true, rockRadius: 8,
+    quarried: true, out: { copper: 2.74 },
+    desc: 'Timbered galleries following the ore down, with ventilation shafts and a hoist: 2.74/min ' +
+      'and eight tiles of reach. ★ It still eats the outcrop, only faster.',
+  },
+
+  merchantquay: {
+    name: 'Merchantman Quay', tier: 'food', era: 7, w: 2, h: 3, cost: 1030, upkeep: 0.63,
+    icon: '\u{2693}', color: '#7d858f', workers: 3, onWater: true,
+    out: { tin: 3.34 },
+    desc: 'A dressed-stone quay a deep-hulled ship can lie against instead of beaching: 3.34/min. ' +
+      'The Uluburun ship carried ten tonnes of copper and a tonne of tin, and it wanted somewhere ' +
+      'like this to put it.',
+  },
+
+  levigationpits: {
+    name: 'Levigation Pits', tier: 'food', era: 7, w: 2, h: 2, cost: 580, upkeep: 0.48,
+    icon: '\u{1F9F1}', color: '#b58058', workers: 3, nearWater: 3,
+    out: { clay: 4.86 },
+    desc: 'The clay slurried and run through three settling tanks so only the finest fraction is ' +
+      'kept: 4.86/min, +50% within 3 tiles of water. This is what makes eggshell ware possible.',
+  },
+
+  sawpit: {
+    name: 'The Saw-Pit', tier: 'food', era: 7, w: 2, h: 2, cost: 1540, upkeep: 0.95,
+    icon: '\u{1FAA8}', color: '#dad5c9', workers: 4, onRock: true, rockRadius: 8,
+    quarried: true, out: { stone: 4.04 },
+    desc: 'A two-man saw over a pit, wet sand under the blade, and slabs coming out true enough to ' +
+      'lay without mortar: 4.04/min and eight tiles of scarp in reach. ★ Twice the stone toward the ' +
+      'one gate this age has that no city below it ever had to fill.',
+  },
+
+  querncolonnade: {
+    name: 'Quern Colonnade', tier: 'food', era: 7, w: 2, h: 2, cost: 890, upkeep: 0.78,
+    icon: '\u{2699}\u{FE0F}', color: '#c8b381', workers: 4, needsWater: true, industry: true,
+    procIn: 'grain', procOut: 'flour', procRate: 6.37, procRatio: 0.6,
+    desc: 'A roofed run of thirty querns with the meal swept to a common bin: 6.37 emmer/min into ' +
+      '3.82 meal.',
+  },
+
+  windlasshouse: {
+    name: 'The Windlass House', tier: 'food', era: 7, w: 2, h: 2, cost: 990, upkeep: 0.88,
+    icon: '\u{1FAD2}', color: '#b8a968', workers: 4, industry: true, offLedger: true,
+    procIn: 'olives', procOut: 'oil', procRate: 4.24, procRatio: 0.5,
+    desc: 'A windlass and rope taking the beam down instead of a heap of rubble, so the pressing is ' +
+      'controlled and the second pressing is worth having: 4.24 olives/min into 2.12 oil. ★ ONE OF ' +
+      'THESE CARRIES TWENTY-ONE NAMES. Still off the roll — it is the roll\'s own source.',
+  },
+
+  unguentboilery: {
+    name: 'Unguent Boilery', tier: 'food', era: 7, w: 2, h: 2, cost: 1060, upkeep: 0.95,
+    icon: '\u{1F9F4}', color: '#d5b4c4', workers: 4, industry: true, needsWater: true,
+    procIn: 'oil', procOut: 'unguent', procRate: 3.40, procRatio: 0.5,
+    desc: 'Copper cauldrons over a controlled fire, the oil held just under a simmer for a day: ' +
+      '3.40 oil/min into 1.70 unguent. The Pylos tablets name the boiler, the recipe and the god ' +
+      'it went to.',
+  },
+
+  weavinghall: {
+    name: 'Weaving Hall', tier: 'food', era: 7, w: 2, h: 2, cost: 1060, upkeep: 0.95,
+    icon: '\u{1F9F5}', color: '#b6a798', workers: 4, industry: true,
+    procIn: 'wool', procOut: 'cloth', procRate: 3.40, procRatio: 0.5,
+    desc: 'Forty looms under one roof and a supervisor with a tablet: 3.40 fleece/min into 1.70 ' +
+      'cloth. The word for the allocation is ta-ra-si-ja and it is on hundreds of tablets.',
+  },
+
+  dyerstanks: {
+    name: 'Dyer\'s Tanks', tier: 'food', era: 7, w: 2, h: 2, cost: 1140, upkeep: 1.10,
+    icon: '\u{1FAD9}', color: '#8b5b8e', workers: 4, industry: true, nearWater: 2,
+    procIn: 'cloth', procOut: 'purplecloth', procRate: 3.40, procRatio: 0.5,
+    desc: 'Rock-cut tanks stepped down to the tideline so the liquor can be drawn off clean and the ' +
+      'shell waste flushed: 3.40 cloth/min into 1.70 purple. The waste heaps outnumber everything ' +
+      'else on the site.',
+  },
+
+  smithscourt: {
+    name: 'Smiths\' Court', tier: 'food', era: 7, w: 2, h: 2, cost: 1200, upkeep: 1.08,
+    icon: '\u{1F525}', color: '#b57f47', workers: 4, industry: true,
+    procIn: 'copper', procOut: 'bronze', procRate: 4.24, procRatio: 0.5,
+    desc: 'A yard of hearths worked by named smiths, each issued his bronze by weight and answering ' +
+      'for it: 4.24 copper/min into 2.12 bronze.',
+  },
+
+  pottersquarter: {
+    name: 'Potters\' Quarter', tier: 'food', era: 7, w: 2, h: 2, cost: 920, upkeep: 0.88,
+    icon: '\u{1FAD6}', color: '#cf9865', workers: 4, industry: true,
+    procIn: 'clay', procOut: 'pottery', procRate: 4.24, procRatio: 0.5,
+    desc: 'A street of wheels, a shared updraught kiln and a painter who does nothing else: 4.24 ' +
+      'clay/min into 2.12 ware.',
+  },
+
+  masonslodge: {
+    name: 'Masons\' Lodge', tier: 'food', era: 7, w: 2, h: 2, cost: 1350, upkeep: 1.20,
+    icon: '\u{1F9F1}', color: '#d0c9b4', workers: 4, industry: true,
+    procIn: 'stone', procOut: 'blocks', procRate: 4.24, procRatio: 0.5,
+    desc: 'Templates, a set square and a mason\'s mark cut into every finished course: 4.24 stone/min ' +
+      'into 2.12 blocks.',
+  },
+
+  sealedcellar: {
+    name: 'Sealed Cellar', tier: 'commerce', era: 7, w: 2, h: 2, cost: 820, upkeep: 0.63,
+    icon: '\u{1F3E1}', color: '#c6b189', workers: 3, needsRoad: true, depot: true,
+    offLedger: true, magazineRadius: 9,
+    sellsRaw: ['unguent', 'purplecloth', 'bronze', 'saffron', 'pottery', 'oil', 'tin', 'blocks'],
+    sellRate: 1.82, custRadius: 9, custMin: 7,
+    desc: 'A cellar with a door that is corded and sealed with a stamped clay nodule, so it is ' +
+      'obvious whether it has been opened. Administers 9 tiles and ships 1.82/min.',
+  },
+
+  chariotdepot: {
+    name: 'Chariot Depot', tier: 'commerce', era: 7, w: 3, h: 3, cost: 1380, upkeep: 1.01,
+    icon: '\u{1F3DB}\u{FE0F}', color: '#cdbb8b', workers: 5, needsRoad: true, depot: true,
+    offLedger: true, magazineRadius: 13,
+    sellsRaw: ['unguent', 'purplecloth', 'bronze', 'saffron', 'pottery', 'oil', 'tin', 'blocks'],
+    sellRate: 3.64, custRadius: 13, custMin: 10,
+    desc: 'Chariot bodies on trestles, wheels stacked separately, and a tablet listing every one as ' +
+      'assembled or as awaiting a part. Administers 13 tiles and ships 3.64/min — the tablets really ' +
+      'do inventory them wheel by wheel.',
+  },
+
+  sealingwing: {
+    name: 'The Sealing Wing', tier: 'commerce', era: 7, w: 4, h: 4, cost: 2660, upkeep: 1.96,
+    icon: '\u{1F3DB}\u{FE0F}', color: '#e0cf99', workers: 9, needsRoad: true, depot: true,
+    offLedger: true, magazineRadius: 18,
+    sellsRaw: ['unguent', 'purplecloth', 'bronze', 'saffron', 'pottery', 'oil', 'tin', 'blocks'],
+    sellRate: 7.28, custRadius: 18, custMin: 14,
+    desc: 'The whole west range given over to sealing, weighing and recording, with a room that does ' +
+      'nothing but store the nodules. Administers 18 tiles and ships 7.28/min.',
+  },
+
+  harbourarm: {
+    name: 'Harbour Arm', tier: 'infra', era: 7, w: 1, h: 1, cost: 550, upkeep: 0.16,
+    icon: '\u{1F6E4}\u{FE0F}', color: '#aaa294', onWater: true, bridge: true, depot: true,
+    desc: 'The mole carried out and returned, so there is water behind it a ship can lie in. Carries ' +
+      'the road AND counts as a SUPPLY POINT — the far headland stops paying the carting premium the ' +
+      'moment the arm closes.',
+  },
+
+  capstonevault: {
+    name: 'The Capstone Vault', tier: 'infra', era: 7, w: 1, h: 1, cost: 360, upkeep: 0.13,
+    icon: '\u{1F3FA}', color: '#bd9865', storeGrain: 71, storeFlour: 42,
+    desc: 'The jar pit roofed with a corbelled slab and floored with pebbles so the damp cannot reach ' +
+      'the grain. +71 emmer and +42 meal, still no workers and no road.',
+  },
+
+  cordedracks: {
+    name: 'The Corded Racks', tier: 'infra', era: 7, w: 2, h: 2, cost: 900, upkeep: 0.65,
+    icon: '\u{1F4E6}', color: '#b39a72', workers: 3, needsRoad: true, depot: true, storeCraft: 44,
+    desc: 'Every rack corded and sealed, and a nodule filed for each. +44 capacity for EVERY craft ' +
+      'good while staffed, and still a SUPPLY POINT.',
+  },
+
+  caravanyard: {
+    name: 'Caravan Yard', tier: 'infra', era: 7, w: 1, h: 2, cost: 900, upkeep: 0.81,
+    icon: '\u{1F42B}', color: '#b09873', workers: 2, needsRoad: true, depot: true,
+    desc: 'Standing corrals, fodder and a night watch, so a train can leave at first light instead of ' +
+      'being made up first. A stronger SUPPLY POINT: the spine and the bay stop being two economies.',
+  },
+
+  bakequarter: {
+    name: 'Bake-House Quarter', tier: 'food', era: 7, w: 2, h: 2, cost: 360, upkeep: 0.16,
+    icon: '\u{1F35E}', color: '#d1ab73', selfRun: true, ovenRadius: 12,
+    desc: 'Four ovens and a fuel store on one yard, fired in rotation so one is always hot. Homes ' +
+      'within 12 tiles eat 15% less. No workers.',
+  },
+
+  scribalschool: {
+    name: 'Scribal School', tier: 'civic', era: 7, w: 2, h: 2, cost: 900, upkeep: 0.39,
+    icon: '\u{1F4DC}', color: '#cdbf98', selfRun: true, keepsTally: true, scribeRadius: 29,
+    desc: 'Practice tablets, a standard hand and enough scribes that losing one does not lose the ' +
+      'accounts. Every magazine within 29 tiles ships faster. ★ Perhaps a hundred people on the ' +
+      'island could read this script, and when they died it stayed unread for three thousand years.',
+  },
+
+  houseofstandards: {
+    name: 'House of Standards', tier: 'civic', era: 7, w: 2, h: 3, cost: 1180, upkeep: 0.52,
+    icon: '\u{2696}\u{FE0F}', color: '#c4b3d4', workers: 2, weighRadius: 15,
+    desc: 'A master set of weights nobody may take away and a room to check against them. Everything ' +
+      'shipped within 15 tiles fetches a better price.',
+  },
+
+  grandstaircase: {
+    name: 'Grand Staircase', tier: 'civic', era: 7, w: 2, h: 2, cost: 360, upkeep: 0.16,
+    icon: '\u{1F3AD}', color: '#dbd0b2', selfRun: true, capRadius: 32, amenityRadius: 16,
+    desc: 'A broad stair rising through three storeys around a light well, with a colonnade at every ' +
+      'landing. Homes within 32 tiles hold more. It is the single most convincing argument that ' +
+      'these buildings were meant to be walked through and looked at.',
+  },
+
+  labyrinth: {
+    name: 'The Labyrinth', tier: 'monument', era: 7, w: 3, h: 3, cost: 3400, upkeep: 0.90,
+    icon: '\u{1F300}', color: '#d8c9a0', unique: true, monument: true, needsWater: true,
+    desc: 'Not a maze — a building so large and so many-roomed that walking it feels like one. ' +
+      'Twelve hundred rooms on five storeys around a central court, with light wells, stairs that ' +
+      'double back, and no defensive wall anywhere. ★ Its own name is a guess: labrys is the double ' +
+      'axe, and the mason\'s marks are full of them.',
+  },
+
   cenote: {
     name: 'Cenote Steps', tier: 'infra', era: 14, w: 2, h: 2, cost: 560, upkeep: 0.50,
     icon: '\u{1F573}\u{FE0F}', color: '#4f9ab5', workers: 2, onWater: true,
@@ -4420,6 +4989,8 @@ const HOUSE_LEVELS = {
   4: ['Reed Hut', 'Mudbrick House', 'Courtyard House', 'Two-Storey House', "Merchant's Compound", 'Anunnaki Hall'],
   5: ['Mud Hut', 'Mudbrick Villa', 'Columned Villa', 'Garden Villa', "Nomarch's House", 'Temple Villa'],
 
+  7: ['Rubble Hut', 'Ashlar House', 'Pier-and-Door House', 'Frescoed House', 'Villa of the Court', 'House of the Sealings'],
+
   6: ['Reed-Mat Shelter', 'Brick Courtyard House', 'Bathing-Room House',
       'Two-Storey Court House', "Merchant's House", 'Citadel House'],
   14: ['Thatch House', 'Stone House', 'Corbelled House', 'Terraced House', 'Noble Compound', 'Lineage Palace'],
@@ -4565,6 +5136,23 @@ const MONUMENT_GIFT = {
     apply(s) { s.giftDrain = (s.giftDrain | 0) + 1; },
   },
 
+  7: {
+    key: 'issue',
+    icon: '\u{1F4DC}',
+    title: 'The Tablets Are Baked',
+    lead: 'The Labyrinth stands. Twelve hundred rooms, five storeys, and not one defensive wall.',
+    body: 'Everything in this palace was written down and none of it was meant to last. The tablets ' +
+          'are river clay dried in the sun, scraped and reused when the year closed. What you leave ' +
+          'is not the building — it is a filing system so complete that when the fire came it baked ' +
+          'the year\u2019s accounts hard and handed them, unread, to somebody three thousand years off.',
+    grant: '<b>Every magazine you ever build, in this age and every age after it, administers ONE TILE ' +
+           'FURTHER.</b>',
+    toast: '\u{1F4DC} The tablets are baked. Every magazine reaches one tile further, in this age and ' +
+           'every age after it.',
+    log: 'Their gift: the fired archive — every magazine the dynasty builds reaches one tile further.',
+    apply(s) { s.giftIssue = (s.giftIssue | 0) + 1; },
+  },
+
 };
 function monumentGift(era) { return MONUMENT_GIFT[rungOf(era)] || null; }
 
@@ -4628,6 +5216,16 @@ const ERA_POLICY = {
     off: 'The order is lifted. The drains go back to ten tiles — check the \u{1F4D0} chip before the streets do.',
   },
 
+  7: {
+    key: 'policyWideIssue', icon: '\u{1F4DC}', name: 'The Wide Issue',
+    tip: 'The scribes ride further and write more names down: every magazine administers ' +
+      TUNE.WIDEISSUE.widen + ' tiles further, and every building on the roll draws ' +
+      TUNE.WIDEISSUE.mult + 'x its ration. It stops the moment the oil runs short, and the names ' +
+      'it was carrying come off the roll with it.',
+    on: 'The order goes out. Every disc widens \u2014 and every ration doubles with it.',
+    off: 'The wide issue is lifted. Watch the \u{1F4DC} chip: the outermost quarter may have just come off the roll.',
+  },
+
   14: {
     key: 'policyRation', icon: '\u{1F4A7}', name: 'The Reservoir Ration',
     tip: 'The city draws ' + Math.round(TUNE.RATION.drawCut * 100) + '% less water — and every ' +
@@ -4683,6 +5281,12 @@ const ERA_ROAD = {
              'of it and inspection slabs every few metres. ★ IN THIS AGE THE STREET COMES FIRST: a ' +
              'rectangle of ground with road on all four sides is a BLOCK, and everything inside it ' +
              'works harder. $10 a tile, nothing to keep.' },
+
+  7: { flavour: 'Palace Road', color: 0xd9d2bd, hw: 0.34,
+       desc: 'A causeway of crushed limestone laid between kerbs, running from the palace out to the ' +
+             'harbour and up to the summit shrine. ★ IT IS NOT A TRADE ROUTE: there is no market at ' +
+             'the end of it. Everything on this road is going to or from a magazine. $10 a tile, ' +
+             'nothing to keep.' },
   14: { flavour: 'Sacbé', color: 0xe6e0d2, hw: 0.38,
         desc: 'A raised roadbed of rubble faced with cut stone and finished in white lime plaster — ' +
               'dead straight, and visible from a long way off. With no carts and no draft animals, ' +
@@ -4716,6 +5320,11 @@ const MONUMENTS = [
     desc: 'A watertight tank twelve metres by seven, sunk into a brick platform — two courses of fired ' +
       'brick in gypsum mortar with a damp-course of bitumen between them, steps at both ends, and a ' +
       'corbelled outlet drain. The oldest public water tank anyone has excavated.' },
+
+  { id: 'labyrinth',   name: 'The Labyrinth',   era: 7,  cost: 11390,     icon: '\u{1F300}',
+    desc: 'Twelve hundred rooms on five storeys round a central court, with light wells, stairs ' +
+      'that double back on themselves, and no defensive wall anywhere on the site. Nobody has ' +
+      'established what most of it was for.' },
   { id: 'templePyr',   name: 'Temple-Pyramid',  era: 14, cost: 46000,     icon: '\u{1F3EF}', desc: 'Stepped limestone crowned with a roof-comb.' },
   { id: 'temploMayor', name: 'Templo Mayor',    era: 26, cost: 150000,    icon: '⛩️', desc: 'Twin shrines above the sacred precinct.' },
   { id: 'parthenon',   name: 'Parthenon',       era: 10, cost: 480000,    icon: '\u{1F3DB}️', desc: 'Pentelic marble, refined to the millimetre.' },
@@ -4848,6 +5457,7 @@ const PLOWED = ['farm', 'estate', 'farm2', 'sesamefield', 'terraceplot', 'irriga
 for (const t of PLOWED) if (BUILDINGS[t]) BUILDINGS[t].plowed = true;
 
 const QUARRIED = ['quarry', 'deepquarry', 'granitequarry', 'desertquarry',
+  'gypsumcutter', 'sawpit', 'copperadit', 'deepgallery',
   'flintquarry', 'bonebed', 'deeplens',
 
   'prospectpit', 'adit', 'deeplevel', 'malachitecut', 'openstope',
@@ -4865,6 +5475,8 @@ const MONUMENT_BUILD = {
   enclosure: { money: 2791, stone: 783, carvings: 87, beer: 261 },
 
   greatbath: { money: 7820, brick: 980, beads: 196 },
+
+  labyrinth: { money: 10250, blocks: 1280, unguent: 214 },
   ziggurat:  { money: 3600, clay: 900, beer: 300 },
   pyramid:   { money: 12000, clay: 2200, stone: 900 },
   templePyr: { money: 40000, stone: 3000, blocks: 1200 },
@@ -4875,7 +5487,10 @@ const MONUMENT_RATE = { money: 24, clay: 6, beer: 2, stone: 6, blocks: 3, potter
 
                         gold: 1.06, deadwood: 3,
 
-                        brick: 3, beads: 0.6 };
+                        brick: 3, beads: 0.6,
+
+                        unguent: 0.5, purplecloth: 0.3, saffron: 0.5,
+                        olives: 4, tin: 1, bronze: 0.8 };
 
 function monumentBuild(type, era) {
   return MONUMENT_BUILD[type] || { money: Math.round((BUILDINGS[type] || {}).cost * 0.9) || 1000 };
@@ -5074,6 +5689,41 @@ const UPGRADES = {
   greatgranary:  { to: 'twinpodium',      cost: 2250, era: 6, label: 'Twin-Podium Granary' },
   siltditch:     { to: 'inundationcut',   cost: 230,  era: 6, label: 'Inundation Cut' },
   zebubyre:      { to: 'zebuspan',        cost: 1010, era: 6, label: 'Great Zebu Span' },
+
+  springhouse:   { to: 'conduithouse',    cost: 270,  era: 7, label: 'The Conduit House' },
+  stonemole:     { to: 'harbourarm',      cost: 520,  era: 7, label: 'Harbour Arm' },
+  pithosrow:     { to: 'capstonevault',   cost: 340,  era: 7, label: 'The Capstone Vault' },
+  stirrupstore:  { to: 'cordedracks',     cost: 860,  era: 7, label: 'The Corded Racks' },
+  mulepost:      { to: 'caravanyard',     cost: 860,  era: 7, label: 'Caravan Yard' },
+  ovencourt:     { to: 'bakequarter',     cost: 340,  era: 7, label: 'Bake-House Quarter' },
+
+  emmerplot:     { to: 'temenosfield',    cost: 420,  era: 7, label: 'Temenos Field' },
+  figorchard:    { to: 'vinefiggarden',   cost: 1080, era: 7, label: 'Vine and Fig Garden' },
+  seinenet:      { to: 'tunnywatch',      cost: 680,  era: 7, label: 'Tunny Watch' },
+  oliveterrace:  { to: 'graftedgrove',    cost: 480,  era: 7, label: 'Grafted Grove' },
+  crocusmeadow:  { to: 'pickingfloors',   cost: 420,  era: 7, label: 'The Picking Floors' },
+  hillpasture:   { to: 'transhumancerun', cost: 560,  era: 7, label: 'Transhumance Run' },
+  copperadit:    { to: 'deepgallery',     cost: 1980, era: 7, label: 'Deep Gallery' },
+  tinlanding:    { to: 'merchantquay',    cost: 860,  era: 7, label: 'Merchantman Quay' },
+  claybank:      { to: 'levigationpits',  cost: 480,  era: 7, label: 'Levigation Pits' },
+  gypsumcutter:  { to: 'sawpit',          cost: 1280, era: 7, label: 'The Saw-Pit' },
+
+  palacemill:    { to: 'querncolonnade',  cost: 890,  era: 7, label: 'Quern Colonnade' },
+  pressroom:     { to: 'windlasshouse',   cost: 990,  era: 7, label: 'The Windlass House' },
+  perfumery:     { to: 'unguentboilery',  cost: 1060, era: 7, label: 'Unguent Boilery' },
+  spinningshed:  { to: 'weavinghall',     cost: 1060, era: 7, label: 'Weaving Hall' },
+  purplevat:     { to: 'dyerstanks',      cost: 1140, era: 7, label: 'Dyer\'s Tanks' },
+  bronzefoundry: { to: 'smithscourt',     cost: 1200, era: 7, label: 'Smiths\' Court' },
+  wheelshop:     { to: 'pottersquarter',  cost: 920,  era: 7, label: 'Potters\' Quarter' },
+  ashlaryard:    { to: 'masonslodge',     cost: 1350, era: 7, label: 'Masons\' Lodge' },
+
+  villamagazine: { to: 'sealedcellar',    cost: 820,  era: 7, label: 'Sealed Cellar' },
+  outmagazine:   { to: 'chariotdepot',    cost: 1380, era: 7, label: 'Chariot Depot' },
+  palacemagazine: { to: 'sealingwing',    cost: 2660, era: 7, label: 'The Sealing Wing' },
+
+  tabletarchive: { to: 'scribalschool',   cost: 900,  era: 7, label: 'Scribal School' },
+  sealoffice:    { to: 'houseofstandards', cost: 1180, era: 7, label: 'House of Standards' },
+  theatralcourt: { to: 'grandstaircase',  cost: 360,  era: 7, label: 'Grand Staircase' },
 
   cenote:        { to: 'deepcenote',        cost: 1120, era: 14, label: 'Deep Cenote Stair' },
   milpa:         { to: 'swiddenfield',      cost: 1000, era: 14, label: 'Swidden Field' },
@@ -5422,7 +6072,8 @@ function inFoodChain(kind) { return !!kind && !!FOOD_CHAIN[kind]; }
   return bad;
 })();
 
-const ERA_FOOD_LABEL = { 0: 'Forage laid down this age',
+const ERA_FOOD_LABEL = { 7: 'Meal issued this age',
+                         0: 'Forage laid down this age',
                          1: 'Food put by this age', 2: 'Rations milled this age',
                          3: 'Food gathered this age',
                          4: 'Flour milled this age',
@@ -5508,6 +6159,17 @@ const ERA_VOICE = {
     saltName: 'the black land going white',
     saltAnswers: 'a SILT SPREAD in range (×3 recovery), or a PALM GROVE, which ignores the salt ' +
       'clock entirely — and the flood renews whatever it reaches',
+  },
+  7: {
+
+    settlers: ['Ko-ma-we-te', 'A-ke-ro', 'E-ri-ta', 'Pi-ro-ta-wo', 'Ku-pi-ri-jo', 'Ne-da-wa-ta'],
+    place: 'palace',
+    mill: 'The Palace Mill',
+    tally: 'Tablet Archive',
+    tallyLine: 'Every jar, every fleece and every name, written in wet clay and filed by the month. ' +
+      'None of it was meant to outlast the year.',
+    ration: 'The founding issue is finished — from here the magazine feeds the roll.',
+    saltName: 'the terrace soil thinning under the vines',
   },
   6: {
 
@@ -5640,6 +6302,19 @@ const ERA_STAPLE = {
     shortNote: 'Each chain adds mouths and no flour — sow more Emmer Fields and a Quern House, or feed them from the palm groves and the fishery.',
     hungerFix: 'sow an Emmer Field and set a Quern House grinding',
     goodNames: { grain: 'Emmer' },
+  },
+  7: {
+    raw: 'grain', cooked: 'flour',
+    rawIcon: '\u{1F33E}', cookedIcon: '\u{1F35E}',
+    rawName: 'Emmer', cookedName: 'Meal',
+    cookedVerb: 'ground', rawFrom: 'the terrace plots',
+    rawNote: 'the staple chain is ON THE ROLL — if the palace cannot issue to it, it stops',
+    shortNote: 'Each chain adds mouths and the emmer is administered like everything else \u2014 sow ' +
+      'more Emmer Plots and a Palace Mill, or plant a Fig Orchard, which needs no issue at all.',
+    hungerFix: 'plant a Fig Orchard \u2014 it needs no water, no road and no magazine',
+    goodNames: { grain: 'Emmer', flour: 'Meal', dates: 'Figs', oil: 'Olive Oil', wool: 'Fleece',
+                 cloth: 'Aegean Cloth', clay: 'Potter\u2019s Clay', pottery: 'Stirrup Jars',
+                 stone: 'Gypsum', blocks: 'Ashlar' },
   },
   6: {
     raw: 'grain', cooked: 'flour',

@@ -64,6 +64,15 @@ body[data-era-theme="anunnaki"]  { --chip-bg: rgba(20, 18, 30, 0.90); --chip-bor
    between them on the ladder: #d9bb8e is warm like Egypt's but 26 points less
    saturated and far browner, which is the difference between gilding and mud. */
 body[data-era-theme="indus"]     { --chip-bg: rgba(30, 20, 14, 0.91); --chip-border: rgba(201, 180, 138, 0.34); --accent: #d9bb8e; }
+/* ★ rung 7 — Minoan-Mycenaean. The one age on the ladder whose palette is COOL,
+   and it has to be: every other written rung is some shade of earth (ice blue is
+   rung 1's and it is a grey, not a blue). The chip body is ERA_GRADE[7]'s Aegean
+   water (0x1f6f96) taken right down, and the accent is ERA_ROAD[7]'s crushed
+   limestone (0xd9d2bd) lifted. It sits apart from `glacial` (#a8cfe8, a pale ice
+   blue) by being warmer and far less saturated — bleached stone in hard sun, not
+   snow — and apart from `egypt` (#e8c96a) by being its opposite on the wheel,
+   which is the point: the rung below it is mud and the rung above it is gold. */
+body[data-era-theme="aegean"]    { --chip-bg: rgba(10, 30, 42, 0.91); --chip-border: rgba(217, 210, 189, 0.36); --accent: #ddd6c2; }
 body[data-era-theme="egypt"]     { --chip-bg: rgba(38, 28, 12, 0.90); --chip-border: rgba(212, 175, 55, 0.40); --accent: #e8c96a; }
 body[data-era-theme="jungle"]    { --chip-bg: rgba(14, 30, 18, 0.90); --chip-border: rgba(110, 190, 130, 0.35); --accent: #8fd9a0; }
 body[data-era-theme="classical"] { --chip-bg: rgba(28, 30, 36, 0.90); --chip-border: rgba(220, 220, 230, 0.35); --accent: #e8e6e0; }

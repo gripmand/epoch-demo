@@ -406,6 +406,8 @@ const Shapes = {
 
     4:  0xbd9967,
     5:  0xdcc196,
+    7:  0xd8d2c2,
+
     6:  0xc9a86e,
 
     10: 0xe0dcd0,
@@ -2497,6 +2499,7 @@ const Shapes = {
     5:  { robe: 'plaster', torso: 'plaster',  head: 'timber',   bulk: 1 },
 
     6:  { robe: 'ware',    torso: 'plaster',  head: 'timber',   bulk: 1 },
+    7:  { robe: 'plaster', torso: 'ware',     head: 'timber',   bulk: 1 },
     14: { robe: 'ware',    torso: 'mudPale',  head: 'timber',   bulk: 1 },
   },
 
@@ -2533,7 +2536,7 @@ const Shapes = {
     return Shapes.mergeGroup(g);
   },
 
-  LEDGER_SKINS: { 1: 'boneTally', 4: 'clayTablet' },
+  LEDGER_SKINS: { 1: 'boneTally', 4: 'clayTablet', 7: 'clayTablet' },
 
   ledgerSkin(era) {
     const keys = Object.keys(Shapes.LEDGER_SKINS).map(Number).sort((a, b) => a - b);

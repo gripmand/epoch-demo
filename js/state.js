@@ -37,6 +37,7 @@ const Game = {
       giftCrew: 0,
       giftLand: 0,
       giftDrain: 0,
+      giftIssue: 0,
 
       stock: Game.startStock(granted, era),
 
@@ -77,6 +78,7 @@ const Game = {
       policyCorvee: false,
       policyRation: false,
       policySweep: false,
+      policyWideIssue: false,
       season: null,
 
       policyDoubleShift: false,
@@ -202,6 +204,8 @@ const Game = {
       connRoads: new Set(),
       water: new Uint8Array(n),
       power: new Uint8Array(n),
+
+      magazine: new Uint8Array(n),
       midden: new Uint8Array(n),
       ownedSet: new Set(),
       byId: new Map(),
@@ -279,6 +283,8 @@ const Game = {
       giftLand: s.giftLand | 0,
       giftDrain: s.giftDrain | 0,
 
+      giftIssue: s.giftIssue | 0,
+
       tribute: s.tribute ? { bank: +s.tribute.bank || 0, count: s.tribute.count | 0,
                              missed: s.tribute.missed | 0,
                              due: Math.round(+s.tribute.due || 0) } : null,
@@ -292,6 +298,7 @@ const Game = {
       season: s.season ? { phase: s.season.phase | 0, left: Math.round(s.season.left) } : null,
       policyRation: !!s.policyRation,
       policySweep: !!s.policySweep,
+      policyWideIssue: !!s.policyWideIssue,
 
       chill: +s.chill || 0,
 
@@ -611,6 +618,8 @@ const Game = {
 
       giftDrain: d.giftDrain | 0,
 
+      giftIssue: d.giftIssue | 0,
+
       tribute: (d.tribute && typeof d.tribute === 'object')
         ? { bank: Math.max(0, +d.tribute.bank || 0), count: Math.max(0, d.tribute.count | 0),
             missed: Math.max(0, d.tribute.missed | 0),
@@ -629,6 +638,7 @@ const Game = {
         : null,
       policyRation: !!d.policyRation,
       policySweep: !!d.policySweep,
+      policyWideIssue: !!d.policyWideIssue,
       chill: Util.clamp(+d.chill || 0, 0, 1),
 
       silt: Util.clamp(+d.silt || 0, 0, 1),

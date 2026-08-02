@@ -49,6 +49,11 @@ const Grid = {
          beyond: 'SALT', saltAt: 0.55, rockAt: 0.94, peakR: 6,
          rockEdge: 3 },
 
+    7: { trunkW: 7.0, trunkW2: 6.4, branch: 0, secondW: 0, wander: 0.30,
+         fertileTo: 4, dryFrom: 7, edgeJitter: 3.0,
+         beyond: 'SALT', saltAt: 0.64, rockAt: 0.62, peakR: 5,
+         seaEdge: 20 },
+
     14: { noTrunk: true, cenoteEvery: 34, cenoteR: 1.7, peakR: 6,
           trunkW: 0, trunkW2: 0, branch: 0, secondW: 0, wander: 0.30,
           fertileTo: 2, dryFrom: 5, edgeJitter: 2.0,
@@ -625,6 +630,14 @@ const Grid = {
       if (!inside) ok = false;
     }
 
+    if (ok && d.needsIssueGround) {
+      let inside = true;
+      Grid.footTiles(type, x, y, (tx, ty) => {
+        if (!Grid.inB(tx, ty) || !G.cache.magazine[Grid.key(tx, ty)]) inside = false;
+      }, rot);
+      if (!inside) ok = false;
+    }
+
     if (ok && d.onWood) {
       let wood = 0;
       Grid.footTiles(type, x, y, (tx, ty) => { if (Grid.inB(tx, ty) && Grid.treeAt(s, tx, ty)) wood++; }, rot);
@@ -697,6 +710,19 @@ const Grid = {
     if (!d.onWater && water) return 'that is in the water';
     if (wrong) return 'the ground there will not take a building';
 
+    if (d.needsIssueGround) {
+      let inside = true;
+      Grid.footTiles(type, x, y, (tx, ty) => {
+        if (!Grid.inB(tx, ty) || !G.cache.magazine[Grid.key(tx, ty)]) inside = false;
+      }, rot);
+      if (!inside) {
+        const r = (typeof Econ !== 'undefined' && Econ.rationForecast) ? Econ.rationForecast(s) : null;
+        return 'a ' + d.name + ' can only stand inside a MAGAZINE\'S DISC' +
+          (r && r.mags === 0
+            ? ' — and there is no magazine in this city yet. A Villa Magazine administers 7 tiles.'
+            : ' — every tile of it, not just a corner. Press O to see the discs.');
+      }
+    }
     if (d.needsBlock) {
       let inside = false;
       for (const bk of (G.cache.blocks || [])) {
@@ -1156,7 +1182,7 @@ const Grid = {
         }
         b.nearPark = nearPark; b.nearShrine = nearShrine; b.nearTemple = nearTemple; b.nearInd = nearInd;
 
-        b.nearOvenIds = ovens.filter(o => within(b, o, TUNE.OVEN.radius)).map(o => o.id);
+        b.nearOvenIds = ovens.filter(o => within(b, o, Econ.ovenReach(DEF(o.type)) + rankRadiusBonus(o))).map(o => o.id);
         b.nearOven = b.nearOvenIds.length > 0;
         b.nearMarket = shops.some(o => within(b, o, DEF(o.type).custRadius || 6));
 
@@ -1167,8 +1193,8 @@ const Grid = {
       }
 
       if (d.sells || d.sellsRaw) {
-        b.scribed = scribes.some(o => within(b, o, TUNE.SCRIBE.radius + rankRadiusBonus(o)));
-        b.weighedBy = weighs.filter(o => within(b, o, TUNE.WEIGH.radius)).map(o => o.id);
+        b.scribed = scribes.some(o => within(b, o, Econ.scribeReach(DEF(o.type)) + rankRadiusBonus(o)));
+        b.weighedBy = weighs.filter(o => within(b, o, Econ.weighReach(DEF(o.type)) + rankRadiusBonus(o))).map(o => o.id);
 
         b.bureauBy = (d.sells === 'cloth' || d.sells === 'dyedcloth')
           ? bureaus.filter(o => within(b, o, TUNE.BUREAU.radius)).map(o => o.id) : [];

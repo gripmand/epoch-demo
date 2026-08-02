@@ -24,6 +24,8 @@ const UI = {
     UI.els.range = document.getElementById('hud-range');
     UI.els.gridChip = document.getElementById('chip-grid');
     UI.els.grid = document.getElementById('hud-grid');
+    UI.els.rollChip = document.getElementById('chip-roll');
+    UI.els.roll = document.getElementById('hud-roll');
     UI.els.herdChip = document.getElementById('chip-herd');
     UI.els.herd = document.getElementById('hud-herd');
     UI.els.levyChip = document.getElementById('chip-levy');
@@ -473,6 +475,8 @@ const UI = {
     if (era <= 4) return 'anunnaki';
 
     if (era === 6) return 'indus';
+
+    if (era === 7) return 'aegean';
     if (era <= 9) return 'egypt';
     if (era <= 13) return 'classical';
     if (era <= 14) return 'jungle';
@@ -836,6 +840,39 @@ const UI = {
             Math.round(TUNE.MOVING.slow * 100) + '% less work.' : '');
     }
 
+    const showRoll = Econ.magazineActive(s);
+    if (UI.els.rollChip) {
+      UI.els.rollChip.classList.toggle('hidden', !showRoll);
+      UI.els.rollChip.style.display = showRoll ? '' : 'none';
+    }
+    if (showRoll && UI.els.roll) {
+      const r = Econ.rationForecast(s);
+      UI.els.roll.textContent = r.billable
+        ? r.administered + '/' + r.billable + (r.short ? ' ⚠' + r.short : ' +' + r.room)
+        : '—';
+
+      UI.els.rollChip.classList.toggle('bad', r.short > 0);
+      UI.els.rollChip.classList.toggle('warn', r.short === 0 && r.room === 0 && r.billable > 0);
+      const wide = G.cache.wideIssue
+        ? ' The Wide Issue is PAYING: every disc reaches ' + TUNE.WIDEISSUE.widen +
+          ' tiles further and every ration is ' + TUNE.WIDEISSUE.mult + '×.'
+        : (s.policyWideIssue ? ' The Wide Issue is ON BUT NOT PAYING — not enough oil in the ' +
+            'magazine to hold the doubled ration, so the discs are back to their own reach.' : '');
+      UI.els.rollChip.title = (r.mags === 0
+        ? 'NO MAGAZINE YET. Nothing that produces or ships will run until one stands — build a Villa ' +
+          'Magazine and put your workshops inside its seven tiles.'
+        : r.administered + ' of ' + r.billable + ' producers are on the roll' +
+          (r.short ? ', and ' + r.short + ' ' + (r.short === 1 ? 'is' : 'are') +
+            ' off it — the furthest from a magazine go first. Make more oil, or mothball something.'
+                   : ', with room for ' + r.room + ' more.') +
+          ' The ration is ' + TUNE.MAGAZINE.issuePer.oil + ' oil and ' +
+          TUNE.MAGAZINE.issuePer.dates + ' figs per building per minute; the first ' +
+          TUNE.MAGAZINE.freeAdmin + ' are carried free. ' +
+          (r.bind ? 'The ' + goodLabel(s.era, r.bind) + ' is what is binding right now.' : '') +
+          (r.secs > 0 ? ' At this draw the magazine holds the roll for ' + Math.round(r.secs) +
+            's if production stopped.' : '')) + wide;
+    }
+
     const showGrid = Econ.gridActive(s);
     if (UI.els.gridChip) {
       UI.els.gridChip.classList.toggle('hidden', !showGrid);
@@ -1042,6 +1079,16 @@ const UI = {
         : G.cache.brownout ? 'BROWNED OUT — the tank is empty' : 'NO WATER coverage', 'bad'],
       no_power: ['NO POWER', 'bad'],
 
+      no_magazine: [(() => {
+        const s7 = G.s, r = Econ.rationForecast(s7), b7 = Input.selected;
+        const covered = b7 && G.cache.magazine && Grid.covered(G.cache.magazine, b7);
+        if (!covered) return r.mags === 0
+          ? 'NO MAGAZINE ANYWHERE — nothing that produces or ships runs until one stands. A Villa Magazine administers 7 tiles'
+          : 'OUTSIDE every magazine’s disc — build one nearer, or move this. Press O to see the discs';
+        return 'ON THE GROUND BUT OFF THE ROLL — the palace is carrying ' + r.administered + ' of ' +
+          r.billable + ' and this one is furthest from a magazine. ANOTHER MAGAZINE WILL NOT HELP: ' +
+          'make more oil (a Press Room carries fifteen names), or mothball something you can spare';
+      })(), 'bad'],
       no_block: [(() => {
         const g = Econ.gridForecast(G.s);
         if (g.best) return 'NOT IN A BLOCK — the nearest ' + g.best.short + ' is ' + g.best.missing +
@@ -2140,6 +2187,7 @@ const UI = {
     const STATUS = {
       no_road: 'no road to the ' + anchorFor(s.era).short, no_water: 'no water coverage', no_power: 'no power',
       no_block: 'not inside a qualifying block',
+      no_magazine: 'off the palace roll',
       no_staff: 'no workers', no_input: 'nothing to work with',
       no_customers: 'not enough customers nearby', building: 'still under construction',
       dry_season: 'the dry season — collecting nothing',
@@ -2526,6 +2574,7 @@ const UI = {
     }
 
     const LOUD = { no_road: 1, no_water: 1, no_power: 1, no_warmth: 1, no_staff: 1, no_block: 1,
+      no_magazine: 1,
                    no_input: 1, no_customers: 1, stand_spent: 1, hungry: 1 };
     const fmap = {};
     for (const b of B) {

@@ -13,7 +13,7 @@ const ERA_ANCHOR = {
   5:  { name: 'Nomarch\'s Estate',  short: 'Per-Nesu',   note: 'The provincial governor\'s seat, which assessed the flood, counted the cattle and set the grain tax.' },
 
   6:  { name: 'The Granary Platform', short: 'Platform', note: 'No palace, no temple and no royal tomb has ever been identified here. What governed was a raised brick podium nobody can put a name to, the standard brick and the drains — administration as plumbing.' },
-  7:  { name: 'The Palace Store',   short: 'Palace',     note: 'Everything comes in and everything goes back out. The Linear B tablets are not literature; they are stock lists.' },
+  7:  { name: 'The Palace Store',   short: 'Palace',     note: 'Everything comes in and everything goes back out. No marketplace, no coinage and no shop has been identified anywhere in the Bronze Age Aegean — what has been read off the tablets is a list of names and what each was issued. They are not literature; they are receipts.' },
   8:  { name: 'The Ancestral Hall', short: 'Ancestral Hall', note: 'Shang kingship ran on divination and rite. The cracked oracle bones under the floor are the state archive.' },
   9:  { name: 'The Marae',          short: 'Marae',      note: 'Open ground, not a building. Lineage is recited here and a voyage is sanctioned here before a hull is ever cut.' },
   10: { name: 'Prytaneion',         short: 'Prytaneion', note: 'The civic hearth of the polis. Its fire was never allowed to go out.' },
@@ -63,6 +63,10 @@ const ERA_RECORD = {
         chronicle: 'The Chronicle', chronBtn: 'Chronicle',
         chronSub: 'Set down as it happened. The record keeps the last 200 entries.',
         keeper: 'whoever keeps this city’s records' },
+  7:  { icon: '\u{1F4DC}', tally: 'The Tablets', tallyBtn: 'Tablets',
+        tallySub: 'What was issued, to whom, and what came back in.',
+        chronicle: 'The Archive', chronBtn: 'Archive', chronSub: 'Set down in wet clay and filed by the month. The record keeps the last 200 entries.',
+        keeper: 'the scribe of the west magazine' },
   0:  { icon: '\u{1FAA8}', tally: 'The Layer Count', tallyBtn: 'Layers',
         tallySub: 'What this range has laid down, and what is left of it.',
         chronicle: 'The Seam', chronBtn: 'The Seam',
@@ -123,6 +127,11 @@ const ERA_FOUNDING = {
         placeholder: 'The Landmark Beds', ok: 'Name the range', skip: 'Leave it unnamed',
         founded: ' was laid down, layer on layer, in the same mud.',
         toast: ' is named — by the people who will one day dig it up.' },
+  7:  { icon: '\u{1F300}', title: 'Name This Palace',
+        sub: 'Whatever the people here called it, the name we use is the one a stranger wrote down.',
+        placeholder: 'Ka-no-so', ok: 'Name the palace', skip: 'Leave it unnamed',
+        founded: ' was founded, and the first tablet was filed the same day.',
+        toast: ' is founded. Every jar in it will be counted.' },
   1:  { icon: '\u{1F525}', title: 'Name Your Camp',
         sub: 'The band needs a word for this place — the word they will use when they are somewhere else.',
         placeholder: 'Long-Hearth-by-the-Ford', ok: 'Name the camp', skip: 'It needs no name yet',
@@ -277,6 +286,34 @@ const ERA_SITE = {
     water: 'Most buildings must sit inside a <b>Canal Well’s</b> eight tiles, or an ' +
       '<b>Inundation Basin’s</b> eleven. Press <b>O</b> to see it.',
     extra: [],
+  },
+  7: {
+    roadYes: '<b>Ashlar Houses, Town Houses, every magazine, the Stirrup-Jar Store and the Mule Train ' +
+      'Post</b> — and that is nearly the whole list, because in this age the road is what connects a ' +
+      'building to a STOREROOM rather than to a customer',
+    roadNo: 'Emmer Plots, Fig Orchards, Olive Terraces, the Press Room, the Perfumery, Hill Pastures, ' +
+      'Crocus Meadows, the Copper Adit, the Gypsum Cutter, the Clay Bank, the Seine Net Station and ' +
+      'the Spring Houses',
+    water: 'Most buildings must sit inside a <b>Spring House’s</b> seven tiles or a <b>Conduit ' +
+      'House’s</b> ten. ★ THE SEA WATERS NOTHING — this island is ringed with undrinkable water and ' +
+      'only a well counts. Press <b>O</b> to see the rings.',
+    extra: [
+      '<b>The roll.</b> Anything that PRODUCES or SHIPS must stand inside a magazine’s disc, and the ' +
+      'palace can only carry as many of them as it can hand a ration to — <b>oil and figs, every ' +
+      'minute, per building on the roll</b>. When it runs short it drops the buildings FURTHEST from ' +
+      'a magazine first. So what you put closest to a storeroom is what survives a bad minute. Watch ' +
+      'the 📜 chip: it reads how many of your producers are on the roll and how much room is left.',
+      '<b>Nothing here is off the roll except the palace’s own estate.</b> The Olive Terrace, the ' +
+      'Press Room, the Fig Orchard, the Seine Net Station and every magazine are never billed and can ' +
+      'never be dropped — they ARE the administration. That is why a city that has lost its issue can ' +
+      'always climb back: the olives still press and the figs still ripen.',
+      '<b>Mothballing is a real move here and nowhere else.</b> A mothballed building draws no ration, ' +
+      'so shutting a quarter deliberately is how you keep the rest of the city on the roll while you ' +
+      'build another Press Room. This is the one age whose answer can be to run LESS.',
+      '<b>The scarp is the exit.</b> The next age is the first on the whole ladder that asks this one ' +
+      'for STONE. The Gypsum Cutter is the only building that makes it, it has to stand on the ' +
+      'limestone spine, and the spine does not grow back.',
+    ],
   },
   6: {
     roadYes: '<b>Courtyard Houses, Merchant Block Houses, the Covered Drain, the Cord &amp; Peg Post, ' +
@@ -477,6 +514,40 @@ const ERA_GUIDES = {
     mistake: 'Expanding farmland without storage. A good flood you cannot store is wasted.',
   },
 
+  7: {
+    headline: 'There is no market. Everything goes to the palace, and the palace has to feed it.',
+    mechanic: 'THE ROLL. Every building that PRODUCES or SHIPS must stand inside a magazine’s disc — ' +
+      'and the palace can only carry as many of them as it can issue a ration to: OIL and FIGS, every ' +
+      'minute, per building on the roll. One Press Room carries fifteen names; one Fig Orchard ' +
+      'carries twenty. When the issue runs short the palace drops the buildings FURTHEST from a ' +
+      'magazine, so what you site closest to a storeroom is what survives. Its own estate — the ' +
+      'Olive Terraces, the Press Room, the Fig Orchards and the magazines themselves — is never on ' +
+      'the roll, which is why you can always climb back. Watch the 📜 chip.',
+    chain: [
+      'Emmer Plot → Palace Mill  ·  the staple, and it is on the roll like everything else',
+      'Olive Terrace → Press Room  ·  OFF THE ROLL. This is where the ration itself comes from — build it before you build anything that needs feeding',
+      'Press Room → Perfumery  ·  unguent at $19.28, the dearest thing the island ships, out of the same oil the roll eats',
+      'Hill Pasture → Spinning Shed → Purple Vat  ·  purple at $38.55. The vat wants the tideline',
+      'Copper Adit + Tin Landing → Bronze Foundry  ·  the adit eats the spine; the tin comes off somebody else’s ship',
+      'Clay Bank → Wheel Workshop  ·  stirrup jars, and the clay wants a stream bank',
+      'Crocus Meadow  ·  saffron off the Theran ash, gathered and shipped raw. Nothing else wants that ground',
+      'Gypsum Cutter → Ashlar Yard  ·  ★ THE EXIT. The next age is the first that asks for stone',
+    ],
+    firstSteps: [
+      'A FIG ORCHARD first, and it is $540 of your $6,750. It needs no water, no road and no magazine, so the founding party can work it the moment you place it — which is what releases the other nine into the labour pool. It is also the one food that is never on the roll.',
+      'Then a SPRING HOUSE ($130). The sea is right there and none of it counts: only a well waters anything, and the emmer, the mill and the houses all need it.',
+      'Then a VILLA MAGAZINE ($410) with a short road to the Hall. It administers seven tiles and it SHIPS — until one stands, nothing you build inside it will run and nothing you make can become money. The palace itself costs $1,330 and comes much later.',
+      'Now an OLIVE TERRACE ($240) and a PRESS ROOM ($600) inside the disc. They are off the roll, so they run whatever happens — and the oil they make is what lets the roll grow past the four names the throne carries for free.',
+      'Then TWO ASHLAR HOUSES ($520) inside the well’s ring and the magazine’s disc, and an EMMER PLOT ($210). That is $2,650 spent and a city that feeds itself, ships something, and can lengthen its own roll.',
+      'After that: a second terrace and press before every third producer. The rule to hold in your head is ONE PRESS ROOM PER FIFTEEN NAMES.',
+    ],
+    mistake: 'Building producers before the oil that pays for them. Four buildings run for free; the ' +
+      'fifth needs a Press Room, and a city with ten workshops and one press has six of them standing ' +
+      'idle with a red ! reading “off the roll”. The other half of the same mistake is siting the ' +
+      'Press Room out on the terraces far from the magazine — when the issue runs short the palace ' +
+      'drops the FURTHEST buildings first, and the things you least want dropped are the ones that ' +
+      'make the ration.',
+  },
   6: {
     headline: 'Lay the streets first. The buildings go in the holes.',
     mechanic: 'THE GRID. A rectangle 5 to 8 tiles a side, ROAD ON ALL FOUR SIDES, every tile inside ' +
