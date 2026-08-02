@@ -356,7 +356,7 @@ const Econ = {
 
         const mult = (1 + TUNE.FERTILE_BONUS * (b.fertile || 0)) *
                      (1 + (b.adjBoost || 0)) * (1 + oxen) * soilMult * rankOutMult(b) *
-                     Econ.groundMult(b);
+                     Econ.groundMult(b) * Econ.forageMult(s, b);
 
         made = d.out.grain * staffEff * mult * Econ.M * (1 + C.beerBonus) * (C.nileMult || 1);
         Econ.addStock(s, 'grain', made);
@@ -364,7 +364,8 @@ const Econ = {
       } else if (d.out.clay || d.out.wool) {
 
         const kind = d.out.clay ? 'clay' : 'wool';
-        const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b) * Econ.groundMult(b);
+        const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b) * Econ.groundMult(b) *
+          Econ.forageMult(s, b);
         made = d.out[kind] * staffEff * mult * Econ.M * (1 + C.beerBonus);
         Econ.addStock(s, kind, made);
         outKind = kind;
@@ -375,7 +376,8 @@ const Econ = {
 
         const oxen = (b.oxNear || []).some(id => C.fedByres.has(id)) ? TUNE.OX.bonus : 0;
 
-        let mult = (1 + (b.adjBoost || 0)) * (1 + oxen) * rankOutMult(b) * Econ.groundMult(b);
+        let mult = (1 + (b.adjBoost || 0)) * (1 + oxen) * rankOutMult(b) * Econ.groundMult(b) *
+          Econ.forageMult(s, b);
         if (d.saltProof) {
           b.soil = Grid.soilUnder(b);
           if (b.soil < 0.3) mult *= 1.5;
@@ -391,7 +393,8 @@ const Econ = {
         const left = Econ.cutterWoodLeft(b);
         b.woodLeft = left;
 
-        const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b) * Econ.groundMult(b);
+        const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b) * Econ.groundMult(b) *
+          Econ.forageMult(s, b);
         made = left > 0 ? Math.min(left, d.out.deadwood * staffEff * mult * Econ.M * (1 + C.beerBonus)) : 0;
 
         made = Math.min(made, Math.max(0, Econ.capOf(s, 'deadwood') - s.stock.deadwood));
@@ -411,7 +414,8 @@ const Econ = {
           b.status = 'dry_season'; b.rate = 0; b.lastStaffEff = staffEff;
           continue;
         }
-        const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b) * Econ.groundMult(b);
+        const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b) * Econ.groundMult(b) *
+          Econ.forageMult(s, b);
         made = d.out[kind] * staffEff * mult * Econ.M * (1 + C.beerBonus);
         Econ.addStock(s, kind, made);
         outKind = kind;
@@ -424,7 +428,7 @@ const Econ = {
         const rf = good === 'stone' ? (0.5 + 0.5 * (b.rockFrac || 0)) : 1;
 
         const mult = rf * (1 + (b.adjBoost || 0)) * rankOutMult(b) * Econ.groundMult(b) *
-          Econ.mineMult(s, b);
+          Econ.mineMult(s, b) * Econ.forageMult(s, b);
         made = left > 0 ? d.out[good] * staffEff * mult * Econ.M * (1 + C.beerBonus) : 0;
 
         made = Math.min(made, Math.max(0, Econ.capOf(s, good) - s.stock[good]));
@@ -441,7 +445,7 @@ const Econ = {
 
         const kind = Object.keys(d.out)[0];
         const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b) * Econ.groundMult(b) *
-          Econ.mineMult(s, b);
+          Econ.mineMult(s, b) * Econ.forageMult(s, b);
         made = d.out[kind] * staffEff * mult * Econ.M * (1 + C.beerBonus);
         Econ.addStock(s, kind, made);
         outKind = kind;
@@ -449,7 +453,9 @@ const Econ = {
 
       if (outKind && made > 0) Econ.noteFood(s, outKind, made);
       b.rate = made;
-      b.status = staffEff < 1 ? 'understaffed' : 'ok';
+
+      b.status = staffEff < 1 ? 'understaffed'
+        : ((b.forageCrowd | 0) > 0 && Econ.rangeActive(s)) ? 'crowded' : 'ok';
     }
 
     Econ.waterTick(s, offline);
@@ -1707,6 +1713,58 @@ const Econ = {
         '/min. Build a DREDGING CREW — about one per two wells. Another well makes it worse, ' +
         'not better: it is one more channel to keep clear.', 15000);
     }
+  },
+
+  rangeActive(s) { return rungOf(s.era) === 3; },
+
+  forageRadiusOf(s, b) {
+    const d = DEF(b.type);
+    if (!d || !d.forageRadius) return 0;
+    const r = d.forageRadius + rankRadiusBonus(b);
+
+    return s.policyMoveCamps ? Math.max(1, Math.ceil(r * TUNE.MOVING.radiusCut)) : r;
+  },
+
+  campLive(b) {
+    return !!b && !b.mothballed && !b.resting && !b.block && b.done !== false;
+  },
+
+  forageNeighbours(s, b) {
+    let n = 0;
+    const by = G.cache.byId;
+    for (const id of (b.forageNear || [])) {
+      const o = by && by.get ? by.get(id) : null;
+      if (!Econ.campLive(o)) continue;
+      n++;
+    }
+    return n;
+  },
+
+  forageMult(s, b) {
+    if (!Econ.rangeActive(s)) return 1;
+    const d = DEF(b.type);
+    if (!d || !d.forageRadius) return 1;
+    const n = Econ.forageNeighbours(s, b);
+    b.forageCrowd = n;
+    return Math.max(TUNE.FORAGE.floor, 1 / (1 + TUNE.FORAGE.crowd * n)) *
+           (s.policyMoveCamps ? (1 - TUNE.MOVING.slow) : 1);
+  },
+
+  forageHarvest(s) {
+    const lost = {};
+    if (!Econ.rangeActive(s)) return { raw: 0, actual: 0, frac: 1, crowded: 0, camps: 0, lost };
+    let raw = 0, actual = 0, crowded = 0, camps = 0;
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+
+      if (!d || !d.forageRadius || !d.out || !Econ.campLive(b)) continue;
+      const kind = Object.keys(d.out)[0], base = d.out[kind];
+      const m = Econ.forageMult(s, b);
+      camps++; if ((b.forageCrowd | 0) > 0) crowded++;
+      raw += base; actual += base * m;
+      lost[kind] = (lost[kind] || 0) + base * (1 - m);
+    }
+    return { raw, actual, frac: raw > 0 ? actual / raw : 1, crowded, camps, lost };
   },
 
   levyActive(s) { return rungOf(s.era) === 2; },

@@ -35,7 +35,8 @@ const TUNE = {
 
   FOUNDING_CREW: 10,
 
-  ERA_STARTER: { 1: 'deadwoodcutter', 2: 'terraceplot', 4: 'farm', 5: 'emmerfield', 14: 'milpa' },
+  ERA_STARTER: { 1: 'deadwoodcutter', 2: 'terraceplot', 3: 'snailbeds', 4: 'farm',
+                 5: 'emmerfield', 14: 'milpa' },
 
   ERA_START_MONEY: { 0: 1080 },
 
@@ -94,6 +95,8 @@ const TUNE = {
            { kind: 'fish', eff: 0.75 }, { kind: 'honey', eff: 0.6 } ],
   LAND_BASE: 150,
   LAND_EXP: 1.35,
+
+  GIFT_LAND_STEP: 0.15,
   DEMOLISH_REFUND: 0.5,
   CLEAR_TREE: 15,
   TERRA: { grass: 20, fertile: 45, water: 80, rock: 60, mountain: 150, tree: 25 },
@@ -136,6 +139,20 @@ const TUNE = {
 
     warnAt: 0.45,
     rearmAt: 0.20,
+  },
+
+  FORAGE: {
+    crowd: 0.5,
+    floor: 0.20,
+
+    warnAt: 0.75,
+    badAt: 0.55,
+  },
+
+  MOVING: {
+    radiusCut: 0.5,
+    slow: 0.20,
+
   },
 
   TRIBUTE: {
@@ -274,6 +291,8 @@ const TUNE = {
     1: { kind: 'pemmican', price: 8, who: 'A passing band traded the camp', unit: 'bundle' },
 
     2: { kind: 'grain', price: 2, who: 'A supply train sold the camp', unit: 'sack' },
+
+    3: { kind: 'grain', price: 2, who: 'A band down from Karahan Tepe traded the town', unit: 'basket' },
     4: { kind: 'grain', price: 2, who: 'A caravan sold the city', unit: 'sack' },
 
     5: { kind: 'grain', price: 2, who: 'A river barge sold the estate', unit: 'sack' },
@@ -336,7 +355,8 @@ const TUNE = {
 
 const HOUSE_RUNG_COST_MULT = [0.6, 1.0, 1.8, 3.0];
 
-const HOUSE_RUNG_REF = { 0: 'nestmound', 1: 'hidetent', 4: 'house', 5: 'villa', 14: 'stonehouse' };
+const HOUSE_RUNG_REF = { 0: 'nestmound', 1: 'hidetent', 3: 'brushshelter', 4: 'house',
+                         5: 'villa', 14: 'stonehouse' };
 function houseRungRefCost(era) {
   const rung = rungOf(era);
   const keys = Object.keys(HOUSE_RUNG_REF).map(Number).sort((a, b) => a - b);
@@ -410,7 +430,7 @@ function eraInfo(era) {
   return r === 0 ? ERA_PROLOGUE : (ERAS[r - 1] || ERA_PROLOGUE);
 }
 
-const WRITTEN_RUNGS = [0, 1, 2, 4, 5, 14];
+const WRITTEN_RUNGS = [0, 1, 2, 3, 4, 5, 14];
 
 const START_ERA = WRITTEN_RUNGS[0];
 function nextWrittenEra(era) {
@@ -588,6 +608,15 @@ const ERA_TERRA_LOCK = {
     mountain: 'the crest is the crest, and the adits are driven INTO it; a mountain you can paint is a mountain you can move',
   },
 
+  3: {
+    rock: 'the ridge is the ridge — this town cuts limestone out of the plateau and cannot put it back, ' +
+      'and the Enclosure is made of the ground it stands on',
+    water: 'there is no river up here and no way to make one. The karst takes the rain straight down ' +
+      'through itself; you find the seeps, you do not dig them',
+    fertile: 'nobody in this age has ever sown anything. Ground is good or it is not — and learning to ' +
+      'improve it is the invention that ENDS this age',
+  },
+
   4: {},
 
   5: {
@@ -604,6 +633,11 @@ const ERA_TERRA_LOCK = {
 function rockYield(s) {
   const st = s || (typeof G !== 'undefined' && G ? G.s : null);
   return TUNE.ROCK_YIELD * (1 + 0.25 * ((st && st.giftSeams) | 0));
+}
+
+function landGift(s) {
+  const st = s || (typeof G !== 'undefined' && G ? G.s : null);
+  return Math.pow(1 - TUNE.GIFT_LAND_STEP, (st && st.giftLand) | 0);
 }
 
 function startMoneyFor(era) {
@@ -1421,6 +1455,588 @@ const BUILDINGS = {
     icon: '\u{1F91A}', color: '#b5502f',
     desc: 'A hand, a mouthful of ochre, a wall. Names a quarter. No output and no upkeep — being here ' +
       'is the point.',
+  },
+
+  springhead: {
+    name: 'Spring Head', tier: 'infra', era: 3, w: 1, h: 1, cost: 47, upkeep: 0.08,
+    icon: '\u{1F4A7}', color: '#7a9aa8', waterRadius: 4,
+
+    desc: 'A karst seep cleared out and given a stone lip. Waters four tiles around it. There is no ' +
+      'river up here and no way to dig one — the water comes out of the rock where it comes out, and ' +
+      'this is how you keep it.',
+  },
+  sunkensilo: {
+    name: 'The Sunken Silo', tier: 'infra', era: 3, w: 1, h: 1, cost: 62, upkeep: 0.03,
+    icon: '\u{1F573}\u{FE0F}', color: '#b8a882', storeGrain: 20, storeFlour: 12,
+
+    desc: 'A stone-lined pit sunk under a raised floor, sealed and forgotten until you need it. ' +
+      '+20 einkorn and +12 groats, and NO workers — the buffer that does not eat.',
+  },
+  skintentstore: {
+    name: 'Skin-Tent Store', tier: 'infra', era: 3, w: 2, h: 2, cost: 155, upkeep: 0.15,
+    icon: '\u{26FA}', color: '#a89070', workers: 2, depot: true, storeCraft: 17,
+
+    desc: 'Hides over a bent-wood frame, racked and kept dry. +17 capacity for every craft good while ' +
+      'staffed, and it counts as a SUPPLY POINT — the rim measures its carting to this, not to the core.',
+  },
+  carriercairn: {
+    name: "Carrier's Cairn", tier: 'infra', era: 3, w: 1, h: 1, cost: 155, upkeep: 0.19,
+    icon: '\u{1F9ED}', color: '#9a9284', workers: 1, depot: true, storeCraft: 9,
+
+    desc: 'A marked stone and one person who does nothing but carry. Buildings measure their carting to ' +
+      'the nearest shop, store or cairn — ONE CAIRN ERASES A WHOLE HUNTING RANGE\'S PREMIUM. Five blinds ' +
+      'twelve tiles apart already span the whole free radius; the sixth is what this is for. Needs no ' +
+      'road and no water.',
+  },
+  logcrossing: {
+    name: 'Log Crossing', tier: 'infra', era: 3, w: 1, h: 1, cost: 93, upkeep: 0.04,
+    icon: '\u{1F309}', color: '#8a7a5c', onWater: true, bridge: true,
+
+    desc: 'Split trunks laid across the shallows. Placed ON the water, it carries the track to the far ' +
+      'bank — the only way to reach the osier beds on the other side without terraforming a stream you ' +
+      'are not allowed to paint.',
+  },
+
+  brushshelter: {
+    name: 'Brush Shelter', tier: 'housing', era: 3, w: 1, h: 1, cost: 93, upkeep: 0.04,
+    icon: '\u{1F6D6}', color: '#b8a276', cap: 3, needsRoad: true, needsWater: true,
+
+    levels: ['Windbreak', 'Brush Shelter', 'Walled Shelter', 'Banked Shelter',
+             'Hearth Shelter', "Elder's Shelter"],
+    desc: 'Brush, hide and a windbreak wall on a swept floor. Homes 2 when it goes up, rising to 11 as ' +
+      'it earns its rungs. Needs a track to the Enclosure and a spring within reach.',
+  },
+  roundhut: {
+    name: 'Round Hut', tier: 'housing', era: 3, w: 1, h: 1, cost: 180, upkeep: 0.06,
+    icon: '\u{1F3E0}', color: '#cfc4a8', cap: 6, needsRoad: true, needsWater: true,
+
+    levels: ['Sunken Floor', 'Round Hut', 'Kerbed Hut', 'Twin-Roomed Hut',
+             'Lineage House', "Founder's House"],
+    desc: 'A sunk circular floor, a stone kerb, a conical roof of poles and reed. Homes 3 when it goes ' +
+      'up, rising to 21. Round-oval dwellings like this are what ended the story that nobody lived here.',
+  },
+
+  aurochsblind: {
+    name: 'Aurochs Blind', tier: 'food', era: 3, w: 2, h: 2, cost: 101, upkeep: 0.11,
+    icon: '\u{1F402}', color: '#9a8a6a', workers: 2, dryLand: true,
+    out: { game: 0.80 }, forageKind: 'game', forageRadius: 12,
+
+    desc: 'A stone hide built on a wallow, downwind. 0.80 game a minute off DRY open ground, +50% when ' +
+      'the whole footprint misses every spring and every red-soil pocket. ANOTHER BLIND INSIDE 12 TILES ' +
+      'IS HUNTING THE SAME HERD, and you both take a third less. Game is not dinner until it is smoked.',
+  },
+  smokingtrench: {
+    name: 'The Smoking Trench', tier: 'food', era: 3, w: 2, h: 2, cost: 194, upkeep: 0.19,
+    icon: '\u{1F356}', color: '#8a5a3f', workers: 3, industry: true, grainMill: true,
+    procIn: 'game', procRate: 2.40, procOut: 'pemmican', procRatio: 0.6,
+
+    desc: 'A trench of embers, green-wood frames, three days. Turns 2.4 game a minute into 1.44 smoked ' +
+      'meat — this town\'s bread. EXACTLY THREE BLINDS FEED ONE TRENCH. Needs no water, so it can stand ' +
+      'out on the ridge with them, and each blind it touches works 25% harder.',
+  },
+  killshare: {
+    name: 'The Kill Share', tier: 'commerce', era: 3, w: 2, h: 2, cost: 194, upkeep: 0.23,
+    icon: '\u{1F969}', color: '#c9866a', workers: 2, needsRoad: true, needsWater: true,
+    sells: 'pemmican', sellRate: 0.48, sellPrice: 4.96, custRadius: 6, custMin: 4,
+
+    desc: 'The whole point of a kill is that it cannot be kept. Sells 0.48 smoked meat a minute at $4.96 ' +
+      'to anyone in the town. Needs 4 residents, at any distance — hauls over 20 tiles cost carting.',
+  },
+
+  peggingground: {
+    name: 'The Pegging Ground', tier: 'food', era: 3, w: 2, h: 2, cost: 233, upkeep: 0.23,
+    icon: '\u{1FAA1}', color: '#9a7a58', workers: 3, industry: true,
+    procIn: 'game', procRate: 1.28, procOut: 'cloth', procRatio: 0.5435,
+
+    desc: 'Pegged out, fleshed, scraped and worked soft with brain and smoke. 1.28 game a minute becomes ' +
+      '0.70 worked hide. Every carcass on this ground is a carcass nobody eats.',
+  },
+  hidepost: {
+    name: "Hide Traders' Post", tier: 'commerce', era: 3, w: 2, h: 2, cost: 248, upkeep: 0.27,
+    icon: '\u{1F9E5}', color: '#8a6a4f', workers: 2, needsRoad: true, needsWater: true,
+    sells: 'cloth', sellRate: 0.35, sellPrice: 16.44, custRadius: 7, custMin: 7,
+
+    desc: 'Sells 0.35 worked hide a minute at $16.44 to people who walked here from the Euphrates — the ' +
+      'richest trade in the age and the fussiest to feed, because the blinds behind it want the driest ' +
+      'ground on the ridge AND twelve tiles between them. Needs 7 residents.',
+  },
+
+  wildstand: {
+    name: 'Wild Stand', tier: 'food', era: 3, w: 2, h: 2, cost: 78, upkeep: 0.11,
+    icon: '\u{1F33E}', color: '#c2b06a', workers: 2, needsWater: true,
+    out: { grain: 0.80 }, forageKind: 'grain', forageRadius: 8,
+
+    desc: 'Nobody planted this. 0.80 wild einkorn a minute, cut with a flint sickle, +50% on the red ' +
+      'terra rossa pockets. Crop the same hillside forever and it thins — rest it, heap bone on it, or ' +
+      'move. And another stand inside 8 tiles is cutting your ears.',
+  },
+  parchingfloor: {
+    name: 'The Parching Floor', tier: 'food', era: 3, w: 2, h: 2, cost: 194, upkeep: 0.19,
+    icon: '\u{1F35A}', color: '#d8c28a', workers: 3, needsWater: true, industry: true, grainMill: true,
+    procIn: 'grain', procRate: 2.40, procOut: 'flour', procRatio: 0.6,
+
+    desc: 'Roast the ear over hot stones, pound it on a saddle quern, and it keeps. 2.4 einkorn a minute ' +
+      'into 1.44 groats. EXACTLY THREE STANDS FEED ONE FLOOR. Seven thousand grinding stones have come ' +
+      'out of this ridge — this is the most attested building in the age.',
+  },
+  groatshare: {
+    name: 'The Groat Share', tier: 'commerce', era: 3, w: 2, h: 2, cost: 194, upkeep: 0.23,
+    icon: '\u{1F963}', color: '#c9a86a', workers: 2, needsRoad: true, needsWater: true,
+    sells: 'flour', sellRate: 0.48, sellPrice: 4.96, custRadius: 6, custMin: 4,
+
+    desc: 'Parched groats handed out by the measure. Sells 0.48 a minute at $4.96. Needs 4 residents. ' +
+      'Not bread — nobody has bread yet, and nobody will for five thousand years.',
+  },
+
+  brewvats: {
+    name: 'Limestone Brew Vats', tier: 'food', era: 3, w: 2, h: 2, cost: 186, upkeep: 0.20,
+    icon: '\u{1F37A}', color: '#c9b06a', workers: 3, needsWater: true, industry: true,
+    procIn: 'grain', procRate: 1.60, procOut: 'beer', procRatio: 0.5435,
+
+    desc: 'Carved limestone troughs that still hold the oxalate residue of a wild-grain mash. 1.6 einkorn ' +
+      'a minute into 0.87 brew. EXACTLY TWO STANDS FEED ONE SET — and with the Parching Floor that is ' +
+      'five, eight tiles apart. It drinks what your people would have eaten, and it is the only wage a ' +
+      'pillar-hauler will take.',
+  },
+  feastground: {
+    name: 'The Feast Ground', tier: 'commerce', era: 3, w: 2, h: 2, cost: 171, upkeep: 0.21,
+    icon: '\u{1F37B}', color: '#c98f4a', workers: 2, needsRoad: true,
+    sells: 'beer', sellRate: 0.61, sellPrice: 5.96, custRadius: 6, custMin: 4,
+
+    desc: 'Fire pits, bone heaps, and everyone within two days\' walk. Sells 0.61 brew a minute at $5.96 ' +
+      '— the luxury out-earns the staple, and the grain it drank came out of the town\'s own mouth. ' +
+      'Needs 4 residents and a track.',
+  },
+
+  flintdiggings: {
+    name: 'Flint Diggings', tier: 'food', era: 3, w: 2, h: 2, cost: 85, upkeep: 0.11,
+    icon: '\u{1FAA8}', color: '#8f939c', workers: 2, onRock: true, rockRadius: 20, industry: true,
+    out: { flint: 1.39 },
+
+    desc: 'Chert nodules broken out of the beds under the plateau: 1.39 a minute. It works every outcrop ' +
+      'within 20 tiles, nearest first — stand it ON the rock for +50%. The ridge does not grow back, and ' +
+      'your Pillar Quarry is eating the same ridge.',
+  },
+  coreshed: {
+    name: 'The Core Shed', tier: 'food', era: 3, w: 2, h: 2, cost: 202, upkeep: 0.21,
+    icon: '\u{1F52A}', color: '#7a7d85', workers: 3, industry: true,
+    procIn: 'flint', procRate: 1.74, procOut: 'blades', procRatio: 0.5,
+
+    desc: 'Prepared cores struck down to long regular blades: 1.74 chert a minute into 0.87 bundles. ' +
+      'Most of the nodule is waste, and the waste is the floor you are standing on.',
+  },
+  tradersrock: {
+    name: "The Traders' Rock", tier: 'commerce', era: 3, w: 2, h: 2, cost: 186, upkeep: 0.23,
+    icon: '\u{1F5E1}\u{FE0F}', color: '#8a8f9c', workers: 2, needsRoad: true,
+    sells: 'blades', sellRate: 0.44, sellPrice: 10.09, custRadius: 7, custMin: 5,
+
+    desc: 'A flat stone where blade bundles change hands. Sells 0.44 a minute at $10.09 to people who ' +
+      'walked here from four hundred miles away. Needs 5 residents. The one good in this age that does ' +
+      'not rot, spoil or walk off.',
+  },
+
+  pillarquarry: {
+    name: 'Pillar Quarry', tier: 'food', era: 3, w: 2, h: 3, cost: 85, upkeep: 0.11,
+    icon: '⛏\u{FE0F}', color: '#cfc9b4', workers: 2, onRock: true, rockRadius: 20, industry: true,
+    out: { stone: 1.39 },
+
+    desc: 'Flint picks, wooden wedges and water poured into the cracks. Cuts 1.39 limestone a minute — ' +
+      '2.09 standing on the slab, 0.70 reaching for it. Every block you take is gone forever; there is ' +
+      'no midden for limestone. The Enclosure alone wants ten and a half tiles of this ridge.',
+  },
+  reliefshed: {
+    name: 'The Relief Shed', tier: 'food', era: 3, w: 2, h: 2, cost: 171, upkeep: 0.17,
+    icon: '\u{1F98A}', color: '#c4bda6', workers: 3, industry: true,
+    procIn: 'stone', procRate: 1.74, procOut: 'carvings', procRatio: 0.5,
+
+    desc: 'Foxes, boars, cranes, scorpions, a vulture, a snake — cut in relief into dressed limestone. ' +
+      '1.74 stone a minute into 0.87 carved blocks. Sell them, or send them to the Enclosure, which ' +
+      'counts each one for six of its raw limestone. You cannot do both.',
+  },
+  beaststones: {
+    name: 'The Beast Stones', tier: 'commerce', era: 3, w: 2, h: 2, cost: 167, upkeep: 0.21,
+    icon: '\u{1F40D}', color: '#b8b0a0', workers: 2, needsRoad: true,
+    sells: 'carvings', sellRate: 0.35, sellPrice: 11.40, custRadius: 6, custMin: 5,
+
+    desc: 'Carved blocks propped along the track for anyone walking in. Sells 0.35 a minute at $11.40 — ' +
+      'less per minute than blades, and every one you sell is one the Enclosure does not get. ' +
+      'Needs 5 residents.',
+  },
+
+  osierbeds: {
+    name: 'Osier Beds', tier: 'food', era: 3, w: 2, h: 2, cost: 78, upkeep: 0.08,
+    icon: '\u{1F33F}', color: '#7da45f', workers: 2, nearWater: 2,
+    out: { reeds: 1.04 }, forageKind: 'reeds', forageRadius: 5,
+
+    desc: 'Withies cut from the stream edge: 1.04 a minute, +50% within two tiles of water. Worthless ' +
+      'raw and everything twisted. Build the Cordage Walk or you have bought a pile of sticks — and keep ' +
+      'five tiles between beds or you are cutting the same bend twice.',
+  },
+  cordagewalk: {
+    name: 'The Cordage Walk', tier: 'commerce', era: 3, w: 2, h: 2, cost: 147, upkeep: 0.15,
+    icon: '\u{1F9F5}', color: '#c2a067', workers: 3, needsRoad: true,
+    procIn: 'reeds', procRate: 1.74, procOut: 'baskets', procRatio: 0.5,
+    sells: 'baskets', sellRate: 0.48, sellPrice: 7.81, custRadius: 6, custMin: 4,
+
+    desc: 'Twists 1.74 withies a minute into line, netting and baskets and sells them on the spot at ' +
+      '$7.81. Two buildings, five mouths — it earns less per building and more per worker than hide. ' +
+      'Read your own tally.',
+  },
+
+  terebinthgrove: {
+    name: 'Terebinth & Almond Grove', tier: 'food', era: 3, w: 3, h: 3, cost: 194, upkeep: 0.15,
+    icon: '\u{1F333}', color: '#8fae72', workers: 3,
+    out: { dates: 1.20 }, forageKind: 'dates', forageRadius: 10,
+
+    desc: 'Terebinth and wild almond on the broken slope: 1.20 nuts a minute, eaten like groats. It owes ' +
+      'nothing to your stands, your herds or your springs — but groves within 10 tiles of each other are ' +
+      'picked by the same hands. Its nuts are also the only thing the Resin Hearth will take.',
+  },
+  resinhearth: {
+    name: 'The Resin Hearth', tier: 'food', era: 3, w: 2, h: 2, cost: 202, upkeep: 0.21,
+    icon: '\u{1FAD9}', color: '#a89143', workers: 3, industry: true,
+    procIn: 'dates', procRate: 1.60, procOut: 'oil', procRatio: 0.5435,
+
+    desc: 'Terebinth resin and pressed almond cooked down in a covered hearth: 1.60 nuts a minute into ' +
+      '0.87 pitch. Hafting glue, lamp fuel, waterproofing, medicine. FOUR GROVES FEED THREE HEARTHS — ' +
+      'and every nut in the pot is a nut nobody ate.',
+  },
+  resinpost: {
+    name: 'The Resin Post', tier: 'commerce', era: 3, w: 2, h: 2, cost: 186, upkeep: 0.23,
+    icon: '\u{1FA94}', color: '#b59a5f', workers: 2, needsRoad: true,
+    sells: 'oil', sellRate: 0.35, sellPrice: 11.40, custRadius: 6, custMin: 5,
+
+    desc: 'Sealed gourds of pitch, traded on. Sells 0.35 a minute at $11.40. Needs 5 residents. Every ' +
+      'hafted blade in four hundred miles is stuck together with this.',
+  },
+
+  stonefishtrap: {
+    name: 'Stone Fish Trap', tier: 'food', era: 3, w: 1, h: 3, cost: 124, upkeep: 0.11,
+    icon: '\u{1F41F}', color: '#6f9fb5', workers: 2, onWater: true,
+    out: { fish: 0.96 }, forageKind: 'fish', forageRadius: 6,
+
+    desc: 'A V of stones in the shallows of the headwater. 0.96 fish a minute, eaten at 75% of a groat. ' +
+      'It needs no stand, no herd and no spring — but a second trap within 6 tiles is downstream of ' +
+      'nothing.',
+  },
+
+  snailbeds: {
+    name: 'The Snail Beds', tier: 'food', era: 3, w: 2, h: 2, cost: 70, upkeep: 0.09,
+    icon: '\u{1F40C}', color: '#8a9a6a', workers: 2, nearTrees: 3,
+    out: { forage: 0.96 },
+
+    desc: 'Helix by the basket off the scrub and the walls, boiled with greens and roots: 0.96 a minute, ' +
+      'eaten at 80% of a groat. It needs no herd, no stand, no stream and NO GROUND OF ITS OWN — snails ' +
+      'do not move, so no camp can ever crowd this one. When the ridge is picked out, this is what is left.',
+  },
+
+  barterrock: {
+    name: 'Barter Rock', tier: 'commerce', era: 3, w: 1, h: 2, cost: 109, upkeep: 0.11,
+    icon: '\u{1F91D}', color: '#bd9a70', workers: 1, needsRoad: true,
+    sellsRaw: ['game', 'grain', 'stone', 'flint', 'reeds', 'dates'],
+    sellRate: 1.31, custRadius: 6, custMin: 4,
+
+    desc: 'A flat stone where things change hands. Sells whichever raw you hold most of — game, einkorn, ' +
+      'limestone, chert, withies or nuts — at 80% of list, 1.31 a minute. Strictly worse than finishing ' +
+      'a chain, strictly better than dumping abroad. Knowing when to demolish it is the real decision.',
+  },
+  bonetally: {
+    name: 'Notched Bone Tally', tier: 'civic', era: 3, w: 1, h: 1, cost: 155, upkeep: 0.09,
+    icon: '\u{1F9B4}', color: '#cfc4ae', keepsTally: true,
+
+    desc: 'A split rib, scored once a load. Counting is nine thousand years older than writing. +10% ' +
+      'sales throughput at every share, post and rock within 20 tiles; a second tally adds nothing to a ' +
+      'shop already counted.',
+  },
+  gatheringcircle: {
+    name: 'Gathering Circle', tier: 'civic', era: 3, w: 1, h: 1, cost: 62, upkeep: 0.04,
+    icon: '⭕', color: '#c9bda0', capRadius: 19,
+
+    desc: 'Swept ground, a ring of set stones, a fire in the middle. +1 housing capacity for every home ' +
+      'within 19 tiles — the shared ground a quarter forms around. One is enough.',
+  },
+  skullshrine: {
+    name: 'Skull Shrine', tier: 'civic', era: 3, w: 1, h: 1, cost: 70, upkeep: 0.06,
+    icon: '\u{1F480}', color: '#d8cfb8', amenityRadius: 7,
+
+    desc: 'Plastered skulls set in a wall niche, facing out. +1 housing capacity within 7 tiles — the ' +
+      'Circle, for a quarter whose people will never walk to the Circle. It does not stack with one.',
+  },
+  boneheap: {
+    name: 'The Bone Heap', tier: 'food', era: 3, w: 1, h: 1, cost: 70, upkeep: 0.06,
+    icon: '\u{1F9F4}', color: '#b8ac93', soilRadius: 4,
+
+    desc: 'Ten thousand aurochs, in a heap, burnt down and spread. Ground within 4 tiles recovers its ' +
+      'stands 3x faster. This heap is how anyone knows how many people ate here.',
+  },
+  carvedboulder: {
+    name: 'Carved Boulder', tier: 'beauty', era: 3, w: 1, h: 1, cost: 19, upkeep: 0,
+    icon: '\u{1FAA7}', color: '#c4bda6', cosmetic: true, nameable: true,
+
+    desc: 'A fox, a scorpion, a vulture, cut into a loose block and left where it lies. No output, no ' +
+      'upkeep — the label is the point. Click it to name the quarter.',
+  },
+
+  desertkite: {
+    name: 'The Desert Kite', tier: 'food', era: 3, w: 2, h: 2, cost: 200, upkeep: 0.20,
+    icon: '\u{1FA81}', color: '#a89a72', workers: 3, dryLand: true,
+    out: { game: 1.60 }, forageKind: 'game', forageRadius: 12,
+
+    desc: 'Two low stone walls running a mile out across the steppe, narrowing to a killing pen. A ' +
+      'DESERT KITE takes a whole herd where a blind takes an animal: 1.60 game a minute for one more ' +
+      'pair of hands. Still the same twelve tiles of ground — a kite does not make more aurochs.',
+  },
+  sickleground: {
+    name: 'The Sickle Ground', tier: 'food', era: 3, w: 2, h: 2, cost: 160, upkeep: 0.20,
+    icon: '\u{1F33E}', color: '#cfb86a', workers: 3, needsWater: true,
+    out: { grain: 1.60 }, forageKind: 'grain', forageRadius: 8,
+
+    desc: 'The stand cleared of competitors, burned back on a cycle and cut with hafted sickles by a ' +
+      'crew that has done it before. 1.60 einkorn a minute — double the wild ground, and still not sown.',
+  },
+  beddingtrench: {
+    name: 'The Bedding Trench', tier: 'food', era: 3, w: 2, h: 3, cost: 170, upkeep: 0.20,
+    icon: '⛏\u{FE0F}', color: '#d8d2bd', workers: 3, onRock: true, rockRadius: 20, industry: true,
+    out: { stone: 2.78 },
+
+    desc: 'The pillar cut free on three sides in its own trench and levered out whole, the way the one ' +
+      'still lying in the bedrock was meant to be. 2.78 limestone a minute — and the ridge empties twice ' +
+      'as fast.',
+  },
+  chertadit: {
+    name: 'The Chert Adit', tier: 'food', era: 3, w: 2, h: 2, cost: 170, upkeep: 0.20,
+    icon: '\u{1FAA8}', color: '#9aa0a8', workers: 3, onRock: true, rockRadius: 20, industry: true,
+    out: { flint: 2.78 },
+
+    desc: 'A driven gallery following the good seam under the cap rock instead of scratching the surface ' +
+      'for it: 2.78 chert a minute. The seam is still finite and now you are through it in half the time.',
+  },
+  coppicerows: {
+    name: 'The Coppice Rows', tier: 'food', era: 3, w: 2, h: 2, cost: 160, upkeep: 0.14,
+    icon: '\u{1F33F}', color: '#8fae72', workers: 3, nearWater: 2,
+    out: { reeds: 2.08 }, forageKind: 'reeds', forageRadius: 5,
+
+    desc: 'Cut on a rotation instead of stripped, so the stool throws twice the rods: 2.08 withies a ' +
+      'minute and the bed comes back every year. Still five tiles between beds.',
+  },
+  sluicepens: {
+    name: 'The Sluice Pens', tier: 'food', era: 3, w: 1, h: 3, cost: 250, upkeep: 0.20,
+    icon: '\u{1F41F}', color: '#5f9ea0', workers: 3, onWater: true,
+    out: { fish: 1.92 }, forageKind: 'fish', forageRadius: 6,
+
+    desc: 'The trap given gates and holding pens, so the run is not just caught but kept alive until it ' +
+      'is wanted: 1.92 fish a minute out of the same stretch of water.',
+  },
+  nuttingslopes: {
+    name: 'The Nutting Slopes', tier: 'food', era: 3, w: 3, h: 3, cost: 390, upkeep: 0.27,
+    icon: '\u{1F330}', color: '#a8b072', workers: 4,
+    out: { dates: 2.40 }, forageKind: 'dates', forageRadius: 10,
+
+    desc: 'The slope cleared under the crowns, the poor trees taken out and the good ones beaten on a ' +
+      'rota: 2.40 nuts a minute. Enough, at last, to feed the town AND the Resin Hearth.',
+  },
+  shellterraces: {
+    name: 'The Shell Terraces', tier: 'food', era: 3, w: 2, h: 2, cost: 140, upkeep: 0.16,
+    icon: '\u{1F40C}', color: '#9aa882', workers: 3, nearTrees: 3,
+    out: { forage: 1.54 },
+
+    desc: 'Low walls thrown across the slope to hold the damp and the leaf litter, and the beds worked ' +
+      'in a rota: 1.54 a minute. It still owes nothing to anybody\'s territory.',
+  },
+
+  emberpits: {
+    name: 'The Ember Pits', tier: 'food', era: 3, w: 2, h: 2, cost: 194, upkeep: 0.27,
+    icon: '\u{1F356}', color: '#9a5a3f', workers: 4, industry: true, grainMill: true,
+    procIn: 'game', procRate: 3.36, procOut: 'pemmican', procRatio: 0.6,
+
+    desc: 'A row of stone-lined pits under a low roof, banked and kept at a slow smoke for days instead ' +
+      'of hours: 3.36 game a minute into 2.02 smoked meat. FOUR BLINDS, OR FIVE.',
+  },
+  curriersyard: {
+    name: "The Currier's Yard", tier: 'food', era: 3, w: 2, h: 2, cost: 233, upkeep: 0.32,
+    icon: '\u{1FAA1}', color: '#a88a62', workers: 4, industry: true,
+    procIn: 'game', procRate: 1.79, procOut: 'cloth', procRatio: 0.5435,
+
+    desc: 'Fleshed, dressed, smoked and worked over the stake by people who do nothing else: 1.79 game a ' +
+      'minute into 0.97 worked hide, and a better hide out of every carcass.',
+  },
+  grindingslabs: {
+    name: 'The Grinding Slabs', tier: 'food', era: 3, w: 2, h: 2, cost: 194, upkeep: 0.27,
+    icon: '\u{1F35A}', color: '#e0cd9a', workers: 4, needsWater: true, industry: true, grainMill: true,
+    procIn: 'grain', procRate: 3.36, procOut: 'flour', procRatio: 0.6,
+
+    desc: 'Saddle querns in rows, worked in shifts, and a roof over them: 3.36 einkorn a minute into ' +
+      '2.02 groats. Seven thousand of these stones have come out of the ground here.',
+  },
+  troughrow: {
+    name: 'The Trough Row', tier: 'food', era: 3, w: 2, h: 2, cost: 186, upkeep: 0.28,
+    icon: '\u{1F37A}', color: '#d8bd72', workers: 4, needsWater: true, industry: true,
+    procIn: 'grain', procRate: 2.24, procOut: 'beer', procRatio: 0.5435,
+
+    desc: 'Six troughs cut in a line and worked as a battery, with a sequence and a schedule: 2.24 ' +
+      'einkorn a minute into 1.22 brew. Enough, finally, to pay the haulers AND the Enclosure.',
+  },
+  punchfloor: {
+    name: 'The Punch Floor', tier: 'food', era: 3, w: 2, h: 2, cost: 202, upkeep: 0.29,
+    icon: '\u{1F52A}', color: '#8a8d95', workers: 4, industry: true,
+    procIn: 'flint', procRate: 2.44, procOut: 'blades', procRatio: 0.5,
+
+    desc: 'The blow taken on an antler punch instead of the core, so the blade comes off where it was ' +
+      'meant to: 2.44 chert a minute into 1.22 bundles, and far less of the seam wasted.',
+  },
+  sculptorsbay: {
+    name: "The Sculptors' Bay", tier: 'food', era: 3, w: 2, h: 2, cost: 171, upkeep: 0.24,
+    icon: '\u{1F98A}', color: '#d0c9b2', workers: 4, industry: true,
+    procIn: 'stone', procRate: 2.44, procOut: 'carvings', procRatio: 0.5,
+
+    desc: 'A roofed bay with the block on trestles and four people around it: 2.44 limestone a minute ' +
+      'into 1.22 carved. The animals get sharper and the pillars get faces.',
+  },
+  tarhearths: {
+    name: 'The Tar Hearths', tier: 'food', era: 3, w: 2, h: 2, cost: 202, upkeep: 0.29,
+    icon: '\u{1FAD9}', color: '#b59a4a', workers: 4, industry: true,
+    procIn: 'dates', procRate: 2.24, procOut: 'oil', procRatio: 0.5435,
+
+    desc: 'Sealed pots inverted into a fire pit so the pitch runs down and out clean instead of burning: ' +
+      '2.24 nuts a minute into 1.22 pitch, and a far better grade of it.',
+  },
+  nettingsheds: {
+    name: 'The Netting Sheds', tier: 'commerce', era: 3, w: 2, h: 2, cost: 194, upkeep: 0.21,
+    icon: '\u{1F9F6}', color: '#c9a878', workers: 4, needsRoad: true,
+    procIn: 'reeds', procRate: 2.44, procOut: 'baskets', procRatio: 0.5,
+    sells: 'baskets', sellRate: 0.96, sellPrice: 7.81, custRadius: 6, custMin: 4,
+
+    desc: 'Line, netting, creels, fish traps and roofing, made in a shed and sold out of the same door: ' +
+      '2.44 withies a minute, moved twice as fast.',
+  },
+
+  butchersrock: {
+    name: "The Butchers' Rock", tier: 'commerce', era: 3, w: 2, h: 2, cost: 290, upkeep: 0.32,
+    icon: '\u{1F969}', color: '#d18f72', workers: 3, needsRoad: true, needsWater: true,
+    sells: 'pemmican', sellRate: 0.96, sellPrice: 4.96, custRadius: 6, custMin: 4,
+
+    desc: 'A dressed slab, a standing crew and the whole town coming to it: 0.96 smoked meat a minute, ' +
+      'double the share it replaces.',
+  },
+  mealrows: {
+    name: 'The Meal Rows', tier: 'commerce', era: 3, w: 2, h: 2, cost: 290, upkeep: 0.32,
+    icon: '\u{1F963}', color: '#d2b478', workers: 3, needsRoad: true, needsWater: true,
+    sells: 'flour', sellRate: 0.96, sellPrice: 4.96, custRadius: 6, custMin: 4,
+
+    desc: 'Groats measured out along a row of set stones instead of handed over one basket at a time: ' +
+      '0.96 a minute out the door.',
+  },
+  skinroute: {
+    name: 'The Skin Route', tier: 'commerce', era: 3, w: 2, h: 2, cost: 370, upkeep: 0.38,
+    icon: '\u{1F9E5}', color: '#9a7558', workers: 3, needsRoad: true, needsWater: true,
+    sells: 'cloth', sellRate: 0.70, sellPrice: 16.44, custRadius: 7, custMin: 7,
+
+    desc: 'Not a bigger post: a stop on a route. Worked hide out of this ridge reaches the Euphrates and ' +
+      'the sea, and 0.70 a minute goes with it at $16.44.',
+  },
+  longfeast: {
+    name: 'The Long Feast', tier: 'commerce', era: 3, w: 2, h: 2, cost: 260, upkeep: 0.29,
+    icon: '\u{1F37B}', color: '#d19a52', workers: 3, needsRoad: true,
+    sells: 'beer', sellRate: 1.22, sellPrice: 5.96, custRadius: 6, custMin: 4,
+
+    desc: 'Days of it, not an evening: 1.22 brew a minute. The reason anybody walked here to move a ' +
+      'ten-tonne stone for people they were not related to.',
+  },
+  flintroute: {
+    name: 'The Flint Route', tier: 'commerce', era: 3, w: 2, h: 2, cost: 280, upkeep: 0.32,
+    icon: '\u{1F5E1}\u{FE0F}', color: '#9a9fac', workers: 3, needsRoad: true,
+    sells: 'blades', sellRate: 0.88, sellPrice: 10.09, custRadius: 7, custMin: 5,
+
+    desc: 'A stop on the blade road rather than a rock beside it: 0.88 bundles a minute at $10.09.',
+  },
+  effigyroute: {
+    name: 'The Effigy Route', tier: 'commerce', era: 3, w: 2, h: 2, cost: 250, upkeep: 0.29,
+    icon: '\u{1F40D}', color: '#c2baa8', workers: 3, needsRoad: true,
+    sells: 'carvings', sellRate: 0.70, sellPrice: 11.40, custRadius: 6, custMin: 5,
+
+    desc: 'Carved blocks going out to Karahan Tepe and the other ridges, 0.70 a minute — and every one ' +
+      'of them is a block the Enclosure will not get.',
+  },
+  pitchroute: {
+    name: 'The Pitch Route', tier: 'commerce', era: 3, w: 2, h: 2, cost: 280, upkeep: 0.32,
+    icon: '\u{1FA94}', color: '#c2a76a', workers: 3, needsRoad: true,
+    sells: 'oil', sellRate: 0.70, sellPrice: 11.40, custRadius: 6, custMin: 5,
+
+    desc: 'Pitch by the sealed gourd, going wherever blades go — which is everywhere: 0.70 a minute.',
+  },
+  exchangeslabs: {
+    name: 'The Exchange Slabs', tier: 'commerce', era: 3, w: 1, h: 2, cost: 160, upkeep: 0.15,
+    icon: '\u{1F91D}', color: '#c9a878', workers: 2, needsRoad: true,
+    sellsRaw: ['game', 'grain', 'stone', 'flint', 'reeds', 'dates'],
+    sellRate: 2.62, custRadius: 6, custMin: 4,
+
+    desc: 'A row of them instead of one: clears raw at 2.62 a minute. Still 80% of list, and still the ' +
+      'thing you demolish once your chains are finished.',
+  },
+
+  rockbasin: {
+    name: 'Rock-Cut Basin', tier: 'infra', era: 3, w: 1, h: 1, cost: 155, upkeep: 0.12,
+    icon: '\u{1FAA3}', color: '#7fb4c9', waterRadius: 7,
+
+    desc: 'A basin cut down into the bedrock and roofed with slabs, holding the winter rain. Waters ' +
+      'seven tiles — the difference between a camp and a quarter, and the reason the Enclosure can be ' +
+      'raised at all.',
+  },
+  plastervault: {
+    name: 'The Plaster Vault', tier: 'infra', era: 3, w: 1, h: 1, cost: 93, upkeep: 0.04,
+    icon: '\u{1F573}\u{FE0F}', color: '#cfc9b4', storeGrain: 29, storeFlour: 17,
+
+    desc: 'The pit lined and floored in burnt-lime plaster, sealed against damp and vermin: +29 einkorn ' +
+      'and +17 groats, still with no workers.',
+  },
+  rackedlofts: {
+    name: 'The Racked Lofts', tier: 'infra', era: 3, w: 2, h: 2, cost: 230, upkeep: 0.21,
+    icon: '\u{26FA}', color: '#b8a082', workers: 3, depot: true, storeCraft: 25,
+
+    desc: 'Racked to the ridge pole and floored above the damp: +25 capacity for every craft good, and ' +
+      'still a supply point.',
+  },
+  relaycairns: {
+    name: 'The Relay Cairns', tier: 'infra', era: 3, w: 1, h: 1, cost: 230, upkeep: 0.27,
+    icon: '\u{1F9ED}', color: '#a8a294', workers: 2, depot: true, storeCraft: 13,
+
+    desc: 'A line of them, with a covered drop at each: +13 craft capacity out on the rim, and the rim ' +
+      'measures its carting here instead of to the core.',
+  },
+  stoneford: {
+    name: 'The Stone Ford', tier: 'infra', era: 3, w: 1, h: 1, cost: 140, upkeep: 0.06,
+    icon: '\u{1F309}', color: '#a89e88', onWater: true, bridge: true, depot: true,
+
+    desc: 'Slabs bedded into the shallows so a loaded person can cross dry. It carries the track AND ' +
+      'counts as a supply point — the far bank stops being expensive.',
+  },
+  pillaredcourt: {
+    name: 'The Pillared Court', tier: 'civic', era: 3, w: 1, h: 1, cost: 93, upkeep: 0.06,
+    icon: '⭕', color: '#d8cfb8', capRadius: 28,
+
+    desc: 'The circle given a kerb, a paved floor and two standing stones at the middle: homes within ' +
+      '28 tiles hold more people.',
+  },
+  ancestorniche: {
+    name: 'The Ancestor Niche', tier: 'civic', era: 3, w: 1, h: 1, cost: 105, upkeep: 0.09,
+    icon: '\u{1F480}', color: '#e0d8c2', amenityRadius: 10,
+
+    desc: 'The skulls set into a plastered wall with the faces modelled back on, and the dead kept where ' +
+      'the living are: +1 housing capacity out to 10 tiles.',
+  },
+  charredspread: {
+    name: 'The Charred Spread', tier: 'food', era: 3, w: 1, h: 1, cost: 105, upkeep: 0.09,
+    icon: '\u{1F5D1}\u{FE0F}', color: '#8a8272', soilRadius: 6,
+
+    desc: 'Bone burnt down to meal and ash, carted and spread rather than heaped: stands within 6 tiles ' +
+      'recover 3x faster.',
+  },
+  reckoningstone: {
+    name: 'The Reckoning Stone', tier: 'civic', era: 3, w: 1, h: 1, cost: 230, upkeep: 0.14,
+    icon: '⚖\u{FE0F}', color: '#c9c0a8', keepsTally: true, weighRadius: 9,
+
+    desc: 'A scored rib is one person\'s count. A set stone with a notch cut at the agreed measure is ' +
+      'everybody\'s. Keeps the tally AND gives every shop within 9 tiles the weigh-house premium.',
   },
 
   road: {
@@ -3130,6 +3746,9 @@ const HOUSE_LEVELS = {
   2: ['Brush Lean-To', 'Reed-Roof Shelter', 'Stone-Walled House', 'Terrace House',
       "Overseer's House", 'Court House'],
 
+  3: ['Windbreak', 'Brush Shelter', 'Walled Shelter', 'Banked Shelter',
+      'Hearth Shelter', "Elder's Shelter"],
+
   4: ['Reed Hut', 'Mudbrick House', 'Courtyard House', 'Two-Storey House', "Merchant's Compound", 'Anunnaki Hall'],
   5: ['Mud Hut', 'Mudbrick Villa', 'Columned Villa', 'Garden Villa', "Nomarch's House", 'Temple Villa'],
   14: ['Thatch House', 'Stone House', 'Corbelled House', 'Terraced House', 'Noble Compound', 'Lineage Palace'],
@@ -3193,6 +3812,23 @@ const MONUMENT_GIFT = {
            'larger — in this age and in every age after.',
     log: 'Their gift: the load, and the hands to carry it. The founding party is larger from now on.',
     apply(s) { s.giftCrew = (s.giftCrew | 0) + 1; },
+  },
+
+  3: {
+    key: 'land',
+    icon: '\u{1F5FF}',
+    title: 'The Ring Is Closed',
+    lead: 'The last pillar is set and the ring stands. Nobody was made to raise it.',
+    body: 'There is no king here, no granary, no field and no writing. What raised this was several ' +
+          'hundred people who did not have to come, fed on meat they hunted and brew they made, working ' +
+          'for a reason nobody had to explain to them — and then, having built it, they STAYED. Nobody ' +
+          'on this ridge sowed anything. What they invented was not the harvest. It was the address.',
+    grant: '<b>Every parcel of ground you ever buy, in this age and every age after it, costs 15% less.</b>',
+    toast: '\u{1F5FF} The ring is closed, and the town around it stayed. Ground is 15% cheaper from ' +
+           'here on — in this age and in every age after.',
+    log: 'Their gift: the address. The first people who did not move on, and every ring of land is ' +
+         'cheaper for it.',
+    apply(s) { s.giftLand = (s.giftLand | 0) + 1; },
   },
   4: {
     key: 'housing',
@@ -3265,6 +3901,17 @@ const ERA_POLICY = {
     on: 'The shift is doubled. More gold, and they will remember it.',
     off: 'The double shift is lifted. The galleries empty on time again.',
   },
+
+  3: {
+    key: 'policyMoveCamps', icon: '\u{26FA}', name: 'The Moving Camp',
+    tip: 'The camps stop standing still: every camp\'s territory counts as ' +
+      Math.round(TUNE.MOVING.radiusCut * 100) + '% of its range, so crowded camps stop taking each ' +
+      'other\'s ground — and every camp works ' + Math.round(TUNE.MOVING.slow * 100) + '% slower, ' +
+      'because half the crew is always walking. Costs nothing and never runs out. Useless on a spread ' +
+      'town; it is what you pull when the land is full and the next ring is not affordable yet.',
+    on: 'The camps come down and go up again a mile on. Less ground shared, less work done.',
+    off: 'The camps settle. Full work — now keep them apart yourself.',
+  },
   4: {
     key: 'policyBeerRation', icon: '\u{1F37A}', name: 'Beer Ration Decree',
     tip: 'The city drinks ' + (TUNE.BEER_RATION.perResident * TUNE.TEMPO).toFixed(1) +
@@ -3318,6 +3965,13 @@ const ERA_ROAD = {
        desc: 'A path graded into the slope by feet and baskets, red with spoil. Only SOME buildings need ' +
              'one — shelters, the sheds that sell, the stores and the Tribute Yard must reach the ' +
              'Overseer\'s Compound; adits, cuts, camps and wells never do. $10 a tile, nothing to keep.' },
+
+  3: { flavour: 'Ridge Track', color: 0x6b4a35, hw: 0.28,
+       desc: 'Feet worn down through the pale limestone to the red dirt beneath, and cairned so it can ' +
+             'be followed in a haze. Only SOME buildings need one — shelters, the huts, the shares, the ' +
+             'rocks and the posts must reach the Enclosure; camps, stands, groves, quarries and springs ' +
+             'never do — and neither does the Carrier\'s Cairn, which is the whole point of it. ' +
+             '$10 a tile, nothing to keep.' },
   4: { flavour: 'Beaten Track', color: 0x8a6a3f, hw: 0.30,
        desc: 'Earth packed hard by feet and sledges. Only SOME buildings need one — homes, ' +
              'markets and stores must reach the seat of power; fields, mills, wells and quarries never do. $10 a tile, nothing to keep.' },
@@ -3346,6 +4000,10 @@ function roadFor(era) {
 const MONUMENTS = [
   { id: 'paintedcave', name: 'The Painted Cave', era: 1, cost: 4000,      icon: '\u{1F3A8}', desc: 'Horses and lions on a wall four hundred metres inside the earth, in absolute dark.' },
 
+  { id: 'enclosure', name: 'The Enclosure of the Pillars', era: 3, cost: 3053, icon: '\u{1F5FF}',
+    desc: 'T-shaped limestone pillars to five and a half metres and ten tonnes, cut with flint, dragged ' +
+      'uphill and set in a ring — with arms, hands and a belt carved on the two at the centre, because ' +
+      'they are people.' },
   { id: 'levelledcourt', name: 'The Levelled Court', era: 2, cost: 2330,  icon: '\u{1F3DB}\u{FE0F}', desc: 'A walled precinct with gold-sheathed lintels, storerooms the camp cannot open, and a court levelled flat for something to arrive on.' },
   { id: 'ziggurat',    name: 'Ziggurat',        era: 4,  cost: 4000,      icon: '\u{1F53A}', desc: 'The first temple-mountain. Anchors the Anunnaki economy.' },
   { id: 'pyramid',     name: 'Great Pyramid',   era: 5,  cost: 14000,     icon: '\u{1F3DC}️', desc: 'A mountain of casing stone on the west bank.' },
@@ -3458,7 +4116,9 @@ const QUARRIED = ['quarry', 'deepquarry', 'granitequarry', 'desertquarry',
   'flintquarry', 'bonebed', 'deeplens',
 
   'prospectpit', 'adit', 'deeplevel', 'malachitecut', 'openstope',
-  'limestonecut', 'benchquarry'];
+  'limestonecut', 'benchquarry',
+
+  'pillarquarry', 'flintdiggings', 'beddingtrench', 'chertadit'];
 for (const t of QUARRIED) if (BUILDINGS[t]) BUILDINGS[t].quarried = true;
 
 const MONUMENT_BUILD = {
@@ -3466,6 +4126,8 @@ const MONUMENT_BUILD = {
   paintedcave: { money: 3600, ochre: 900, charcoal: 300, carvings: 100 },
 
   levelledcourt: { money: 2100, gold: 160, deadwood: 450 },
+
+  enclosure: { money: 2791, stone: 783, carvings: 87, beer: 261 },
   ziggurat:  { money: 3600, clay: 900, beer: 300 },
   pyramid:   { money: 12000, clay: 2200, stone: 900 },
   templePyr: { money: 40000, stone: 3000, blocks: 1200 },
@@ -3535,6 +4197,40 @@ function rankUpCost(d, fromRank) {
 const UPGRADES = {
 
   well:      { to: 'cistern',    cost: 160, era: 4, label: 'Cistern' },
+
+  aurochsblind:    { to: 'desertkite',     cost: 200,  era: 3, label: 'The Desert Kite' },
+  wildstand:       { to: 'sickleground',   cost: 160,  era: 3, label: 'The Sickle Ground' },
+  pillarquarry:    { to: 'beddingtrench',  cost: 170,  era: 3, label: 'The Bedding Trench' },
+  flintdiggings:   { to: 'chertadit',      cost: 170,  era: 3, label: 'The Chert Adit' },
+  osierbeds:       { to: 'coppicerows',    cost: 160,  era: 3, label: 'The Coppice Rows' },
+  stonefishtrap:   { to: 'sluicepens',     cost: 250,  era: 3, label: 'The Sluice Pens' },
+  terebinthgrove:  { to: 'nuttingslopes',  cost: 390,  era: 3, label: 'The Nutting Slopes' },
+  snailbeds:       { to: 'shellterraces',  cost: 140,  era: 3, label: 'The Shell Terraces' },
+  smokingtrench:   { to: 'emberpits',      cost: 194,  era: 3, label: 'The Ember Pits' },
+  peggingground:   { to: 'curriersyard',   cost: 233,  era: 3, label: "The Currier's Yard" },
+  parchingfloor:   { to: 'grindingslabs',  cost: 194,  era: 3, label: 'The Grinding Slabs' },
+  brewvats:        { to: 'troughrow',      cost: 186,  era: 3, label: 'The Trough Row' },
+  coreshed:        { to: 'punchfloor',     cost: 202,  era: 3, label: 'The Punch Floor' },
+  reliefshed:      { to: 'sculptorsbay',   cost: 171,  era: 3, label: "The Sculptors' Bay" },
+  resinhearth:     { to: 'tarhearths',     cost: 202,  era: 3, label: 'The Tar Hearths' },
+  cordagewalk:     { to: 'nettingsheds',   cost: 194,  era: 3, label: 'The Netting Sheds' },
+  killshare:       { to: 'butchersrock',   cost: 290,  era: 3, label: "The Butchers' Rock" },
+  groatshare:      { to: 'mealrows',       cost: 290,  era: 3, label: 'The Meal Rows' },
+  hidepost:        { to: 'skinroute',      cost: 370,  era: 3, label: 'The Skin Route' },
+  feastground:     { to: 'longfeast',      cost: 260,  era: 3, label: 'The Long Feast' },
+  tradersrock:     { to: 'flintroute',     cost: 280,  era: 3, label: 'The Flint Route' },
+  beaststones:     { to: 'effigyroute',    cost: 250,  era: 3, label: 'The Effigy Route' },
+  resinpost:       { to: 'pitchroute',     cost: 280,  era: 3, label: 'The Pitch Route' },
+  barterrock:      { to: 'exchangeslabs',  cost: 160,  era: 3, label: 'The Exchange Slabs' },
+  springhead:      { to: 'rockbasin',      cost: 124,  era: 3, label: 'Rock-Cut Basin' },
+  sunkensilo:      { to: 'plastervault',   cost: 93,   era: 3, label: 'The Plaster Vault' },
+  skintentstore:   { to: 'rackedlofts',    cost: 230,  era: 3, label: 'The Racked Lofts' },
+  carriercairn:    { to: 'relaycairns',    cost: 230,  era: 3, label: 'The Relay Cairns' },
+  logcrossing:     { to: 'stoneford',      cost: 140,  era: 3, label: 'The Stone Ford' },
+  gatheringcircle: { to: 'pillaredcourt',  cost: 93,   era: 3, label: 'The Pillared Court' },
+  skullshrine:     { to: 'ancestorniche',  cost: 105,  era: 3, label: 'The Ancestor Niche' },
+  boneheap:        { to: 'charredspread',  cost: 105,  era: 3, label: 'The Charred Spread' },
+  bonetally:       { to: 'reckoningstone', cost: 230,  era: 3, label: 'The Reckoning Stone' },
 
   claypit:      { to: 'claybeds',         cost: 220, era: 4, label: 'Levee Clay Beds' },
   sheepfold:    { to: 'woolflock',        cost: 260, era: 4, label: 'Great Flock' },
@@ -3948,6 +4644,7 @@ function inFoodChain(kind) { return !!kind && !!FOOD_CHAIN[kind]; }
 
 const ERA_FOOD_LABEL = { 0: 'Forage laid down this age',
                          1: 'Food put by this age', 2: 'Rations milled this age',
+                         3: 'Food gathered this age',
                          4: 'Flour milled this age',
                          5: 'Flour milled this age', 14: 'Food ground this age' };
 function eraFoodLabel(era) { return ERA_FOOD_LABEL[rungOf(era)] || 'Food produced this age'; }
@@ -3991,6 +4688,20 @@ const ERA_VOICE = {
     saltName: 'the terraces going white',
     saltAnswers: 'an ASH HEAP in range (x3 recovery), a spell fallow, or a plot beside the stream — and ' +
       'note that this age has NO salt-proof crop, so a terrace worked out is a terrace you move',
+  },
+  3: {
+
+    settlers: ['Fox-Mark', 'Crane', 'Boar-Tooth', 'Snake-Hand', 'Vulture', 'Stone-Cutter'],
+    place: 'town',
+    mill: 'Parching Floor',
+    tally: 'Notched Bone Tally',
+    tallyLine: 'The rib is scored, one notch a load. Counting is nine thousand years older than ' +
+      'writing — and now you can read your own numbers.',
+    ration: 'The carried stores are finished — the last of the packed groats is handed out.',
+
+    saltName: 'the stands going thin under you',
+    saltAnswers: 'a BONE HEAP or a CHARRED SPREAD in range (x3 recovery), or rest the stand and cut ' +
+      'somewhere else — and note that this age has NO crop that ignores it, because this age has no crop',
   },
   4: {
     settlers: ['Enheduanna', 'Ur-Nammu', 'Ninlil', 'Gilgamesh', 'Shulgi', 'Kubaba'],
@@ -4094,6 +4805,26 @@ const ERA_STAPLE = {
     goodNames: { grain: 'Barley', flour: 'Rations', deadwood: 'Timber',
                  concentrate: 'Concentrate', goldleaf: 'Gold Leaf', wool: 'Goat Hair',
                  cloth: 'Sacking', stone: 'Limestone' },
+  },
+  3: {
+    raw: 'grain', cooked: 'flour',
+    rawIcon: '\u{1F33E}', cookedIcon: '\u{1F35A}',
+    rawName: 'Wild Einkorn', cookedName: 'Groats',
+    cookedVerb: 'parched', rawFrom: 'the wild stands',
+    rawNote: 'the Brew Vats draw on it too, and only one of the two feeds anybody',
+    shortNote: 'Every chain adds mouths and no food — cut more Wild Stands EIGHT TILES APART, or put ' +
+      'up Snail Beds, which no camp can ever crowd.',
+    hungerFix: 'cut a Wild Stand and set a Parching Floor going — or put up Snail Beds, which need ' +
+      'nothing and which nothing can take away',
+
+    goodNames: {
+      grain: 'Wild Einkorn', flour: 'Groats',
+      game: 'Game', pemmican: 'Smoked Meat',
+      dates: 'Nuts', forage: 'Snails & Greens',
+      cloth: 'Worked Hide', oil: 'Terebinth Pitch',
+      stone: 'Limestone', flint: 'Chert', blades: 'Blade Cores', carvings: 'Carved Stone',
+      reeds: 'Withies', baskets: 'Cordage', beer: 'Wild-Grain Brew',
+    },
   },
   4: {
     raw: 'grain', cooked: 'flour',

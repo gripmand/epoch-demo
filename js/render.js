@@ -1614,6 +1614,11 @@ const Rend = {
       rad = d.warmRadius; ringCol = 0xff8a3d;
       if (d.waterRadius) { rad2 = d.waterRadius; ring2Col = 0x5aaae6; }
     }
+
+    else if (d.forageRadius) {
+      rad = Econ.forageRadiusOf(s, { type, x: 0, y: 0 }) || d.forageRadius;
+      ringCol = 0xe0a45f;
+    }
     else if (d.rockRadius) { rad = d.rockRadius; ringCol = 0x9aa0a8; }
     else if (d.waterRadius) { rad = d.waterRadius; ringCol = 0x5aaae6; }
     else if (d.keepsTally && TUNE.SCRIBE) { rad = TUNE.SCRIBE.radius; ringCol = 0xd8c9a0; }
@@ -2282,7 +2287,9 @@ const Rend = {
       o.mesh.visible = true;
       const bad = b.status && b.status !== 'ok' && s.tick > 0;
       o.status.visible = !!bad;
-      if (bad) o.status.material.map = b.status === 'understaffed' ? Rend.statusTex.warn : Rend.statusTex.bad;
+
+      if (bad) o.status.material.map = (window.UI && UI.AMBER_STATUS && UI.AMBER_STATUS[b.status])
+        ? Rend.statusTex.warn : Rend.statusTex.bad;
       let want = b === Input.selected ? 1.04 : (Input.hoverB === b && Input.tool.mode === 'select') ? 1.02 : 1;
 
       if (o.bornAt) {

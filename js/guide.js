@@ -6,7 +6,8 @@ const ERA_ANCHOR = {
 
   1:  { name: 'The Long Hearth',    short: 'Hearth',     note: 'Not a government — a fire that is never allowed to go out. The band sleeps in its heat and the tally of the season is cut into bone beside it.' },
   2:  { name: 'The Overseer\'s Compound', short: 'Compound', note: 'In the Atrahasis the lesser gods dug the canals, rebelled, and people were made from clay to bear the labour instead. This is where the quota is set. The gold is not yours.' },
-  3:  { name: 'The Enclosure',      short: 'Enclosure',  note: 'A ring of carved T-pillars raised before anyone farmed anything. People gathered here first and settled afterwards — the monument came before the village.' },
+
+  3:  { name: 'The Enclosure',      short: 'Enclosure',  note: 'A ring of carved T-shaped pillars — and around it houses, hearths, rock-cut basins and seven thousand grinding stones. People lived here. What they never did was sow anything: every mouth in this town is fed by a harvest nobody planted.' },
 
   4:  { name: 'Temple Household',   short: 'É',          note: 'The É — the god\'s house. In Sumer the temple, not a palace, collected the harvest, stored the seed and issued the rations.' },
   5:  { name: 'Nomarch\'s Estate',  short: 'Per-Nesu',   note: 'The provincial governor\'s seat, which assessed the flood, counted the cattle and set the grain tax.' },
@@ -76,6 +77,11 @@ const ERA_RECORD = {
         chronicle: 'The Overseers’ Record', chronBtn: 'Record',
         chronSub: 'Kept by the masters, in their own hand. It keeps the last 200 entries.',
         keeper: 'a Tally Stone' },
+  3:  { icon: '\u{1F9B4}', tally: 'The Notched Tally', tallyBtn: 'Tally',
+        tallySub: 'Cut into a split rib, one notch a load.',
+        chronicle: 'The Scored Bone', chronBtn: 'Scored Bone',
+        chronSub: 'One notch for each thing worth remembering. It keeps the last 200.',
+        keeper: 'a Notched Bone Tally' },
   4:  { icon: '\u{1F4DC}', tally: 'The Scribe’s Tally', tallyBtn: 'Tally',
         tallySub: 'Reckoned in the temple, in wet clay.',
         chronicle: 'The Clay Tablet Chronicle', chronBtn: 'Chronicle',
@@ -120,6 +126,11 @@ const ERA_FOUNDING = {
         placeholder: 'Ninth-Gallery', ok: 'Name the camp', skip: 'It needs no name yet',
         founded: ' was entered on the tally, under the ridge.',
         toast: ' is named. May the count come out even.' },
+  3:  { icon: '\u{1F5FF}', title: 'Name Your Town',
+        sub: 'It needs a word before anyone somewhere else can speak of it.',
+        placeholder: 'Ridge-of-the-Pillars', ok: 'Found the town', skip: 'It needs no name yet',
+        founded: ' was named, on the ridge above the plain.',
+        toast: ' is named. May the herds stay on this ridge.' },
   4:  { icon: '\u{1F3DB}\u{FE0F}', title: 'Name Your City',
         sub: 'The scribes need something to carve on the founding tablet.',
         placeholder: 'Uruk-by-the-River', ok: 'Found the city', skip: 'It needs no name yet',
@@ -205,6 +216,33 @@ const ERA_SITE = {
       'is locked in this age. Plan the second working before you build the first.',
       '<b>Everything up the hill is over the free carting radius.</b> An <b>Overseer\'s Post</b> is not ' +
       'optional infrastructure here, it is the second thing you place.',
+    ],
+  },
+  3: {
+    roadYes: '<b>Brush Shelters, Round Huts, the Kill Share, the Groat Share, the Hide Traders\' Post, ' +
+      'the Feast Ground, the Traders\' Rock, the Beast Stones, the Resin Post, the Cordage Walk, the ' +
+      'Barter Rock and the Enclosure</b>',
+    roadNo: 'Aurochs Blinds, Wild Stands, Snail Beds, the groves, the fish traps, the osier beds, the ' +
+      'Pillar Quarry, the Flint Diggings, the Smoking Trench, the Pegging Ground, the Parching Floor, ' +
+      'the Brew Vats, the Core Shed, the Relief Shed, the Resin Hearth, Spring Heads — and the ' +
+      'Carrier\'s Cairn, which is the whole point of it',
+    water: 'Shelters, huts and the shares must stand inside a <b>Spring Head\'s</b> four tiles or a ' +
+      '<b>Rock-Cut Basin\'s</b> seven. There is no river up here and you cannot dig one: the water comes ' +
+      'out of the karst where it comes out, and the WATER brush is locked in this age. Press <b>O</b> to ' +
+      'see the rings.',
+    extra: [
+      '<b>Territory.</b> Two camps of the SAME KIND within reach of each other are working the same herd, ' +
+      'the same hillside or the same bend of stream, and they split it: two take two thirds each, three ' +
+      'take a half each, four take 40%. DIFFERENT KINDS NEVER INTERFERE — a blind and a stand can sit on ' +
+      'top of each other. Nothing here recovers by waiting and no building fixes it; the only answer is ' +
+      'ground. Buy the ring before you build the second blind, watch the \u{1F3F9} chip, and read the ' +
+      'disc the placement ghost draws before you spend.',
+      '<b>The ridge is finite.</b> The Pillar Quarry and the Flint Diggings eat the same rock, 20 tiles ' +
+      'around them, and a worked-out tile stops being rock forever. You cannot paint more — the ROCK ' +
+      'brush is locked in this age — and the Enclosure alone wants about ten and a half tiles of it.',
+      '<b>Spread costs carting.</b> Five blinds twelve tiles apart span the whole free radius exactly, ' +
+      'so the sixth starts paying a premium. A <b>Carrier\'s Cairn</b> is not optional infrastructure ' +
+      'here: it needs no road and no water, so it can stand out where the camps are.',
     ],
   },
   4: {
@@ -329,6 +367,37 @@ const ERA_GUIDES = {
       'minute twenty. The other mistake is the opposite one, later: grinding the levy forever. It compounds ' +
       Math.round((TUNE.TRIBUTE.growth - 1) * 100) + '% a count and your camp does not. Once the gate is ' +
       'met, STOP PAYING — that is how this age ends.',
+  },
+  3: {
+    headline: 'Nobody here plants anything. The harvest is a PLACE, not a field.',
+    mechanic: 'KEEP THE CAMPS APART. Two camps of the same kind within reach of each other work the same ' +
+      'herd or the same hillside and split it — two take two thirds each, three take a half. DIFFERENT ' +
+      'KINDS NEVER INTERFERE. It never recovers by waiting and no building cures it: the only fix is ' +
+      'DISTANCE, so this age is bought in RINGS, not blocks. Ranking a camp reaches one tile further, so ' +
+      'RANK THE OUTERMOST ONES — ranking the middle of a spread robs its own neighbours. Watch the ' +
+      '\u{1F3F9} chip and the disc on the placement ghost, which shows you the cost before you pay it.',
+    chain: [
+      'Aurochs Blind ×3 → Smoking Trench → Kill Share  ·  ~$24/min. Dinner — and the blinds must be 12 apart',
+      'Aurochs Blind ×2 → Pegging Ground → Hide Traders\' Post  ·  ~$57/min, the richest thing here',
+      'Wild Stand ×3 → Parching Floor → Groat Share  ·  ~$24/min. The other dinner',
+      'Wild Stand ×2 → Limestone Brew Vats → Feast Ground  ·  ~$36/min — and the Enclosure drinks it too',
+      'Flint Diggings → Core Shed → Traders\' Rock  ·  ~$44/min. The ridge does not grow back',
+      'Pillar Quarry → Relief Shed → Beast Stones  ·  ~$40/min, OR send the carvings to the Enclosure',
+      'Osier Beds → Cordage Walk  ·  ~$37/min. The SHORT chain: two buildings, five mouths',
+      'Grove ×2 → Resin Hearth → Resin Post  ·  ~$40/min, and the nuts were food before they were pitch',
+    ],
+
+    firstSteps: [
+      'SNAIL BEDS first, before anything. No water, no track, no herd, no stand — and no camp can ever crowd it. It is the only food in this age nothing can take away.',
+      'An AUROCHS BLIND second, out on dry open ground, and REMEMBER WHERE IT IS: nothing else of its kind may come within twelve tiles.',
+      'A SMOKING TRENCH touching it (+25% both ways). It needs no water, so it lives out there with the blinds. Game is not dinner until it is smoked.',
+      'Then a SPRING HEAD, a track from the Enclosure, and BRUSH SHELTERS inside its four tiles — beds are what turn the crew into a town.',
+      '★ Then OSIER BEDS → CORDAGE WALK, and only THEN the deep chains. Two buildings and five mouths that SELL from the first minute; hide is three deep and blades are three deep behind a finite ridge. Open short, then commit.',
+      'A KILL SHARE once four people are housed, then a CARRIER\'S CAIRN — before the second Aurochs Blind, not after. Five blinds twelve tiles apart already span the whole free carting radius, and the sixth is what the Cairn is for.',
+    ],
+    mistake: 'Building the second Aurochs Blind beside the first. It costs the full $101 and returns a ' +
+      'THIRD of a camp — and the ring of land that would have made it a whole camp costs less than the ' +
+      'camp does. In this age you buy the ground first and the building second.',
   },
   4: {
 

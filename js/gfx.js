@@ -228,6 +228,15 @@ const Gfx = {
                glint: 0xd8ecef, glintAmt: 0.24 },
     },
 
+    3: {
+      sky: ['#5f8fc4', '#a8bcc9', '#e2d9c0'],
+      hemi: [0xcfd8e2, 0xb5a482, 0.74],
+      sun: [0xfff4de, 1.22], fog: 0xdcd5c2, fogN: 140, fogF: 460, expo: 0.92,
+      apron: 0xc4bda6, sunDir: [-88, 66, -56],
+      water: { color: 0x4a7f86, shallow: 0x8fb4b2, opacity: 0.90,
+               glint: 0xd6e8e6, glintAmt: 0.22 },
+    },
+
     4: {
       sky: ['#6f9dc0', '#b9c9cb', '#f2dcae'],
       hemi: [0x8ea8cc, 0xb08347, 0.78],

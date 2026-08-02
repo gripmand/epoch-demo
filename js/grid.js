@@ -31,6 +31,11 @@ const Grid = {
          fertileTo: 2, dryFrom: 4, edgeJitter: 1.6,
          beyond: 'SALT', saltAt: 0.62, rockAt: 0.54, peakR: 4 },
 
+    3: { trunkW: 1.5, trunkW2: 1.5, branch: 0, secondW: 0, wander: 0.55,
+         cenoteEvery: 44, cenoteR: 1.3, peakR: 5,
+         fertileTo: 1, dryFrom: 3, edgeJitter: 1.4,
+         beyond: 'GRASS', saltAt: 0.99, rockAt: 0.66 },
+
     4: { trunkW: 3.4, trunkW2: 3.2, branch: 2, secondW: 2.2, wander: 0.42,
          fertileTo: 5, dryFrom: 16, edgeJitter: 5,
          beyond: 'SALT', saltAt: 0.54, rockAt: 0.80 },
@@ -493,7 +498,8 @@ const Grid = {
     const d = Math.max(Math.abs(cx - cc), Math.abs(cy - cc));
     const raw = d === 0 ? TUNE.LAND_BASE
       : Math.round(TUNE.LAND_BASE * Math.pow(d, TUNE.LAND_EXP) / 10) * 10;
-    return Math.round(raw * (1 - subTier(G.s).landDiscount));
+
+    return Math.round(raw * (1 - subTier(G.s).landDiscount) * landGift(G.s));
   },
 
   chunkBuyable(s, cx, cy) {
@@ -998,6 +1004,14 @@ const Grid = {
       if (d.procIn === 'wool') {
         b.bureauSlowBy = bureaus.filter(o => within(b, o, TUNE.BUREAU.radius)).map(o => o.id);
       }
+    }
+
+    const camps = s.buildings.filter(o => DEF(o.type).forageRadius);
+    for (const b of camps) {
+      const d = DEF(b.type), rb = Econ.forageRadiusOf(s, b);
+      b.forageNear = camps.filter(o => o !== b &&
+        DEF(o.type).forageKind === d.forageKind &&
+        within(b, o, Math.max(rb, Econ.forageRadiusOf(s, o)))).map(o => o.id);
     }
   },
 

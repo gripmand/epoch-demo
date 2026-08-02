@@ -364,9 +364,30 @@ const Input = {
       const mult = best === Infinity || best <= TUNE.SUPPLY.freeRadius ? 1
         : Math.min(TUNE.SUPPLY.maxMultiplier, 1 + (best - TUNE.SUPPLY.freeRadius) / TUNE.SUPPLY.premiumPer);
       const d2 = DEF(Input.tool.type);
+
+      let crowdTip = '';
+      if (d2.forageRadius && Econ.rangeActive(G.s)) {
+        const probe = { type: Input.tool.type, x: p.x, y: p.y, rot: Input.rot || 0 };
+        const rb = Econ.forageRadiusOf(G.s, probe);
+        const pd = Grid.dimsOf(probe);
+        let n = 0;
+        for (const o of G.s.buildings) {
+          const od = DEF(o.type);
+          if (!od.forageRadius || od.forageKind !== d2.forageKind) continue;
+          if (!Econ.campLive(o)) continue;
+          const dm = Grid.dimsOf(o);
+          if (Util.rectDist(probe.x, probe.y, pd.w, pd.h, o.x, o.y, dm.w, dm.h) <=
+              Math.max(rb, Econ.forageRadiusOf(G.s, o))) n++;
+        }
+        const F = TUNE.FORAGE;
+        const mine = Math.max(F.floor, 1 / (1 + F.crowd * n));
+        crowdTip = n === 0
+          ? ' · clear ground ×1.00'
+          : ' · SHARED with ' + n + ' ×' + mine.toFixed(2) + ' (and they drop too)';
+      }
       showTT('$' + d2.cost + (mult > 1.01
         ? ' · carting ×' + mult.toFixed(2) + ' (' + Math.round(best) + ' tiles out)'
-        : ''));
+        : '') + crowdTip);
     } else if (Input.tool.mode === 'select' && p && !Input.hoverB) {
 
       const t = G.cache.terrain[Grid.key(p.x, p.y)];

@@ -402,6 +402,8 @@ const Shapes = {
   ROCK_TINT: {
     1:  0x8d949b,
 
+    3:  0xd6cfb8,
+
     4:  0xbd9967,
     5:  0xdcc196,
     10: 0xe0dcd0,
@@ -2487,6 +2489,8 @@ const Shapes = {
 
   CITIZEN_DRESS: {
     1:  { robe: 'fur',     torso: 'hideDark', head: 'hidePale', hood: 'fur', bulk: 1.22 },
+
+    3:  { robe: 'hidePale', torso: 'hideDark', head: 'hidePale', bulk: 1.06 },
     4:  { robe: 'plaster', torso: 'mudPale',  head: 'timber',   bulk: 1 },
     5:  { robe: 'plaster', torso: 'plaster',  head: 'timber',   bulk: 1 },
     14: { robe: 'ware',    torso: 'mudPale',  head: 'timber',   bulk: 1 },

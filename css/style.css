@@ -31,6 +31,28 @@ body[data-era-theme="cretaceous"]{ --chip-bg: rgba(14, 26, 16, 0.90); --chip-bor
 /* ★ rung 1: the Long Winter. It used to share Sumer's violet, which is exactly
    the era-purity bug the project has a standing rule about. Cold blue on near-black. */
 body[data-era-theme="glacial"]   { --chip-bg: rgba(14, 20, 28, 0.92); --chip-border: rgba(150, 190, 225, 0.34); --accent: #a8cfe8; }
+/* ★ rung 2: the Gold Mines. Was walking up into Sumer's violet — the same
+   era-purity bug rung 1 had. Built from the age's own two materials:
+     chip-bg  ERA_ROAD[2] red iron spoil 0x8a4a33 (138,74,51) x 0.20 -> (28,16,12),
+              which holds the spoil's red:green ratio (1.75) so it cannot be
+              mistaken for medieval's browner (30,20,14), and lands at luminance
+              19.1 — the same weight as glacial's panel.
+     border   ERA_GRADE[2] apron 0xb9b2a4 (185,178,164) lifted +11/+14/+18. The
+              lift is deliberately BLUE-WEIGHTED so the pale dust stays grey
+              instead of warming into rung 3's tawny limestone border; those two
+              rungs are adjacent in play and must not read alike.
+   ★ THE ACCENT IS ORE-GREY, NOT SPOIL-RED, AND THAT IS LOAD-BEARING. --accent is
+   the HUD's text colour, and .bad is #ff8a8a — a red accent would read as an
+   error state on every chip in the age. The red stays in the panel where it is
+   unmistakably decor. #cbd2d4 is the apron under this era's cool sky fill
+   (hemi 0xd2dae0, "cool sky fill, warm bounce off spoil" in Gfx.ERA_GRADE[2]);
+   12.1:1 on the panel, and its blue cast is only +9 over red, so it is cold
+   stone next to glacial's true ice blue (+64), not a second copy of it. */
+body[data-era-theme="oregorge"]  { --chip-bg: rgba(28, 16, 12, 0.91); --chip-border: rgba(196, 192, 182, 0.34); --accent: #cbd2d4; }
+/* ★ rung 3, Göbekli Tepe: pale weathered limestone and the red terra rossa
+   that the tracks wear down to — the age's two real materials, and the same
+   pair the Ridge Track is measured against (auditRoadContrast). */
+body[data-era-theme="ridge"]     { --chip-bg: rgba(26, 22, 17, 0.91); --chip-border: rgba(205, 190, 155, 0.34); --accent: #ddc9a0; }
 body[data-era-theme="anunnaki"]  { --chip-bg: rgba(20, 18, 30, 0.90); --chip-border: rgba(160, 140, 220, 0.28); --accent: #c9b8f0; }
 body[data-era-theme="egypt"]     { --chip-bg: rgba(38, 28, 12, 0.90); --chip-border: rgba(212, 175, 55, 0.40); --accent: #e8c96a; }
 body[data-era-theme="jungle"]    { --chip-bg: rgba(14, 30, 18, 0.90); --chip-border: rgba(110, 190, 130, 0.35); --accent: #8fd9a0; }

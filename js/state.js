@@ -35,6 +35,7 @@ const Game = {
       giftStore: 0,
       giftRank: 0,
       giftCrew: 0,
+      giftLand: 0,
 
       stock: Game.startStock(granted, era),
 
@@ -273,6 +274,7 @@ const Game = {
       giftStore: s.giftStore | 0,
       giftRank: s.giftRank | 0,
       giftCrew: s.giftCrew | 0,
+      giftLand: s.giftLand | 0,
 
       tribute: s.tribute ? { bank: +s.tribute.bank || 0, count: s.tribute.count | 0,
                              missed: s.tribute.missed | 0,
@@ -601,6 +603,7 @@ const Game = {
       giftStore: d.giftStore | 0,
       giftRank: d.giftRank | 0,
       giftCrew: d.giftCrew | 0,
+      giftLand: d.giftLand | 0,
 
       tribute: (d.tribute && typeof d.tribute === 'object')
         ? { bank: Math.max(0, +d.tribute.bank || 0), count: Math.max(0, d.tribute.count | 0),

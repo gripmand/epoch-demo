@@ -20,6 +20,8 @@ const UI = {
     UI.els.fuelChip = document.getElementById('chip-fuel');
     UI.els.siltChip = document.getElementById('chip-silt');
     UI.els.silt = document.getElementById('hud-silt');
+    UI.els.rangeChip = document.getElementById('chip-range');
+    UI.els.range = document.getElementById('hud-range');
     UI.els.herdChip = document.getElementById('chip-herd');
     UI.els.herd = document.getElementById('hud-herd');
     UI.els.levyChip = document.getElementById('chip-levy');
@@ -451,6 +453,10 @@ const UI = {
 
     if (era <= 0) return 'cretaceous';
     if (era === 1) return 'glacial';
+
+    if (era === 2) return 'oregorge';
+
+    if (era === 3) return 'ridge';
     if (era <= 4) return 'anunnaki';
     if (era <= 9) return 'egypt';
     if (era <= 13) return 'classical';
@@ -787,6 +793,34 @@ const UI = {
           'keep full speed, which is what pays for the buyout.';
     }
 
+    const showRange = Econ.rangeActive(s);
+    if (UI.els.rangeChip) {
+      UI.els.rangeChip.classList.toggle('hidden', !showRange);
+      UI.els.rangeChip.style.display = showRange ? '' : 'none';
+    }
+    if (showRange && UI.els.range) {
+      const h = Econ.forageHarvest(s);
+      UI.els.range.textContent = Math.round(h.frac * 100) + '%' +
+        (h.crowded > 0 ? ' · ' + h.crowded + '/' + h.camps : '');
+      UI.els.rangeChip.classList.toggle('bad', h.frac < TUNE.FORAGE.badAt);
+      UI.els.rangeChip.classList.toggle('warn',
+        h.frac >= TUNE.FORAGE.badAt && h.frac < TUNE.FORAGE.warnAt);
+
+      const lost = Object.keys(h.lost).filter(k => h.lost[k] > 0.0005)
+        .sort((a, b) => h.lost[b] - h.lost[a])
+        .map(k => (h.lost[k] * TUNE.TEMPO).toFixed(2) + ' ' + goodLabel(s.era, k) + '/min');
+      UI.els.rangeChip.title = h.crowded === 0
+        ? 'Every camp has its ground to itself. ' + h.camps + ' camp' + (h.camps === 1 ? '' : 's') +
+          ', all at full yield. Two camps of the SAME KIND within reach of each other split what is ' +
+          'there — different kinds never interfere.'
+        : h.crowded + ' of ' + h.camps + ' camps are sharing ground. You are losing ' +
+          (lost.join(', ') || 'nothing measurable') + ' to camps working the same ground as each other. ' +
+          'Two take two thirds each, three take a half, four take 40%. NOTHING HERE RECOVERS BY ' +
+          'WAITING and no building cures it — move them apart, or buy the ring.' +
+          (s.policyMoveCamps ? ' The Moving Camp is ON: half the reach, ' +
+            Math.round(TUNE.MOVING.slow * 100) + '% less work.' : '');
+    }
+
     const showHerd = Econ.trophicActive(s);
     if (UI.els.herdChip) {
       UI.els.herdChip.classList.toggle('hidden', !showHerd);
@@ -944,6 +978,9 @@ const UI = {
     };
   },
 
+  AMBER_STATUS: { understaffed: 1, resting: 1, flooded: 1, dry_season: 1,
+                  halted: 1, building: 1, crowded: 1 },
+
   statusText(b) {
     const M = {
 
@@ -975,8 +1012,19 @@ const UI = {
       dry_season: ['THE DRY — collecting nothing', 'warn'],
       halted: ['HALTED — deliveries paused', 'warn'],
       building: ['UNDER CONSTRUCTION', 'warn'],
+
+      crowded: [(() => {
+        const b2 = Input.selected, n = (b2 && b2.forageCrowd) | 0;
+        const m = Math.max(TUNE.FORAGE.floor, 1 / (1 + TUNE.FORAGE.crowd * n));
+        const m2 = Math.max(TUNE.FORAGE.floor, 1 / (1 + TUNE.FORAGE.crowd * (n + 1)));
+        return 'SHARING THIS GROUND with ' + n + ' other camp' + (n === 1 ? '' : 's') +
+          ' of its kind — each takes ' + Math.round(m * 100) + '% of one camp. Another here would ' +
+          'take it to ' + Math.round(m2 * 100) + '%. This does not recover by waiting; the fix is distance';
+      })(), 'warn'],
     };
-    return M[b.status] || ['—', ''];
+    const r = M[b.status] || ['—', ''];
+
+    return [r[0], b.status === 'ok' ? 'good' : (UI.AMBER_STATUS[b.status] ? 'warn' : r[1])];
   },
 
   rankAdvice(s, b, d) {
@@ -1860,6 +1908,8 @@ const UI = {
       const el = document.getElementById('insp-pol-era');
       if (el) el.onclick = () => {
         G.s[epw.key] = !G.s[epw.key];
+
+        Grid.recomputeAdjacency(G.s);
         UI.toast(epw.icon + ' ' + (G.s[epw.key] ? epw.on : epw.off), 9000);
         UI.showInspector(b);
       };
