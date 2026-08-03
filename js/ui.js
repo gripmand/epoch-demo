@@ -28,6 +28,8 @@ const UI = {
     UI.els.roll = document.getElementById('hud-roll');
     UI.els.headChip = document.getElementById('chip-head');
     UI.els.head = document.getElementById('hud-head');
+    UI.els.reachChip = document.getElementById('chip-reach');
+    UI.els.reach = document.getElementById('hud-reach');
     UI.els.herdChip = document.getElementById('chip-herd');
     UI.els.herd = document.getElementById('hud-herd');
     UI.els.levyChip = document.getElementById('chip-levy');
@@ -489,6 +491,8 @@ const UI = {
     if (era === 7) return 'aegean';
 
     if (era === 8) return 'shang';
+
+    if (era === 9) return 'oceanic';
     if (era <= 9) return 'egypt';
     if (era <= 13) return 'classical';
     if (era <= 14) return 'jungle';
@@ -916,6 +920,40 @@ const UI = {
           (h.dry ? ' ' + h.dry + ' bund' + (h.dry === 1 ? ' is' : 's are') + ' running on rain at ' +
             Math.round(TUNE.CASCADE.dryYield * 100) + '% — click the amber marker and it names the ' +
             'tile the run broke at.' : '')) + revet;
+    }
+
+    const showReach = Econ.reachActive(s);
+    if (UI.els.reachChip) {
+      UI.els.reachChip.classList.toggle('hidden', !showReach);
+      UI.els.reachChip.style.display = showReach ? '' : 'none';
+    }
+    if (showReach && UI.els.reach) {
+      const r = Econ.reachForecast(s);
+      UI.els.reach.textContent = r.landings
+        ? r.best + 'T · ' + r.open + (r.landfalls < r.need ? ' · ' + r.landfalls + '/' + r.need : '')
+        : '—';
+
+      UI.els.reachChip.classList.toggle('bad', r.landings === 0);
+      UI.els.reachChip.classList.toggle('warn', r.landings > 0 && r.open === 0);
+      const lash = G.cache.lashAdd
+        ? ' The Lashing Order is PAYING: every Landing crosses ' + TUNE.LASH.add + ' further.'
+        : (s.policyLash ? ' The Lashing Order is ON BUT NOT PAYING — no sennit in store, so every ' +
+            'hull is back to its own reach.' : '');
+      UI.els.reachChip.title = (r.landings === 0
+        ? 'NO CANOE LANDING YET. Land across the water is drawn and priced and will not sell. A Canoe ' +
+          'Landing on your own shore — touching open sea, needing no road and no spring — opens every ' +
+          'shore within ' + TUNE.VOYAGE.range + ' tiles of water as ground you may buy.'
+        : r.landings + (r.landings === 1 ? ' landing crosses ' : ' landings cross ') + r.best +
+          ' tiles of open water' + (r.court ? ' (including the Court\'s +' + r.courtAdd + ')' : '') +
+          ', and that opens ' + r.open + ' parcel' + (r.open === 1 ? '' : 's') +
+          ' ordinary sprawl cannot reach. ' +
+          (r.open === 0
+            ? 'NOTHING NEW IS OPEN. Build a WAYFINDING COURT (+' + TUNE.VOYAGE.courtBonus +
+              ' to every Landing at once), rank a Landing (+' + TUNE.VOYAGE.rangePerRank +
+              ' a rank), or put a Landing on a shore that faces the island you want.'
+            : 'A landfall costs ' + (r.court ? TUNE.VOYAGE.courtLandfall : TUNE.VOYAGE.landfallMult) +
+              '× the ordinary parcel price — and it is yours permanently.')) +
+        ' — ' + r.landfalls + ' of ' + r.need + ' crossings made this age.' + lash;
     }
 
     const showGrid = Econ.gridActive(s);
@@ -1672,7 +1710,7 @@ const UI = {
       rows += '<div class="insp-row"><span>Supply</span><span class="warn">−$' + perMin + '/min · ×' +
         sup.toFixed(2) + ' carting</span></div>';
       rows += '<div class="insp-row insp-note"><span>' + Math.round(b.supplyDist || 0) +
-        ' tiles from the nearest market. Anything past ' + TUNE.SUPPLY.freeRadius +
+        ' tiles from the nearest market. Anything past ' + supplyFree(G.s) +
         ' costs more to keep supplied — build a market out here.</span></div>';
     } else {
       rows += '<div class="insp-row"><span>Supply</span><span>−$' + perMin + '/min' +

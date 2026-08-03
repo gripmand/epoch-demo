@@ -82,6 +82,14 @@ body[data-era-theme="aegean"]    { --chip-bg: rgba(10, 30, 42, 0.91); --chip-bor
    and greyer than either, which is the difference between mud brick, gilding
    and wind-blown loess. */
 body[data-era-theme="shang"]     { --chip-bg: rgba(26, 22, 17, 0.91); --chip-border: rgba(199, 180, 130, 0.34); --accent: #ddc9a2; }
+/* ★ rung 9 — Polynesian. The chip body is ERA_GRADE[9]'s lagoon (0x1f8fa8) taken
+   right down, and the accent is ERA_ROAD[9]'s beach coral (0xd8cfba) lifted. It
+   has to sit apart from `aegean` (#ddd6c2, bleached limestone over a very dark
+   Aegean) — which is the closest thing on the ladder — and the difference is the
+   BODY rather than the accent: the Aegean chip is nearly black-blue and this one
+   is a lit turquoise, because in this age the water is bright and the LAND is the
+   dark thing. That inversion is the whole visual identity of the rung. */
+body[data-era-theme="oceanic"]   { --chip-bg: rgba(8, 40, 48, 0.90); --chip-border: rgba(216, 207, 186, 0.38); --accent: #e2ddcb; }
 body[data-era-theme="egypt"]     { --chip-bg: rgba(38, 28, 12, 0.90); --chip-border: rgba(212, 175, 55, 0.40); --accent: #e8c96a; }
 body[data-era-theme="jungle"]    { --chip-bg: rgba(14, 30, 18, 0.90); --chip-border: rgba(110, 190, 130, 0.35); --accent: #8fd9a0; }
 body[data-era-theme="classical"] { --chip-bg: rgba(28, 30, 36, 0.90); --chip-border: rgba(220, 220, 230, 0.35); --accent: #e8e6e0; }

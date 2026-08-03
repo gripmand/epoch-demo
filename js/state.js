@@ -30,7 +30,7 @@ const Game = {
       hallLevel: Math.max(1, era),
       realRent: 0,
 
-      eraBase: { flour: 0, food: 0, stone: 0, tributePaid: 0 },
+      eraBase: { flour: 0, food: 0, stone: 0, tributePaid: 0, landfalls: 0 },
       giftHousing: 0,
       giftStore: 0,
       giftRank: 0,
@@ -41,9 +41,11 @@ const Game = {
 
       giftTerra: 0,
 
+      giftSupply: 0,
+
       stock: Game.startStock(granted, era),
 
-      cum: { flour: 0, food: 0, stone: 0, earned: 0, tributePaid: 0 },
+      cum: { flour: 0, food: 0, stone: 0, earned: 0, tributePaid: 0, landfalls: 0 },
       hunger: 0,
       settlerAcc: 0,
 
@@ -293,6 +295,7 @@ const Game = {
 
       giftIssue: s.giftIssue | 0,
       giftTerra: s.giftTerra | 0,
+      giftSupply: s.giftSupply | 0,
 
       tribute: s.tribute ? { bank: +s.tribute.bank || 0, count: s.tribute.count | 0,
                              missed: s.tribute.missed | 0,
@@ -582,8 +585,9 @@ const Game = {
       eraBase: (d.eraBase && typeof d.eraBase === 'object')
         ? { flour: +d.eraBase.flour || 0,
             food: d.eraBase.food != null ? (+d.eraBase.food || 0) : (+d.eraBase.flour || 0),
-            stone: +d.eraBase.stone || 0, tributePaid: +d.eraBase.tributePaid || 0 }
-        : { flour: 0, food: 0, stone: 0 },
+            stone: +d.eraBase.stone || 0, tributePaid: +d.eraBase.tributePaid || 0,
+            landfalls: +d.eraBase.landfalls || 0 }
+        : { flour: 0, food: 0, stone: 0, landfalls: 0 },
 
       stock: (() => {
         const st = {};
@@ -594,7 +598,7 @@ const Game = {
       cum: { flour: +d.cum.flour || 0,
              food: d.cum.food != null ? (+d.cum.food || 0) : (+d.cum.flour || 0),
              stone: +d.cum.stone || 0, earned: +d.cum.earned || 0,
-             tributePaid: +d.cum.tributePaid || 0 },
+             tributePaid: +d.cum.tributePaid || 0, landfalls: +d.cum.landfalls || 0 },
       hunger: +d.hunger || 0,
       nextId: d.nextId | 0 || 1, placeCounter: d.placeCounter | 0 || 0,
       owned: d.owned.slice(), firsts: d.firsts || {}, prompted: d.prompted || {},
@@ -632,6 +636,7 @@ const Game = {
 
       giftIssue: d.giftIssue | 0,
       giftTerra: d.giftTerra | 0,
+      giftSupply: d.giftSupply | 0,
 
       tribute: (d.tribute && typeof d.tribute === 'object')
         ? { bank: Math.max(0, +d.tribute.bank || 0), count: Math.max(0, d.tribute.count | 0),

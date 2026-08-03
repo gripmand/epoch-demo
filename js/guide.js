@@ -63,6 +63,13 @@ const ERA_RECORD = {
         chronicle: 'The Chronicle', chronBtn: 'Chronicle',
         chronSub: 'Set down as it happened. The record keeps the last 200 entries.',
         keeper: 'whoever keeps this city’s records' },
+
+  9:  { icon: '\u{1F4CB}', tally: 'The Steward’s Count', tallyBtn: "Steward's Count",
+        tallySub: 'Every terrace on the wedge, what it grew and who owes days on it — all of it in ' +
+                  'one person’s head.',
+        chronicle: 'The Genealogy', chronBtn: 'Genealogy',
+        chronSub: 'Recited, not written. It keeps the last 200 things worth saying aloud.',
+        keeper: "a Konohiki's House" },
   8:  { icon: '\u{1FAA1}', tally: 'The Bone Tally', tallyBtn: 'Bone Tally',
         tallySub: 'Scored into scapula and plastron, heated until it cracks, then read.',
         chronicle: 'The Oracle Record', chronBtn: 'Oracle Record',
@@ -127,6 +134,11 @@ const ERA_FOUNDING = {
         placeholder: '', ok: 'Found the city', skip: 'It needs no name yet',
         founded: ' was founded.',
         toast: ' is founded. May its tally always run positive.' },
+  9:  { icon: '\u{1F6F6}', title: 'Name This Island',
+        sub: 'Somebody sailed here on purpose, without knowing it was here. The name goes on the marae.',
+        placeholder: 'Hiva-of-the-Long-Reef', ok: 'Name the island', skip: 'It needs no name yet',
+        founded: ' was named, and the hull was hauled up the ramp and left there.',
+        toast: ' is named. May every crossing come back.' },
   8:  { icon: '\u{1F3DB}\u{FE0F}', title: 'Name Your City',
         sub: 'The diviners will put the question to the ancestors and cut the answer into bone.',
         placeholder: 'Great Settlement Shang', ok: 'Found the city', skip: 'It needs no name yet',
@@ -181,6 +193,39 @@ function eraFounding(era) {
 }
 
 const ERA_SITE = {
+  9: {
+    roadYes: '<b>Hale Pili and Hale Noa, every stall, hall and works, the Hale Pāʻā, the Imu, the ' +
+      'Wayfinding Court and the Adze Standard</b>',
+
+    roadNo: 'Loʻi Pondfields, Coconut Groves, Wauke Gardens, Breadfruit Groves, Pearl-Shell Beds, ' +
+      'Reef Stations, the Loko Iʻa, Reef Salt Pans, Birdcatchers’ Camps, the Basalt Adze Quarry, ' +
+      'Punawai, Mulch Pits, Gourd Stores, Hālau, Reef Shrines — and <b>the CANOE LANDING, which needs ' +
+      'neither a road nor a spring, because it is what you put on an island the day you land on it</b>',
+    water: 'Homes, shops, workshops and the stores must sit inside a <b>Punawai’s</b> five tiles or a ' +
+      '<b>Stone Tank’s</b> eight. ★ THE OCEAN IS NOT WATER — three quarters of this map is sea and none ' +
+      'of it counts; coverage comes from a spring and never from water on the ground. A hut on the ' +
+      'beach is as dry as one on the ridge. Press <b>O</b> to see the rings.',
+    extra: [
+      '<b>Land is not always for sale.</b> Everywhere else on the ladder a parcel can be bought if it ' +
+      'touches ground you own. Here the next parcel is usually water — so a <b>CANOE LANDING</b>, ' +
+      'standing where open sea actually touches it, opens every shore within <b>26 tiles of water</b> ' +
+      'as ground you may buy. A <b>WAYFINDING COURT</b> adds 6 tiles to every Landing at once; each ' +
+      '<b>RANK</b> on a Landing adds 2 more. Click a parcel the age refuses and it tells you exactly ' +
+      'how many tiles short you are.',
+      '<b>A landfall costs 2.5×, and the Court makes it 1.8×.</b> Ground nobody walked to is ground ' +
+      'every stone and every person on it arrived by canoe. It is also <b>permanent</b> — a Landing ' +
+      'that stops running takes back nothing you have already bought, which is why the LASHING ORDER ' +
+      'is worth switching on for one crossing and off again afterwards.',
+      '<b>The sea cannot be filled and it cannot be walked across.</b> Every terraform brush refuses a ' +
+      'water tile in this age, at any price — the same refusal ash gets in every age. And open water ' +
+      'does not carry your border: you may buy the lagoon at your own shore, but the parcel past it ' +
+      'is refused, so a chain of ocean parcels never reaches anything.',
+      '<b>A CORAL CAUSEWAY answers a SHORT strait and nothing else.</b> Laid on water you own, it ' +
+      'counts as road, so a line of them joins a near island to your network — which matters, because ' +
+      'a far island’s homes and shops read <i>no road</i> until something carries the road to them. ' +
+      'Anything you cannot own the water for is a job for a Landing.',
+    ],
+  },
 
   _default: {
     roadYes: '<b>housing, the places that sell, the places that store and the age’s monument</b>',
@@ -392,6 +437,43 @@ const ERA_SITE = {
 function eraSite(era) { return ERA_SITE[rungOf(era)] || ERA_SITE._default; }
 
 const ERA_GUIDES = {
+
+  9: {
+    headline: 'You can see land you are not allowed to buy. That is the whole age.',
+    mechanic: 'REACH. Ownership has always grown from ground you already own — and here it cannot, ' +
+      'because the next parcel is water. A CANOE LANDING on your own shore, touching open sea, opens ' +
+      'EVERY SHORE WITHIN 26 TILES OF WATER as ground you may buy, at 2.5× the normal parcel price. A ' +
+      'WAYFINDING COURT adds 6 tiles to every Landing you own and drops that premium to 1.8×; each RANK ' +
+      'on a Landing adds 2 more. Nothing you buy is ever taken back. And the sea cannot be filled in — ' +
+      'not for money, not ever: this is the one age on the ladder that cannot dig its way out of its ' +
+      'own geography. Watch the 🛶 chip: it prints how far you cross and how much ground that opens.',
+    chain: [
+      'Loʻi Pondfield ×3 → Poi Pounding Shed → Hale ʻAha  ·  the staple. Every one of them wants a Punawai — the sea is not water',
+      'Coconut Grove ×2 → Sennit Braiding House → Cordage Stall  ·  $22/min on ground nothing else wants, and it is what the Lashing Order burns',
+      'Wauke Garden ×3 → Tapa Beating House → Tapa Hall  ·  $29/min, and it grows on the same terraces as the taro. Dinner, or cloth?',
+      'Pearl-Shell Beds → Pearl-Shell Lure Works  ·  $19/min. Two buildings and six mouths — chain length is a strategy',
+      'Basalt Adze Quarry → Adze Grinding Shed  ·  $20/min. ★ THE EXIT: 2,735 stone, and the Great Ahu wants 4,187 more',
+      "Birdcatcher's Camp ×2 → Featherwork House  ·  $30/min, the richest thing here and the slowest to feed. It wants the same upland the quarry does",
+      'Breadfruit Grove · Reef Station · Loko Iʻa · Reef Salt Pans → Strand Stall  ·  the strand: no spring, no road, no processing',
+    ],
+    firstSteps: [
+      'A BREADFRUIT GROVE first ($890 of your $11,590), anywhere on dry land. It needs no spring, no road and no shed, so your founding party can work it the moment it is placed — which is what releases the rest of them into the labour pool. It is also what will feed the first island you land on.',
+      'Then a PUNAWAI ($210) inland of the beach. THE OCEAN IS NOT WATER: coverage comes from a spring and never from the sea, so a hut on the sand is as dry as one on the ridge. Everything below wants to be inside its five tiles.',
+      'Then TWO LOʻI PONDFIELDS ($720) and a POI POUNDING SHED ($890) touching one of them — the +25% raises both sides. Three terraces feed one shed exactly; two is the honest start.',
+      'FOUR HALE PILI ($1,720) on a coral path back to the Marae, and a HALE ʻAHA ($890). Four huts open at four residents each and the feast house wants nine.',
+      'A STRAND STALL ($500). That is your first money and it arrives within a minute — a village that feeds itself and earns.',
+      '★ NOW WALK TO THE WATER. Your founding ground stops about thirteen tiles short of the beach, and NOTHING THAT TOUCHES THE SEA CAN BE BUILT ON IT — the Pearl-Shell Beds stand IN the lagoon and a Canoe Landing has to touch open water. Two to four parcels of ordinary land toward the shore costs $760–$2,080. Walked on three seeds, this is the step everything after it waits on.',
+      'PEARL-SHELL BEDS ($390) in the lagoon you just bought, and then the mechanic — a CANOE LANDING ($2,140) on the point, with open water actually touching it. It needs no road and no spring, and it is a supply point, so the quarter around it stops paying the carting premium. STAFF IT: an unmanned hauling ramp crosses nothing. Then open the buy-land tool and look — every shore within 26 tiles of sea is green now, and it was not a minute ago.',
+      'That is the whole purse. THE FIRST CROSSING IS BOUGHT OUT OF EARNINGS, NOT OUT OF THE GRANT: walked on three seeds, the nearest open parcel costs $1,650–$2,425 and the city can afford it between minute 1 and minute 11. Buy the NEAREST one, not the best one — and the moment it is yours put a BREADFRUIT GROVE and a second CANOE LANDING on it. That second Landing is what opens the island after that; a landfall with no Landing on it is a dead end.',
+      'Then the WAYFINDING COURT ($1,780) when you can carry it. It reaches 6 tiles further from EVERY Landing you own at once and drops the landfall premium to 1.8×, which is why it is a key and not a statistic.',
+      'After that: your second earning chain (COCONUT ($2,390) or TAPA ($2,460) both fit the ground you have), a MULCH PIT beside the terraces before they sour, and the BASALT ADZE QUARRY ($1,600) on a real 3×3 of rock. The age cannot be left without 2,735 basalt and the Great Ahu wants 4,187 more on top.',
+    ],
+    mistake: 'Trying to fill the sea. The grass brush is $71 a tile here and a twenty-tile causeway looks ' +
+      'like $1,426 against a $14,500 landfall parcel — but the brush REFUSES a water tile in this age, ' +
+      'at any price, the same way ash refuses one in every age. The other version of the same mistake is ' +
+      'buying a line of ocean parcels toward an island: open water does not carry your border, so the ' +
+      'second one out is always refused. You cross in a hull or you do not cross.',
+  },
   0: {
     headline: 'You are not the chief. You are the thing being watched.',
     mechanic: 'The colony IS the food. A second population you never place takes a share of the herd ' +

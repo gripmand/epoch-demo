@@ -114,6 +114,8 @@ const Econ = {
 
     Econ.cascadeTick(s);
 
+    Econ.reachTick(s);
+
     Econ.nileTick(s, offline);
 
     Econ.soilTick(s, offline);
@@ -281,6 +283,24 @@ const Econ = {
         s.stock.blocks -= need;
         Econ.note('blocks', 0, need);
         C.revetAdd = TUNE.REVET.add;
+      }
+    }
+
+    const wasLash = !!C.lashAdd;
+    C.lashAdd = 0;
+    if (s.policyLash && Econ.reachActive(s)) {
+      let live = 0;
+      for (const b of s.buildings) {
+        const d = DEF(b.type);
+        if (!d || !d.voyageRange || !Econ.campLive(b) || (d.workers && !(b.staff > 0))) continue;
+        live++;
+      }
+      const need = TUNE.LASH.per * live * Econ.M;
+      const on = wasLash ? (s.stock.sennit >= need) : (s.stock.sennit >= need * 3);
+      if (need > 0 && on) {
+        s.stock.sennit -= need;
+        Econ.note('sennit', 0, need);
+        C.lashAdd = TUNE.LASH.add;
       }
     }
 
@@ -839,8 +859,10 @@ const Econ = {
       if (dist < best) best = dist;
     }
     b.supplyDist = best;
-    if (best <= SP.freeRadius) return 1;
-    return Math.min(SP.maxMultiplier, 1 + (best - SP.freeRadius) / SP.premiumPer);
+
+    const free = supplyFree(s);
+    if (best <= free) return 1;
+    return Math.min(SP.maxMultiplier, 1 + (best - free) / SP.premiumPer);
   },
 
   tradeMultiplier(dist) {
@@ -1489,6 +1511,8 @@ const Econ = {
       const f = Econ.cascadeForecast(s);
       return f.drawers >= TUNE.CASCADE.gateFields && f.frac >= TUNE.CASCADE.gateFrac;
     },
+
+    9: (s) => Econ.reachForecast(s).landfalls >= TUNE.VOYAGE.gateLandfalls,
   },
   eraExtraGate(s) {
     const f = Econ.ERA_EXTRA_GATE[rungOf(s.era)];
@@ -1687,7 +1711,8 @@ const Econ = {
     s.era = Econ.nextEra(s);
 
     s.eraBase = { flour: s.cum.flour, food: Econ.cumFood(s), stone: s.cum.stone,
-                  tributePaid: s.cum.tributePaid || 0 };
+                  tributePaid: s.cum.tributePaid || 0,
+                  landfalls: s.cum.landfalls || 0 };
 
     s.tribute = { bank: 0, count: 0, missed: 0, due: TUNE.TRIBUTE.firstAt * 60 };
     s.unrest = 0; s.struck = 0; s.conscripted = 0;
@@ -2188,6 +2213,191 @@ const Econ = {
           'out. RAM the tile below it, or CUT the tile above.')
       : 'Dig FIELD DITCHES from a DIVERSION GATE down to it — level, or one step down, never up.') +
       ' A well stamps a circle; a field wants a flow.';
+  },
+
+  reachActive(s) { return rungOf(s.era) === 9; },
+
+  reachRangeOf(s, b) {
+    const K = TUNE.VOYAGE;
+    return K.range + Econ.reachCourt(s) + K.rangePerRank * (rankOf(b) - 1) +
+           ((G.cache && G.cache.lashAdd) || 0);
+  },
+
+  reachCourt(s) {
+    const C = G.cache;
+    if (C && C.reach) return C.reach.court;
+    return Econ.scanCourt(s);
+  },
+  scanCourt(s) {
+    let best = 0;
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d || !d.voyageBonus || b.done === false) continue;
+      if (!Econ.campLive(b) || (d.workers && !(b.staff > 0))) continue;
+      if (d.voyageBonus > best) best = d.voyageBonus;
+    }
+    return best;
+  },
+
+  reachTick(s) {
+    const C = G.cache;
+    C.reach = null;
+    if (!Econ.reachActive(s)) return;
+    const K = TUNE.VOYAGE, W = TUNE.WORLD, TELL = K.tell;
+
+    const court = Econ.scanCourt(s);
+    const landings = [];
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d || !d.voyageRange || b.done === false) continue;
+
+      if (!Econ.campLive(b) || (d.workers && !(b.staff > 0))) { b.reachOut = 0; continue; }
+      b.reachOut = Econ.reachRangeOf(s, b);
+      landings.push(b);
+    }
+
+    if (!C.reachRem || C.reachRem.length !== W * W) {
+      C.reachRem = new Int16Array(W * W);
+      C.reachSrc = new Int32Array(W * W);
+    }
+    const rem = C.reachRem, src = C.reachSrc;
+    rem.fill(-1); src.fill(-1);
+
+    let q = [], best = 0;
+    for (const b of landings) {
+      const budget = b.reachOut + TELL;
+      if (b.reachOut > best) best = b.reachOut;
+      Grid.tilesOf(b, (x, y) => {
+        for (let n = 0; n < 4; n++) {
+          const nx = x + (n === 0 ? 1 : n === 1 ? -1 : 0);
+          const ny = y + (n === 2 ? 1 : n === 3 ? -1 : 0);
+          if (!Grid.inB(nx, ny)) continue;
+          const nk = Grid.key(nx, ny);
+          if (C.terrain[nk] !== TERRAIN.WATER) continue;
+          const v = budget - 1;
+          if (v > rem[nk]) { rem[nk] = v; src[nk] = b.id; q.push(nk); }
+        }
+      });
+    }
+
+    for (let qi = 0; qi < q.length; qi++) {
+      const k = q[qi];
+      const v = rem[k] - 1;
+      if (v < 0) continue;
+      const x = k % W, y = (k / W) | 0;
+      for (let n = 0; n < 4; n++) {
+        const nx = x + (n === 0 ? 1 : n === 1 ? -1 : 0);
+        const ny = y + (n === 2 ? 1 : n === 3 ? -1 : 0);
+        if (!Grid.inB(nx, ny)) continue;
+        const nk = Grid.key(nx, ny);
+
+        if (C.terrain[nk] !== TERRAIN.WATER) continue;
+        if (v > rem[nk]) { rem[nk] = v; src[nk] = src[k]; q.push(nk); }
+      }
+    }
+
+    const open = new Set();
+    for (const k of q) {
+      if (rem[k] < TELL) continue;
+      const x = k % W, y = (k / W) | 0;
+      for (let n = 0; n < 4; n++) {
+        const nx = x + (n === 0 ? 1 : n === 1 ? -1 : 0);
+        const ny = y + (n === 2 ? 1 : n === 3 ? -1 : 0);
+        if (!Grid.inB(nx, ny)) continue;
+
+        if (C.terrain[Grid.key(nx, ny)] === TERRAIN.WATER) continue;
+        const c = Grid.chunkOf(nx, ny);
+        open.add(c.cx + ',' + c.cy);
+      }
+    }
+    let newGround = 0;
+    for (const key of open) {
+      if (C.ownedSet.has(key)) continue;
+      const p = key.split(',');
+      if (Grid.chunkAdjacentOwned(s, +p[0], +p[1])) continue;
+      newGround++;
+    }
+
+    C.reach = { landings: landings.length, best, court, open, newGround };
+  },
+
+  reachState(s) {
+    const C = G.cache;
+    if (!Econ.reachActive(s)) return null;
+    if (!C.reach) Econ.reachTick(s);
+    return C.reach;
+  },
+
+  landfallAt(s, cx, cy) {
+    if (!Econ.reachActive(s)) return null;
+    const st = Econ.reachState(s);
+    const C = G.cache, K = TUNE.VOYAGE, TELL = K.tell;
+    const out = { ok: false, short: Infinity, dist: Infinity, range: st ? st.best : 0 };
+    if (!st || !st.landings) return out;
+
+    if (st.open.has(cx + ',' + cy)) { out.ok = true; out.short = 0; return out; }
+    const rem = C.reachRem, src = C.reachSrc;
+    const x0 = cx * TUNE.CHUNK, y0 = cy * TUNE.CHUNK;
+    for (let dy = 0; dy < TUNE.CHUNK; dy++)
+      for (let dx = 0; dx < TUNE.CHUNK; dx++) {
+        const x = x0 + dx, y = y0 + dy;
+        if (!Grid.inB(x, y)) continue;
+        if (C.terrain[Grid.key(x, y)] === TERRAIN.WATER) continue;
+        for (let n = 0; n < 4; n++) {
+          const nx = x + (n === 0 ? 1 : n === 1 ? -1 : 0);
+          const ny = y + (n === 2 ? 1 : n === 3 ? -1 : 0);
+          if (!Grid.inB(nx, ny)) continue;
+          const nk = Grid.key(nx, ny);
+          if (C.terrain[nk] !== TERRAIN.WATER) continue;
+          const r = rem[nk];
+          if (r < 0) continue;
+          const b = C.byId.get(src[nk]);
+          const range = (b && b.reachOut) || st.best;
+          const short = TELL - r;
+          if (short < out.short) {
+            out.short = short; out.range = range; out.dist = range + short;
+          }
+        }
+      }
+    return out;
+  },
+
+  reachForecast(s) {
+    const out = { active: false, landings: 0, best: 0, court: false, courtAdd: 0,
+                  open: 0, landfalls: 0, need: 0, text: 'no landing yet' };
+    if (!Econ.reachActive(s)) return out;
+    out.active = true;
+    out.need = TUNE.VOYAGE.gateLandfalls;
+    out.landfalls = Math.max(0, (s.cum.landfalls || 0) -
+                                ((s.eraBase && s.eraBase.landfalls) || 0));
+    const st = Econ.reachState(s);
+    if (!st) return out;
+    out.landings = st.landings; out.best = st.best; out.court = st.court > 0;
+    out.courtAdd = st.court;
+
+    out.open = st.newGround;
+    out.text = !st.landings
+      ? 'no landing yet'
+      : st.best + ' tiles · ' + out.open + ' landfall' + (out.open === 1 ? '' : 's');
+    return out;
+  },
+
+  reachWhy(s, cx, cy) {
+    const f = Econ.landfallAt(s, cx, cy);
+    if (!f || f.ok) return null;
+    const st = Econ.reachState(s);
+    if (!st || !st.landings)
+      return 'This ground is across open water and you have no CANOE LANDING. A Landing on your own ' +
+        'shore — cleared coral and a hauling ramp, no road and no spring needed — crosses ' +
+        TUNE.VOYAGE.range + ' tiles of sea, and everything within that becomes ground you can buy.';
+    if (!isFinite(f.short))
+      return 'Nothing but open ocean lies between here and any shore you hold. A canoe crosses water; ' +
+        'it does not cross the whole sea. Land nearer first, and go on from there.';
+    return 'No landing within reach — this shore is ' + f.dist + ' tiles of open water from your ' +
+      'nearest Landing, and that Landing crosses ' + f.range + '. You are ' + f.short + ' short. ' +
+      'Build a WAYFINDING COURT (+' + TUNE.VOYAGE.courtBonus + ' to every Landing you own), rank the ' +
+      'Landing (+' + TUNE.VOYAGE.rangePerRank + ' a rank), or put a new Landing on a shore that is ' +
+      'closer to it.';
   },
 
   levyActive(s) { return rungOf(s.era) === 2; },

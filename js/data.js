@@ -40,16 +40,19 @@ const TUNE = {
                  saffron: 0, tin: 0, bronze: 0,
 
                  rice: 0, mulberry: 0, cocoon: 0, silk: 0,
-                 brocade: 0, copperore: 0, ritualbronze: 0, brine: 0 },
+                 brocade: 0, copperore: 0, ritualbronze: 0, brine: 0,
+
+                 coir: 0, sennit: 0, bast: 0, tapa: 0, nacre: 0,
+                 lure: 0, adze: 0, feathers: 0, cloak: 0 },
 
   FOUNDING_CREW: 10,
 
   ERA_STARTER: { 1: 'deadwoodcutter', 2: 'terraceplot', 3: 'snailbeds', 4: 'farm',
                  5: 'emmerfield', 6: 'leveefield',
 
-                 7: 'figorchard', 8: 'milletfield', 14: 'milpa' },
+                 7: 'figorchard', 8: 'milletfield', 9: 'breadfruitgrove', 14: 'milpa' },
 
-  ERA_START_MONEY: { 0: 1080, 8: 8850 },
+  ERA_START_MONEY: { 0: 1080, 8: 8850, 9: 11590 },
 
   MIGRATION: {
     perMinute: 8,
@@ -94,6 +97,9 @@ const TUNE = {
 
   RICE_CAP: 146, MULBERRY_CAP: 70, COCOON_CAP: 70, SILK_CAP: 44,
   BROCADE_CAP: 35, COPPERORE_CAP: 87, RITUALBRONZE_CAP: 52, BRINE_CAP: 70,
+
+  COIR_CAP: 100, SENNIT_CAP: 50, BAST_CAP: 80, TAPA_CAP: 50, NACRE_CAP: 100,
+  LURE_CAP: 60, ADZE_CAP: 50, FEATHERS_CAP: 80, CLOAK_CAP: 40,
   PRICES: { grain: 0.5, flour: 2, stone: 1, blocks: 4,
             clay: 0.6, pottery: 4, wool: 1.2, cloth: 7, beer: 3,
             dates: 1.8, fish: 1.5, salt: 1.5, reeds: 0.35, baskets: 8.9,
@@ -115,7 +121,10 @@ const TUNE = {
             saffron: 2.22, tin: 1.63, bronze: 7.89,
 
             rice: 0.61, mulberry: 0.59, cocoon: 2.03, silk: 11.84,
-            brocade: 31.70, copperore: 1.45, ritualbronze: 6.76, brine: 1.01 },
+            brocade: 31.70, copperore: 1.45, ritualbronze: 6.76, brine: 1.01,
+
+            coir: 0.68, sennit: 17.16, bast: 1.93, tapa: 13.50, nacre: 1.16,
+            lure: 7.71, adze: 25.07, feathers: 2.31, cloak: 50.13 },
 
   NO_EXPORT: { water: 1 },
 
@@ -128,6 +137,8 @@ const TUNE = {
   GIFT_LAND_STEP: 0.15,
 
   GIFT_TERRA_STEP: 0.20,
+
+  GIFT_SUPPLY_STEP: 12,
   DEMOLISH_REFUND: 0.5,
   CLEAR_TREE: 15,
 
@@ -231,6 +242,21 @@ const TUNE = {
   },
 
   REVET: { per: 0.60, add: 2.0 },
+
+  VOYAGE: {
+    range: 26,
+    courtBonus: 6,
+    rangePerRank: 2,
+
+    landfallMult: 2.5,
+    courtLandfall: 1.8,
+
+    tell: 30,
+
+    gateLandfalls: 3,
+  },
+
+  LASH: { per: 0.25, add: 4 },
 
   TRIBUTE: {
     share: 0.35,
@@ -379,6 +405,8 @@ const TUNE = {
     6: { kind: 'grain', price: 2, who: 'A boat up from Lothal sold the city', unit: 'sack' },
 
     8: { kind: 'grain', price: 2, who: 'A tribute train from the western marches sold the city', unit: 'load' },
+
+    9: { kind: 'grain', price: 2, who: 'A double hull put in from windward and traded the village', unit: 'load' },
     14: { kind: 'grain', price: 2, who: 'A highland trader sold the city', unit: 'load' },
   },
 
@@ -440,7 +468,7 @@ const HOUSE_RUNG_COST_MULT = [0.6, 1.0, 1.8, 3.0];
 
 const HOUSE_RUNG_REF = { 0: 'nestmound', 1: 'hidetent', 3: 'brushshelter', 4: 'house',
                          5: 'villa', 6: 'brickhouse', 7: 'ashlarhouse',
-                         8: 'courtyardcompound', 14: 'stonehouse' };
+                         8: 'courtyardcompound', 9: 'halepili', 14: 'stonehouse' };
 function houseRungRefCost(era) {
   const rung = rungOf(era);
   const keys = Object.keys(HOUSE_RUNG_REF).map(Number).sort((a, b) => a - b);
@@ -514,7 +542,7 @@ function eraInfo(era) {
   return r === 0 ? ERA_PROLOGUE : (ERAS[r - 1] || ERA_PROLOGUE);
 }
 
-const WRITTEN_RUNGS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 14];
+const WRITTEN_RUNGS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 14];
 
 const START_ERA = WRITTEN_RUNGS[0];
 function nextWrittenEra(era) {
@@ -726,6 +754,8 @@ const ERA_TERRA_LOCK = {
     water: 'the river is the river, and a pond you dug yourself has no fall in it — this age is about ' +
       'where the water goes, not where it is. Ram the ground instead, and cut through what is in the way',
   },
+
+  9: {},
 
   14: {
     fertile: 'there is no deep soil to buy in the Petén — it is a few inches of leaf mould over ' +
@@ -5665,6 +5695,539 @@ const BUILDINGS = {
       'them at all. +10% throughput out to 29 tiles, and every rank in the city costs 22% less.',
   },
 
+  lopondfield: {
+    name: 'Loʻi Pondfield', tier: 'food', era: 9, w: 2, h: 2, cost: 360, upkeep: 0.58,
+    icon: '\u{1F33F}', color: '#7fa86a', workers: 2, needsWater: true,
+    out: { grain: 3.0 },
+    desc: 'A walled terrace with fresh water led through it: 3.0 taro/min. THE SEA IS NOT WATER — it ' +
+      'wants a Punawai like everything else. +25% beside a Pounding Shed. There are no oxen in this ' +
+      'ocean: rank it, or dig another.',
+  },
+
+  poipound: {
+    name: 'Poi Pounding Shed', tier: 'food', era: 9, w: 2, h: 2, cost: 890, upkeep: 0.97,
+
+    grainMill: true,
+    icon: '\u{1F35A}', color: '#c9b489', workers: 4, needsWater: true, industry: true,
+    procIn: 'grain', procRate: 9.0, procOut: 'flour', procRatio: 0.6,
+    desc: 'Stone pounders on a wet board: 9.0 taro/min into 5.4 poi — 11.3 into 6.8 when it touches a ' +
+      'Pondfield, because the +25% raises both sides. One shed wants three terraces. Industry: a poor ' +
+      'neighbour for homes.',
+  },
+
+  haleaha: {
+    name: 'Hale ʻAha (Feast House)', tier: 'commerce', era: 9, w: 2, h: 2, cost: 890, upkeep: 1.16,
+    icon: '\u{1F372}', color: '#c98f6a', workers: 2, needsWater: true, needsRoad: true,
+    sells: 'flour', sellRate: 1.8, sellPrice: 6.61, custRadius: 6, custMin: 9,
+    desc: 'Sells 1.8 poi/min at $6.61 to any 9 residents, at any distance. The only thing in the food ' +
+      'chain that turns poi into money — and on an archipelago every haul is long, so a district far ' +
+      'from a supply point pays carting on top.',
+  },
+
+  coconutgrove: {
+    name: 'Coconut Grove', tier: 'food', era: 9, w: 2, h: 2, cost: 460, upkeep: 0.58,
+    icon: '\u{1F334}', color: '#9cb066', workers: 2, dryLand: true,
+    out: { coir: 2.0 },
+    desc: '2.0 husk fibre/min off the strand. +50% on DRY ground — plain sand or leeward scrub, never ' +
+      'the irrigated valley, which the taro wants. Every hull on this map is lashed together with what ' +
+      'comes out of here.',
+  },
+
+  sennithouse: {
+    name: 'Sennit Braiding House', tier: 'craft', era: 9, w: 2, h: 2, cost: 1070, upkeep: 1.16,
+    icon: '\u{1FAA2}', color: '#b59a6b', workers: 4, needsWater: true, industry: true,
+    procIn: 'coir', procRate: 3.2, procOut: 'sennit', procRatio: 0.5,
+    desc: 'Husk retted in the shallows and rolled on the thigh into cable: 3.2 husk/min into 1.6 sennit. ' +
+      'Two groves keep it fed with a little to spare. Nothing in this city is nailed; it is all tied.',
+  },
+
+  cordagestall: {
+    name: 'Cordage Stall', tier: 'commerce', era: 9, w: 2, h: 2, cost: 860, upkeep: 1.16,
+    icon: '\u{1F9F5}', color: '#c2a878', workers: 2, needsWater: true, needsRoad: true,
+    sells: 'sennit', sellRate: 1.0, sellPrice: 22.17, custRadius: 7, custMin: 10,
+    desc: 'Coils graded by lay and thickness: 1.0/min at $22.17. The most reliable money in the age, ' +
+      'because the ground it comes off is ground nothing else wants.',
+  },
+
+  waukegarden: {
+    name: 'Wauke Garden', tier: 'food', era: 9, w: 2, h: 2, cost: 390, upkeep: 0.46,
+    icon: '\u{1F343}', color: '#8fb07a', workers: 2, needsWater: true, slowSalt: true,
+    out: { bast: 1.2 },
+    desc: 'Paper mulberry grown for its inner bark: 1.2 bast/min, souring the ground at HALF the taro ' +
+      'rate. It grows exactly where the taro grows, on the same scarce windward loam. Every terrace now ' +
+      'asks the same question: dinner, or cloth?',
+  },
+
+  tapahouse: {
+    name: 'Tapa Beating House', tier: 'craft', era: 9, w: 2, h: 2, cost: 930, upkeep: 1.08,
+    icon: '\u{1FAB5}', color: '#c9b8a0', workers: 4, needsWater: true, industry: true,
+    procIn: 'bast', procRate: 3.6, procOut: 'tapa', procRatio: 0.5,
+    desc: 'Soaked bast beaten thin on an anvil log and felted into sheet: 3.6 bast/min into 1.8 ' +
+      'barkcloth. One house wants three gardens. You can hear a village by its beaters.',
+  },
+
+  tapahall: {
+    name: 'Tapa Hall', tier: 'commerce', era: 9, w: 2, h: 2, cost: 1140, upkeep: 1.35,
+    icon: '\u{1F9F6}', color: '#b8a894', workers: 2, needsWater: true, needsRoad: true,
+    sells: 'tapa', sellRate: 0.8, sellPrice: 36.15, custRadius: 7, custMin: 14,
+    desc: 'Sells 0.8 bolts/min at $36.15 — paid for out of terraces that would otherwise have been ' +
+      'dinner. The fussiest ground in the age and therefore the second-best price.',
+  },
+
+  pearlbeds: {
+    name: 'Pearl-Shell Beds', tier: 'food', era: 9, w: 2, h: 2, cost: 390, upkeep: 0.58,
+    icon: '\u{1F41A}', color: '#c9c2b0', workers: 2, onWater: true,
+    out: { nacre: 3.2 },
+    desc: 'Divers working a marked reef: 3.2 pearl shell/min. Worth almost nothing raw and a great deal ' +
+      'worked. Stands IN the lagoon — every tile of it on water — and wants the same quiet water your ' +
+      'fishpond does.',
+  },
+
+  lurework: {
+    name: 'Pearl-Shell Lure Works', tier: 'commerce', era: 9, w: 2, h: 2, cost: 680, upkeep: 0.77,
+    icon: '\u{1FA9D}', color: '#c9b8c2', workers: 4, needsWater: true, needsRoad: true, industry: true,
+    procIn: 'nacre', procRate: 4.0, procOut: 'lure', procRatio: 0.5,
+    sells: 'lure', sellRate: 1.1, sellPrice: 17.16, custRadius: 6, custMin: 9,
+    desc: 'Shell cut, ground and lashed into trolling lures that take a fish with no bait at all. Sells ' +
+      'on the spot at $17.16 — a deliberately SHORT chain: two buildings and six mouths where barkcloth ' +
+      'needs three and eight. Chain length is a strategy.',
+  },
+
+  adzequarry: {
+    name: 'Basalt Adze Quarry', tier: 'food', era: 9, w: 3, h: 3, cost: 1600, upkeep: 1.35,
+    icon: '\u{26CF}\u{FE0F}', color: '#6a655e', workers: 5, onRock: true, industry: true,
+    quarried: true, out: { stone: 5.0 },
+    desc: '5.0 basalt/min off a fine-grained flow, scaled by how much rock is actually under it (+50% ' +
+      'on a properly rocky pad). Every tile it works is gone for good and comes back as grass — there ' +
+      'is no midden for basalt. It needs no water: quarrying is dry work.',
+  },
+
+  adzeshed: {
+    name: 'Adze Grinding Shed', tier: 'commerce', era: 9, w: 2, h: 2, cost: 1000, upkeep: 1.08,
+    icon: '\u{1FA93}', color: '#8a8279', workers: 4, needsWater: true, needsRoad: true, industry: true,
+    procIn: 'stone', procRate: 4.0, procOut: 'adze', procRatio: 0.5,
+    sells: 'adze', sellRate: 0.8, sellPrice: 25.06, custRadius: 6, custMin: 10,
+    desc: 'Blanks flaked, then ground for days against wet sandstone: 4.0 basalt/min into 2.0 adzes, ' +
+      'sold at $25.06 — and the whole ocean bought them, which is how we know the canoes came back. ' +
+      'Every blade sold is basalt your era gate does not get.',
+  },
+
+  birdcatcher: {
+    name: "Birdcatcher's Camp", tier: 'food', era: 9, w: 2, h: 2, cost: 430, upkeep: 0.46,
+    icon: '\u{1FAB6}', color: '#a8452f', workers: 2, onRock: true,
+    out: { feathers: 0.6 },
+    desc: 'Gum on a branch above the tree line: 0.6 feathers/min, the scarcest yield in the age. It ' +
+      'wants upland lava — the same band your quarry wants — and TWO camps feed one Featherwork House. ' +
+      'Cut the hill away and the birds go with it.',
+  },
+
+  featherhouse: {
+    name: 'Featherwork House', tier: 'craft', era: 9, w: 2, h: 2, cost: 1280, upkeep: 1.24,
+    icon: '\u{1F9E5}', color: '#b83c2a', workers: 4, needsWater: true, needsRoad: true, industry: true,
+    procIn: 'feathers', procRate: 1.2, procOut: 'cloak', procRatio: 0.6667,
+    sells: 'cloak', sellRate: 0.6, sellPrice: 50.13, custRadius: 7, custMin: 14,
+    desc: 'Feathers knotted into an olonā net on a curved wicker frame: 0.8 cloaks/min at $50.13 — the ' +
+      'richest object in the age and the slowest chain to feed. Two camps keep one house busy and ' +
+      'neither of them is quick.',
+  },
+
+  breadfruitgrove: {
+    name: 'Breadfruit Grove', tier: 'food', era: 9, w: 3, h: 3, cost: 890, upkeep: 0.77,
+    icon: '\u{1F332}', color: '#6f9c5a', workers: 4,
+    out: { dates: 4.6 }, saltProof: true,
+    desc: '4.6 breadfruit/min from a tree that wants NO water coverage, NO road and NO processing — and ' +
+      'yields +50% on ground already gone brackish. It is what feeds an island the week you land on it, ' +
+      'and it is the first thing to plant on one.',
+  },
+
+  reefstation: {
+    name: 'Lagoon Reef Station', tier: 'food', era: 9, w: 1, h: 3, cost: 570, upkeep: 0.58,
+    icon: '\u{1F41F}', color: '#5f9fb0', workers: 2, onWater: true,
+    out: { fish: 3.6 },
+    desc: 'A stone trap on the reef flat that empties itself on the falling tide: 3.6 fish/min, eaten at ' +
+      '75% of poi\'s worth. Stands IN the lagoon, every tile of it on water, and owes the springs nothing.',
+  },
+
+  fishpond: {
+    name: 'Loko Iʻa (Walled Fishpond)', tier: 'food', era: 9, w: 4, h: 4, cost: 2400, upkeep: 1.61,
+    icon: '\u{1F420}', color: '#4f8fa0', workers: 5, onWater: true,
+    out: { fish: 10.0 },
+    desc: 'A basalt wall across a bay with a grating the fry swim in through and the grown fish cannot ' +
+      'swim out of: 10.0 fish/min for five mouths. The largest food building in the age and the one that ' +
+      'needs the most sheltered water — sixteen tiles of it, all lagoon.',
+  },
+
+  reefsaltpans: {
+    name: 'Reef Salt Pans', tier: 'food', era: 9, w: 2, h: 2, cost: 430, upkeep: 0.46,
+    icon: '\u{1F9C2}', color: '#e2ded0', workers: 2, onSalt: true,
+    out: { salt: 3.0 },
+    desc: 'Sea water raked down in shallow pans on the leeward flats: 3.0 salt/min, +50% on a real pan. ' +
+      'The dead ground on the dry side of the island turns out to be an extraction zone.',
+  },
+
+  strandstall: {
+    name: 'Strand Stall', tier: 'commerce', era: 9, w: 1, h: 2, cost: 500, upkeep: 0.58,
+    icon: '\u{1F6D2}', color: '#bd9a70', workers: 1, needsWater: true, needsRoad: true,
+    sellsRaw: ['nacre', 'coir', 'bast', 'salt', 'fish', 'feathers'], sellRate: 3.0,
+    custRadius: 6, custMin: 7,
+    desc: 'Sells whatever raw good you have most of — shell, husk, bast, salt, fish or feathers — at 80% ' +
+      'of list, 3.0 units/min. Your first income the minute the first bed opens; knowing when to ' +
+      'demolish it is the real decision.',
+  },
+
+  halepili: {
+    name: 'Hale Pili', tier: 'housing', era: 9, w: 1, h: 1, cost: 430, upkeep: 0.19,
+    icon: '\u{1F3E1}', color: '#c9a878', cap: 7, needsWater: true, needsRoad: true,
+    desc: 'Pili grass thatched over a pole frame. Homes 4 when it goes up, rising to 25 as it earns its ' +
+      'rungs. Needs a Punawai and a path to the marae — the ocean at the door is not water.',
+  },
+
+  halenoa: {
+    name: 'Hale Noa', tier: 'housing', era: 9, w: 2, h: 2, cost: 1470, upkeep: 0.65,
+    icon: '\u{1F3D8}\u{FE0F}', color: '#b8946a', cap: 24, needsWater: true, needsRoad: true,
+    levels: ['Family Compound', 'Walled Compound', 'Long Compound', "Chief's Compound",
+             'Ancestral Seat', 'Seat of the Line'],
+    desc: 'The walled family cluster: a sleeping house, a cook house, an eating house and the ground ' +
+      'between them. Homes 12 when it goes up, rising to 84. Four Hale Pili on the same four tiles hold ' +
+      'more — but they want four paths to the marae, and this wants one.',
+  },
+
+  punawai: {
+    name: 'Punawai (Spring Basin)', tier: 'infra', era: 9, w: 1, h: 1, cost: 210, upkeep: 0.39,
+    icon: '\u{26F2}', color: '#6fb0c2', waterRadius: 5,
+    desc: 'A stone-lined basin cut where the water comes out of the hill: waters everything within 5 ' +
+      'tiles. No workers, no road. THE OCEAN IS NOT WATER — nothing on this map drinks the sea, and a ' +
+      'building on the beach is as dry as one on the ridge.',
+  },
+
+  mulchpit: {
+    name: 'Mulch Pit', tier: 'infra', era: 9, w: 1, h: 1, cost: 320, upkeep: 0.31,
+    icon: '\u{1F33F}', color: '#7a6a4a', soilRadius: 5,
+    desc: 'Cut banana trash, seaweed and ash turned into a pit at the head of the terraces. Ground ' +
+      'within 5 tiles recovers from brackishness 3x faster. No workers, no road.',
+  },
+
+  halepaa: {
+    name: 'Hale Pāʻā (Walled Store)', tier: 'infra', era: 9, w: 2, h: 2, cost: 710, upkeep: 0.77,
+    icon: '\u{1F4E6}', color: '#a8916a', workers: 2, needsWater: true, needsRoad: true,
+    depot: true, storeCraft: 40,
+    desc: 'Racked shelves, sealed gourds and a poi pit sunk in the floor: +40 capacity for every craft ' +
+      'good, and it counts as a SUPPLY POINT. On an archipelago that second half is the important one — ' +
+      'a district with no supply point pays triple upkeep on every building in it.',
+  },
+
+  gourdstore: {
+    name: 'Gourd Store', tier: 'infra', era: 9, w: 1, h: 1, cost: 290, upkeep: 0.15,
+    icon: '\u{1FAD9}', color: '#b09a62', storeGrain: 76, storeFlour: 46,
+    desc: 'Sealed calabashes on a rack under the eaves: +76 taro and +46 poi capacity, NO workers — the ' +
+      'famine buffer that does not eat.',
+  },
+
+  canoelanding: {
+    name: 'Canoe Landing (Kahua Waʻa)', tier: 'infra', era: 9, w: 2, h: 3, cost: 2140, upkeep: 1.35,
+    icon: '\u{1F6F6}', color: '#8a7f63', workers: 3,
+    depot: true, voyageRange: 26, nearWater: 1, needsRoad: false, needsWater: false,
+    desc: 'Cleared coral, a hauling ramp and a stone marker on the point. IT MUST TOUCH OPEN WATER. ' +
+      'Every shore within 26 tiles of sea becomes ground you are allowed to buy — that is the whole age ' +
+      'in one sentence. It is also a SUPPLY POINT, so the district around it stops paying the carting ' +
+      'premium. Rank it and it crosses two tiles further each time.',
+  },
+
+  wayfindingcourt: {
+    name: 'Wayfinding Court', tier: 'civic', era: 9, w: 3, h: 3, cost: 1780, upkeep: 1.74,
+    icon: '\u{2B50}', color: '#7a7f8c', workers: 5, needsRoad: true,
+    voyageBonus: 6,
+    desc: 'Upright stones set to the rising and setting points of thirty-two stars, and the people who ' +
+      'can still name them. While it stands and is staffed EVERY Landing you own crosses 6 tiles ' +
+      'further, and a landfall costs 1.8x instead of 2.5x. It produces nothing. It is the two islands ' +
+      'you could not otherwise have reached.',
+  },
+
+  coralcauseway: {
+    name: 'Coral Causeway', tier: 'infra', era: 9, w: 1, h: 1, cost: 430, upkeep: 0.19,
+    icon: '\u{1F6E4}\u{FE0F}', color: '#c4bda6', onWater: true, bridge: true,
+    desc: 'Coral heads levered up and tipped into the shallows until there is a path where there was a ' +
+      'channel. Carries the road across water — lay a line of them shore to shore. It only ever answers ' +
+      'a SHORT strait: you must own every tile you lay one on, and the open sea is not for sale.',
+  },
+
+  halau: {
+    name: 'Hālau (Long-House)', tier: 'civic', era: 9, w: 2, h: 2, cost: 290, upkeep: 0.19,
+    icon: '\u{1F6D6}', color: '#b09a72', capRadius: 20,
+    desc: 'The open-sided long-house where the hull is built, the dances are learned and the village ' +
+      'argues. +1 housing capacity for EVERY home within 20 tiles. One covers a district; a second adds ' +
+      'nothing to a home already covered.',
+  },
+
+  reefshrine: {
+    name: 'Reef Shrine', tier: 'civic', era: 9, w: 1, h: 1, cost: 320, upkeep: 0.31,
+    icon: '\u{1FAA8}', color: '#8a9c8f', amenityRadius: 8,
+    desc: 'A coral slab and an offering gourd on the point above the fishing ground. Contentment out to ' +
+      '8 tiles — what a satellite hamlet has instead of a long-house.',
+  },
+
+  konohiki: {
+    name: "Konohiki's House", tier: 'civic', era: 9, w: 2, h: 2, cost: 710, upkeep: 0.46,
+    icon: '\u{1F4CB}', color: '#c2b08a', needsWater: true, keepsTally: true,
+    desc: 'The land steward who knows every terrace in the wedge — what it owes, what it grew last year ' +
+      'and who owes days on it. +10% sales throughput at every shop within 20 tiles. One covers a ' +
+      'district; a second adds nothing to a shop already counted.',
+  },
+
+  adzestandard: {
+    name: 'The Adze Standard', tier: 'civic', era: 9, w: 2, h: 3, cost: 1780, upkeep: 1.74,
+    icon: '\u{2696}\u{FE0F}', color: '#9c968c', workers: 5, needsWater: true, needsRoad: true,
+    weighRadius: 10,
+    desc: 'A rack of master blanks, ground true and kept under the eaves, that every trade is checked ' +
+      'against. Shops within 10 tiles sell at a better price. It stacks with the Konohiki\'s throughput ' +
+      'at radius 20 — throughput wide, price tight.',
+  },
+
+  imu: {
+    name: 'Imu (Earth Oven)', tier: 'food', era: 9, w: 2, h: 2, cost: 860, upkeep: 0.85,
+    icon: '\u{1F525}', color: '#8a6a4a', workers: 2, needsWater: true, needsRoad: true, ovenRadius: 8,
+    desc: 'One pit of hot stones under wet leaves beats twenty cook fires: homes within 8 tiles eat 15% ' +
+      'less. The cheapest food in the age is the food you stop wasting.',
+  },
+
+  kii: {
+    name: 'Kiʻi (Carved Image)', tier: 'beauty', era: 9, w: 1, h: 1, cost: 70, upkeep: 0,
+    icon: '\u{1F5FF}', color: '#7a6a52', cosmetic: true,
+    desc: 'A carved figure on a post, teeth bared, facing the sea. No output, no upkeep. A city is ' +
+      'allowed to be frightening.',
+  },
+
+  boundarycairn: {
+    name: 'Ahu (Boundary Cairn)', tier: 'beauty', era: 9, w: 1, h: 1, cost: 90, upkeep: 0,
+    icon: '\u{1FAA8}', color: '#8f8a80', cosmetic: true,
+    desc: 'A stacked cairn on the ridge line where one wedge of the island ends and the next begins. No ' +
+      'output, no upkeep — but everyone on both sides knows exactly what it means.',
+  },
+
+  terraceflight: {
+    name: 'Valley Terrace Flight', tier: 'food', era: 9, w: 2, h: 2, cost: 880, upkeep: 1.16,
+    icon: '\u{1F33E}', color: '#6f9c5f', workers: 3, needsWater: true,
+    out: { grain: 6.0 },
+    desc: 'A whole staircase of terraces down one valley off a single ditch head: 6.0 taro/min. The ' +
+      'water that leaves the top pond is the water that fills the next.',
+  },
+  coconutwalk: {
+    name: 'Coconut Walk', tier: 'food', era: 9, w: 2, h: 2, cost: 1130, upkeep: 1.16,
+    icon: '\u{1F334}', color: '#8fa85c', workers: 3, dryLand: true,
+    out: { coir: 4.0 },
+    desc: 'Planted in ranks with the ground kept clear beneath: 4.0 husk fibre/min. A grove is what ' +
+      'grows; a walk is what somebody laid out.',
+  },
+  waukestand: {
+    name: 'Wauke Stand', tier: 'food', era: 9, w: 2, h: 2, cost: 960, upkeep: 0.92,
+    icon: '\u{1F343}', color: '#7fa86a', workers: 3, needsWater: true, slowSalt: true,
+    out: { bast: 2.4 },
+    desc: 'Coppiced on a two-year rotation and stripped young, when the bark still comes away whole: ' +
+      '2.4 bast/min, and it still sours the terrace at half the taro rate.',
+  },
+  diversreef: {
+    name: "Diver's Reef", tier: 'food', era: 9, w: 2, h: 2, cost: 960, upkeep: 1.16,
+    icon: '\u{1F41A}', color: '#b8b2a0', workers: 3, onWater: true,
+    out: { nacre: 6.4 },
+    desc: 'The whole reef mapped, quartered and worked in rotation so no quarter is stripped: 6.4 pearl ' +
+      'shell/min, and there will still be shell here next year.',
+  },
+  basaltface: {
+    name: 'The Basalt Face', tier: 'food', era: 9, w: 3, h: 3, cost: 3920, upkeep: 2.70,
+    icon: '\u{26CF}\u{FE0F}', color: '#5c5852', workers: 6, onRock: true, industry: true,
+    quarried: true, out: { stone: 10.0 },
+    desc: 'A working face rather than a scatter of pits: 10.0 basalt/min off a fine-grained flow. It ' +
+      'eats the hill twice as fast, and the hill is where the birds are.',
+  },
+  fowlerstation: {
+    name: "Fowler's Station", tier: 'food', era: 9, w: 2, h: 2, cost: 1050, upkeep: 0.92,
+    icon: '\u{1FAB6}', color: '#94402c', workers: 3, onRock: true,
+    out: { feathers: 1.2 },
+    desc: 'A hut on the ridge, gum boiled on the spot, and birds released alive with three feathers ' +
+      'gone: 1.2 feathers/min from the same ground.',
+  },
+  ulustand: {
+    name: 'Ulu Stand', tier: 'food', era: 9, w: 3, h: 3, cost: 2180, upkeep: 1.54,
+    icon: '\u{1F332}', color: '#5f8f4a', workers: 5,
+    out: { dates: 9.2 }, saltProof: true,
+    desc: 'Grafted, underplanted with banana and thinned so every tree gets sun: 9.2 breadfruit/min — ' +
+      'and it STILL wants no water coverage, no road and no processing.',
+  },
+  tidalweir: {
+    name: 'Tidal Weir', tier: 'food', era: 9, w: 1, h: 3, cost: 1400, upkeep: 1.16,
+    icon: '\u{1F41F}', color: '#4f8fa8', workers: 3, onWater: true,
+    out: { fish: 7.2 },
+    desc: 'Wings run out along the reef so the whole falling tide is funnelled through one gate: 7.2 ' +
+      'fish/min, and nobody has to swim.',
+  },
+  kuapawall: {
+    name: 'Kuapā Wall', tier: 'food', era: 9, w: 4, h: 4, cost: 5880, upkeep: 3.22,
+    icon: '\u{1F420}', color: '#3f7f90', workers: 6, onWater: true,
+    out: { fish: 20.0 },
+    desc: 'The pond wall carried right around the bay with sluice gates at both ends, so the tide flushes ' +
+      'it twice a day and the fish never stop feeding: 20.0 fish/min. The largest thing in the age.',
+  },
+  rakerflats: {
+    name: "Rakers' Flats", tier: 'food', era: 9, w: 2, h: 2, cost: 1050, upkeep: 0.92,
+    icon: '\u{1F9C2}', color: '#d8d4c4', workers: 3, onSalt: true,
+    out: { salt: 6.0 },
+    desc: 'Terraced pans, each one draining into the next as it concentrates: 6.0 salt/min. The last pan ' +
+      'is the one worth raking.',
+  },
+
+  poiboards: {
+    name: 'The Poi Boards', tier: 'food', era: 9, w: 2, h: 2, cost: 1470, upkeep: 1.36,
+    grainMill: true,
+    icon: '\u{1F35A}', color: '#bda878', workers: 5, needsWater: true, industry: true,
+    procIn: 'grain', procRate: 12.6, procOut: 'flour', procRatio: 0.6,
+    desc: 'Six boards under one roof, each with its own stone and its own pounder: 12.6 taro/min into ' +
+      '7.6 poi. Still +25% beside a Pondfield, on both sides.',
+  },
+  cableloft: {
+    name: 'Cable Loft', tier: 'craft', era: 9, w: 2, h: 2, cost: 1770, upkeep: 1.62,
+    icon: '\u{1FAA2}', color: '#a88e5f', workers: 5, needsWater: true, industry: true,
+    procIn: 'coir', procRate: 4.5, procOut: 'sennit', procRatio: 0.5,
+    desc: 'A long loft where the strands are walked out to full length before they are laid up: 4.5 ' +
+      'husk/min into 2.25 sennit, and the cable comes out even.',
+  },
+  beatersrow: {
+    name: "Beaters' Row", tier: 'craft', era: 9, w: 2, h: 2, cost: 1530, upkeep: 1.51,
+    icon: '\u{1FAB5}', color: '#bfae96', workers: 5, needsWater: true, industry: true,
+    procIn: 'bast', procRate: 5.0, procOut: 'tapa', procRatio: 0.5,
+    desc: 'Five anvil logs in a line, each beater tuned to a different note so the row can keep time: ' +
+      '5.0 bast/min into 2.5 barkcloth. The village can hear how well the day is going.',
+  },
+
+  hookbench: {
+    name: 'The Hook Bench', tier: 'commerce', era: 9, w: 2, h: 2, cost: 1290, upkeep: 1.08,
+    icon: '\u{1FA9D}', color: '#bfa8b5', workers: 5, needsWater: true, needsRoad: true, industry: true,
+    procIn: 'nacre', procRate: 5.6, procOut: 'lure', procRatio: 0.5,
+    sells: 'lure', sellRate: 2.2, sellPrice: 17.16, custRadius: 6, custMin: 9,
+    desc: 'Blanks roughed by one hand and finished by another, with a bench of masters at the end: 5.6 ' +
+      'shell/min into 2.8 lures, and 2.2 of them out the door every minute.',
+  },
+  bladefloor: {
+    name: 'The Blade Floor', tier: 'commerce', era: 9, w: 2, h: 2, cost: 1900, upkeep: 1.62,
+    icon: '\u{1FA93}', color: '#7a736b', workers: 5, needsWater: true, needsRoad: true, industry: true,
+    procIn: 'stone', procRate: 5.6, procOut: 'adze', procRatio: 0.5,
+    sells: 'adze', sellRate: 1.6, sellPrice: 25.06, custRadius: 6, custMin: 10,
+    desc: 'A floor of wet sandstone slabs kept running with a channel, so nobody stops to fetch water: ' +
+      '5.6 basalt/min into 2.8 adzes and 1.6 sold. It eats the hill faster than one quarry feeds it.',
+  },
+  plumeloft: {
+    name: 'The Plume Loft', tier: 'craft', era: 9, w: 2, h: 2, cost: 2430, upkeep: 2.11,
+    icon: '\u{1F9E5}', color: '#a8352a', workers: 5, needsWater: true, needsRoad: true, industry: true,
+    procIn: 'feathers', procRate: 1.7, procOut: 'cloak', procRatio: 0.6667,
+    sells: 'cloak', sellRate: 1.2, sellPrice: 50.13, custRadius: 7, custMin: 14,
+    desc: 'Feathers sorted by size and shade before a single one is tied, so the ranks of colour run ' +
+      'true: 1.7 feathers/min into 1.13 cloaks, and 1.2 sold. Everything here is somebody\'s ancestor.',
+  },
+
+  feastterrace: {
+    name: 'The Feast Terrace', tier: 'commerce', era: 9, w: 2, h: 2, cost: 1780, upkeep: 1.74,
+    icon: '\u{1F372}', color: '#bf8260', workers: 3, needsWater: true, needsRoad: true,
+    sells: 'flour', sellRate: 3.6, sellPrice: 6.61, custRadius: 6, custMin: 9,
+    desc: 'A paved terrace with standing ovens and room for the whole wedge to sit down: 3.6 poi/min. ' +
+      'An age this far from anywhere eats together or not at all.',
+  },
+  coilyard: {
+    name: 'The Coil Yard', tier: 'commerce', era: 9, w: 2, h: 2, cost: 1720, upkeep: 1.74,
+    icon: '\u{1F9F5}', color: '#b59c6e', workers: 3, needsWater: true, needsRoad: true,
+    sells: 'sennit', sellRate: 2.0, sellPrice: 22.17, custRadius: 7, custMin: 10,
+    desc: 'Coils racked by lay, thickness and age, with a yard big enough to run a cable out and look ' +
+      'down it: 2.0/min at $22.17.',
+  },
+  kaparoom: {
+    name: 'The Kapa Room', tier: 'commerce', era: 9, w: 2, h: 2, cost: 2280, upkeep: 2.03,
+    icon: '\u{1F9F6}', color: '#a89a86', workers: 3, needsWater: true, needsRoad: true,
+    sells: 'tapa', sellRate: 1.6, sellPrice: 36.15, custRadius: 7, custMin: 14,
+    desc: 'A dry room where bolts are kept flat, scented with maile and shown one at a time: 1.6 ' +
+      'bolts/min at $36.15. Damp barkcloth is worth nothing and everyone knows it.',
+  },
+  shorecounter: {
+    name: 'The Shore Counter', tier: 'commerce', era: 9, w: 1, h: 2, cost: 1000, upkeep: 0.87,
+    icon: '\u{1F6D2}', color: '#ad8a60', workers: 2, needsWater: true, needsRoad: true,
+    sellsRaw: ['nacre', 'coir', 'bast', 'salt', 'fish', 'feathers'], sellRate: 6.0,
+    custRadius: 6, custMin: 7,
+    desc: 'A proper counter with a roof, a scale and somebody who knows what things are worth: 6.0 ' +
+      'units/min of whatever you have most of, still at 80% of list.',
+  },
+
+  stonetank: {
+    name: 'The Stone Tank', tier: 'infra', era: 9, w: 1, h: 1, cost: 440, upkeep: 0.62,
+    icon: '\u{26F2}', color: '#5f9fb5', waterRadius: 8,
+    desc: 'The spring caught, roofed and led out along a stone-lined race: waters everything within 8 ' +
+      'tiles instead of 5. Still no workers and still no road.',
+  },
+  ashbeds: {
+    name: 'The Ash Beds', tier: 'infra', era: 9, w: 1, h: 1, cost: 670, upkeep: 0.48,
+    icon: '\u{1F33F}', color: '#6a5c40', soilRadius: 7,
+    desc: 'Burnt coral, wood ash and pounded seaweed layered and turned: ground within 7 tiles recovers ' +
+      'from brackishness 3x faster.',
+  },
+  halemua: {
+    name: "Hale Mua (Men's House)", tier: 'civic', era: 9, w: 2, h: 2, cost: 610, upkeep: 0.29,
+    icon: '\u{1F6D6}', color: '#a08a62', capRadius: 29,
+    desc: 'The eating house where the men of the wedge take their meals apart, and where the hull gets ' +
+      'argued over for a year before it is cut. +1 housing capacity within 29 tiles.',
+  },
+  pointheiau: {
+    name: 'The Point Heiau', tier: 'civic', era: 9, w: 1, h: 1, cost: 670, upkeep: 0.48,
+    icon: '\u{1FAA8}', color: '#7a8c7f', amenityRadius: 12,
+    desc: 'A walled platform of stacked stone with an oracle tower and a drum: contentment out to 12 ' +
+      'tiles. Somebody with authority is watching the sea now.',
+  },
+  tradestones: {
+    name: 'The Trade Stones', tier: 'civic', era: 9, w: 2, h: 3, cost: 3740, upkeep: 2.61,
+    icon: '\u{2696}\u{FE0F}', color: '#8c8680', workers: 6, needsWater: true, needsRoad: true,
+    weighRadius: 14,
+    desc: 'Master blanks set in the ground where everyone passes, so a trade is checked without anyone ' +
+      'having to ask. Shops within 14 tiles sell at a better price.',
+  },
+  kaluapits: {
+    name: 'Kālua Pits', tier: 'food', era: 9, w: 2, h: 2, cost: 1810, upkeep: 1.28,
+    icon: '\u{1F525}', color: '#7a5c40', workers: 3, needsWater: true, needsRoad: true, ovenRadius: 12,
+    desc: 'Three pits on a rota so one is always hot and one is always cooling: homes within 12 tiles ' +
+      'eat 15% less.',
+  },
+
+  halewaa: {
+    name: 'Hale Waʻa (Canoe House)', tier: 'infra', era: 9, w: 2, h: 2, cost: 1490, upkeep: 1.16,
+    icon: '\u{1F4E6}', color: '#9c8560', workers: 3, needsWater: true, needsRoad: true,
+    depot: true, storeCraft: 80,
+    desc: 'The long shed where the hulls live between voyages, and everything that goes in them: +80 ' +
+      'capacity for every craft good, and still a SUPPLY POINT.',
+  },
+  ipurack: {
+    name: 'Ipu Rack', tier: 'infra', era: 9, w: 1, h: 1, cost: 610, upkeep: 0.23,
+    icon: '\u{1FAD9}', color: '#a08a52', storeGrain: 152, storeFlour: 92,
+    desc: 'Gourds grown to shape on a frame, dried hard, sealed with breadfruit gum and racked in tiers: ' +
+      '+152 taro and +92 poi capacity, and it still eats nothing.',
+  },
+
+  haulingslipway: {
+    name: 'The Hauling Slipway', tier: 'infra', era: 9, w: 2, h: 3, cost: 4490, upkeep: 2.03,
+    icon: '\u{1F6F6}', color: '#7a7057', workers: 4,
+    depot: true, voyageRange: 26, nearWater: 1, needsRoad: false, needsWater: false,
+    storeCraft: 40,
+    desc: 'A stone ramp, rollers and a shed at the head of it, so a hull comes out of the water without ' +
+      'thirty people. It crosses the SAME 26 tiles — distance is bought at the Court and at the rank — ' +
+      'and what it adds is +40 craft capacity on a shore that had none.',
+  },
+  starcompass: {
+    name: 'The Star Compass', tier: 'civic', era: 9, w: 3, h: 3, cost: 3740, upkeep: 2.61,
+    icon: '\u{2B50}', color: '#6a7080', workers: 6, needsRoad: true,
+    voyageBonus: 9,
+    desc: 'The full thirty-two houses set out in stone, with the swell directions and the bird flights ' +
+      'named between them. Every Landing you own crosses 9 tiles further instead of 6.',
+  },
+  basaltmole: {
+    name: 'The Basalt Mole', tier: 'infra', era: 9, w: 1, h: 1, cost: 900, upkeep: 0.29,
+    icon: '\u{1F6E4}\u{FE0F}', color: '#b0a894', onWater: true, bridge: true, depot: true,
+    desc: 'The causeway squared off and carried out far enough to lie behind: carries the road AND ' +
+      'counts as a SUPPLY POINT, so the far shore stops paying the carting premium.',
+  },
+
   coal: {
     name: 'Coal Plant', tier: 'infra', era: 30, w: 2, h: 2, cost: 800, upkeep: 1.0,
     icon: '\u{1F3ED}', color: '#8d8d99', workers: 4, needsWater: true, industry: true,
@@ -5721,6 +6284,9 @@ const HOUSE_LEVELS = {
 
   8: ['Pit Dwelling', 'Courtyard Compound', 'Two-Court Compound',
       'Walled Compound', 'Royal Terrace House', 'Ancestral Seat'],
+
+  9: ['Beach Shelter', 'Hale Pili', 'Raised-Floor House',
+      'Kauhale (Household)', "Konohiki's Hale", 'Chiefly Hale'],
   30: ['Tenement Room', 'Brick Terrace', 'Merchant Townhouse', 'Mansion Flat', 'City Mansion', 'Merchant Palace'],
 };
 
@@ -5897,6 +6463,24 @@ const MONUMENT_GIFT = {
     apply(s) { s.giftTerra = (s.giftTerra | 0) + 1; },
   },
 
+  9: {
+    key: 'supply',
+    icon: '\u{1F6F6}',
+    title: 'The Ground You Cannot See',
+    lead: 'The platform is faced and the uprights are set. The sea in front of it is not a wall any more.',
+    body: 'Every other people on this ladder grew by walking outward until walking got expensive. This ' +
+          'one worked out how to hold a place together across water it could not see across — the ' +
+          'stars, the swells, the flights of birds, and the certainty that there was something out ' +
+          'there worth aiming at. What survives is not the canoe. It is the idea that a city is not ' +
+          'the same thing as the ground it is standing on.',
+    grant: '<b>Every city you found, in this age and every age after it, hauls ' +
+           TUNE.GIFT_SUPPLY_STEP + ' tiles further before the carting premium starts.</b>',
+    toast: '\u{1F6F6} The wayfinders’ reckoning is yours. Every city you found from now on hauls ' +
+           TUNE.GIFT_SUPPLY_STEP + ' tiles further for nothing.',
+    log: 'Their gift: distance made cheap. A city can be spread out now, in every age after this one.',
+    apply(s) { s.giftSupply = (s.giftSupply | 0) + 1; },
+  },
+
 };
 function monumentGift(era) { return MONUMENT_GIFT[rungOf(era)] || null; }
 
@@ -5982,6 +6566,17 @@ const ERA_POLICY = {
       'just gone dry.',
   },
 
+  9: {
+    key: 'policyLash', icon: '\u{1FAA2}', name: 'The Lashing Order',
+    tip: 'Every hull in the city is stripped and re-lashed, and the crews are kept at it: each CANOE ' +
+      'LANDING crosses ' + TUNE.LASH.add + ' tiles further while the order is paid. It costs ' +
+      TUNE.LASH.per.toFixed(2) + ' sennit a minute PER LIVE LANDING and stops the moment the coils run ' +
+      'short. Turn it on to make ONE crossing you could not otherwise make — the ground you buy with it ' +
+      'stays yours at the ordinary reach.',
+    on: 'The order is called. Every hull comes out, and the lashings go on green and tight.',
+    off: 'The order is stood down. Watch the \u{1F6F6} chip — an island that was open may have just closed.',
+  },
+
   14: {
     key: 'policyRation', icon: '\u{1F4A7}', name: 'The Reservoir Ration',
     tip: 'The city draws ' + Math.round(TUNE.RATION.drawCut * 100) + '% less water — and every ' +
@@ -6049,6 +6644,12 @@ const ERA_ROAD = {
              'Only SOME buildings need one — homes, markets, stores, the civic buildings and the two ' +
              'yards that ship walling; fields, ditches, gates, wells, groves, adits, pans, middens and ' +
              'the quarry never do. $10 a tile, nothing to keep.' },
+
+  9: { flavour: 'Coral Path', color: 0xd8cfba, hw: 0.30,
+       desc: 'Beach coral broken small and raked flat between the houses, blinding at midday and easy ' +
+             'to follow at night. Only SOME buildings need one — homes, the shops and halls, the store ' +
+             'and the civic buildings; terraces, groves, beds, pans, springs, mulch pits, the quarry ' +
+             'and THE CANOE LANDING never do. $10 a tile, nothing to keep.' },
   14: { flavour: 'Sacbé', color: 0xe6e0d2, hw: 0.38,
         desc: 'A raised roadbed of rubble faced with cut stone and finished in white lime plaster — ' +
               'dead straight, and visible from a long way off. With no carts and no draft animals, ' +
@@ -6092,6 +6693,11 @@ const MONUMENTS = [
     desc: 'Seven kilometres of tamped earth round the settlement, raised one eight-centimetre course ' +
       'at a time between shuttering boards and beaten until a rammer rings on it. The gangs had to ' +
       'carry a level line across seven kilometres of falling ground and have the two ends meet.' },
+
+  { id: 'greatahu',    name: 'The Great Ahu',   era: 9,  cost: 19500, icon: '\u{1F5FF}',
+    desc: 'A dressed basalt platform at the seaward end of the marae, faced in fitted slabs brought ' +
+      'from a quarry on the far side of the island and carried by sea. The uprights on it are the ' +
+      'lineage, one stone a generation, and the ground in front of it is where a voyage is sanctioned.' },
   { id: 'templePyr',   name: 'Temple-Pyramid',  era: 14, cost: 46000,     icon: '\u{1F3EF}', desc: 'Stepped limestone crowned with a roof-comb.' },
   { id: 'temploMayor', name: 'Templo Mayor',    era: 26, cost: 150000,    icon: '⛩️', desc: 'Twin shrines above the sacred precinct.' },
   { id: 'parthenon',   name: 'Parthenon',       era: 10, cost: 480000,    icon: '\u{1F3DB}️', desc: 'Pentelic marble, refined to the millimetre.' },
@@ -6258,6 +6864,8 @@ const QUARRIED = ['quarry', 'deepquarry', 'granitequarry', 'desertquarry',
 
   'pillarquarry', 'flintdiggings', 'beddingtrench', 'chertadit',
 
+  'adzequarry',
+
   'stonequarry', 'rubbleface'];
 for (const t of QUARRIED) if (BUILDINGS[t]) BUILDINGS[t].quarried = true;
 
@@ -6274,6 +6882,8 @@ const MONUMENT_BUILD = {
   labyrinth: { money: 10250, blocks: 1280, unguent: 214 },
 
   rammedwall: { money: 13410, stone: 3352, ritualbronze: 447 },
+
+  greatahu:  { money: 17550, stone: 4187, sennit: 514 },
   ziggurat:  { money: 3600, clay: 900, beer: 300 },
   pyramid:   { money: 12000, clay: 2200, stone: 900 },
   templePyr: { money: 40000, stone: 3000, blocks: 1200 },
@@ -6289,7 +6899,9 @@ const MONUMENT_RATE = { money: 24, clay: 6, beer: 2, stone: 6, blocks: 3, potter
                         unguent: 0.5, purplecloth: 0.3, saffron: 0.5,
                         olives: 4, tin: 1, bronze: 0.8,
 
-                        ritualbronze: 0.8 };
+                        ritualbronze: 0.8,
+
+                        sennit: 1 };
 
 function monumentBuild(type, era) {
   return MONUMENT_BUILD[type] || { money: Math.round((BUILDINGS[type] || {}).cost * 0.9) || 1000 };
@@ -6329,6 +6941,11 @@ function rankUpgradable(d) {
 
 function rankMax(s) {
   return RANK.max + (((s || G.s) && ((s || G.s).giftRank | 0)) || 0);
+}
+
+function supplyFree(s) {
+  const st = s || (typeof G !== 'undefined' && G ? G.s : null);
+  return TUNE.SUPPLY.freeRadius + TUNE.GIFT_SUPPLY_STEP * ((st && st.giftSupply) | 0);
 }
 function rankOf(b) { return Util.clamp(Math.round(b && b.rank || 1), 1, rankMax()); }
 
@@ -6664,6 +7281,38 @@ const UPGRADES = {
   cauldroncourt:  { to: 'lineagetemple',    cost: 1670, era: 8, label: 'Lineage Temple' },
   cowrietreasury: { to: 'standardhouse',    cost: 2070, era: 8, label: 'Standard-Weight House' },
   divinercourt:   { to: 'oraclearchive',    cost: 1460, era: 8, label: 'Oracle Bone Archive' },
+
+  lopondfield:    { to: 'terraceflight',    cost: 720,  era: 9, label: 'Valley Terrace Flight' },
+  coconutgrove:   { to: 'coconutwalk',      cost: 920,  era: 9, label: 'Coconut Walk' },
+  waukegarden:    { to: 'waukestand',       cost: 780,  era: 9, label: 'Wauke Stand' },
+  pearlbeds:      { to: 'diversreef',       cost: 780,  era: 9, label: "Diver's Reef" },
+  adzequarry:     { to: 'basaltface',       cost: 3200, era: 9, label: 'The Basalt Face' },
+  birdcatcher:    { to: 'fowlerstation',    cost: 860,  era: 9, label: "Fowler's Station" },
+  breadfruitgrove:{ to: 'ulustand',         cost: 1780, era: 9, label: 'Ulu Stand' },
+  reefstation:    { to: 'tidalweir',        cost: 1140, era: 9, label: 'Tidal Weir' },
+  fishpond:       { to: 'kuapawall',        cost: 4800, era: 9, label: 'Kuapā Wall' },
+  reefsaltpans:   { to: 'rakerflats',       cost: 860,  era: 9, label: "Rakers' Flats" },
+  poipound:       { to: 'poiboards',        cost: 890,  era: 9, label: 'The Poi Boards' },
+  sennithouse:    { to: 'cableloft',        cost: 1070, era: 9, label: 'Cable Loft' },
+  tapahouse:      { to: 'beatersrow',       cost: 930,  era: 9, label: "Beaters' Row" },
+  lurework:       { to: 'hookbench',        cost: 850,  era: 9, label: 'The Hook Bench' },
+  adzeshed:       { to: 'bladefloor',       cost: 1250, era: 9, label: 'The Blade Floor' },
+  featherhouse:   { to: 'plumeloft',        cost: 1600, era: 9, label: 'The Plume Loft' },
+  haleaha:        { to: 'feastterrace',     cost: 1340, era: 9, label: 'The Feast Terrace' },
+  cordagestall:   { to: 'coilyard',         cost: 1290, era: 9, label: 'The Coil Yard' },
+  tapahall:       { to: 'kaparoom',         cost: 1710, era: 9, label: 'The Kapa Room' },
+  strandstall:    { to: 'shorecounter',     cost: 750,  era: 9, label: 'The Shore Counter' },
+  punawai:        { to: 'stonetank',        cost: 320,  era: 9, label: 'The Stone Tank' },
+  mulchpit:       { to: 'ashbeds',          cost: 480,  era: 9, label: 'The Ash Beds' },
+  halau:          { to: 'halemua',          cost: 440,  era: 9, label: "Hale Mua (Men's House)" },
+  reefshrine:     { to: 'pointheiau',       cost: 480,  era: 9, label: 'The Point Heiau' },
+  adzestandard:   { to: 'tradestones',      cost: 2670, era: 9, label: 'The Trade Stones' },
+  imu:            { to: 'kaluapits',        cost: 1290, era: 9, label: 'Kālua Pits' },
+  halepaa:        { to: 'halewaa',          cost: 1070, era: 9, label: 'Hale Waʻa (Canoe House)' },
+  gourdstore:     { to: 'ipurack',          cost: 440,  era: 9, label: 'Ipu Rack' },
+  canoelanding:   { to: 'haulingslipway',   cost: 3210, era: 9, label: 'The Hauling Slipway' },
+  wayfindingcourt:{ to: 'starcompass',      cost: 2670, era: 9, label: 'The Star Compass' },
+  coralcauseway:  { to: 'basaltmole',       cost: 650,  era: 9, label: 'The Basalt Mole' },
 };
 
 const UPGRADE_TARGETS = (function () {
@@ -6939,7 +7588,9 @@ const ERA_FOOD_LABEL = { 7: 'Meal issued this age',
                          5: 'Flour milled this age',
                          6: 'Flour milled this age',
 
-                         8: 'Meal husked this age', 14: 'Food ground this age' };
+                         8: 'Meal husked this age',
+
+                         9: 'Poi pounded this age', 14: 'Food ground this age' };
 function eraFoodLabel(era) { return ERA_FOOD_LABEL[rungOf(era)] || 'Food produced this age'; }
 
 const ERA_VOICE = {
@@ -7052,6 +7703,22 @@ const ERA_VOICE = {
       'itself if you leave it — or plant an APRICOT ORCHARD, which ignores the salt clock entirely. ' +
       'A BUNDED RICE FIELD never salts its ground either, but it wants a gate above it and the ' +
       'millet is up on the loess',
+  },
+
+  9: {
+    settlers: ['Line-Holder', 'Reef-Walker', 'Bark-Beater', 'Star-Reader', 'Ramp-Hand', 'Pond-Keeper'],
+    place: 'village',
+    mill: 'Poi Pounding Shed',
+    tally: "Konohiki's House",
+    tallyLine: 'The steward can name every terrace on the wedge, what it grew last year and who owes ' +
+      'days on it — and nothing of it is written down. The account is a person.',
+    ration: 'The founding stores are finished — the last of the carried taro is pounded out.',
+    saltName: 'the terraces going brackish where the sea gets in',
+
+    saltAnswers: 'a MULCH PIT in range (×3 recovery — banana trash, seaweed and ash), a spell fallow, ' +
+      'or plant a BREADFRUIT GROVE, which ignores the salt clock entirely and yields +50% on ground ' +
+      'already gone brackish. A WAUKE GARDEN sours a terrace at HALF the taro rate, so cloth is what ' +
+      'belongs on ground you have half spent',
   },
   6: {
 
@@ -7211,6 +7878,20 @@ const ERA_STAPLE = {
     goodNames: { grain: 'Millet', flour: 'Meal', dates: 'Apricots', bone: 'Scapulae',
                  carvings: 'Bone Work', stone: 'Rubble', blocks: 'Rammed Courses',
                  beer: 'Millet Ale', salt: 'Pan Salt' },
+  },
+
+  9: {
+    raw: 'grain', cooked: 'flour',
+    rawIcon: '\u{1F33F}', cookedIcon: '\u{1F35A}',
+    rawName: 'Taro', cookedName: 'Poi',
+    cookedVerb: 'pounded', rawFrom: 'the loʻi terraces',
+    rawNote: 'nothing else in this age eats taro — there is no brewery and no ale here',
+    shortNote: 'Each chain adds mouths and no poi — dig more LOʻI PONDFIELDS and set a POUNDING SHED ' +
+      'going, or fall back on the BREADFRUIT GROVE and the reef, which need no spring at all.',
+    hungerFix: 'plant a Breadfruit Grove — it wants no spring, no road and no shed — and dig a Loʻi ' +
+      'Pondfield with a Pounding Shed beside it for the long run',
+    goodNames: { grain: 'Taro', flour: 'Poi', dates: 'Breadfruit', stone: 'Basalt',
+                 salt: 'Paʻakai', fish: 'Reef Fish' },
   },
   6: {
     raw: 'grain', cooked: 'flour',

@@ -254,10 +254,22 @@ const Input = {
           }
           break;
         }
-        if (!Grid.chunkBuyable(s, c.cx, c.cy)) { UI.toast('Land must border territory you already own.'); break; }
+
+        if (!Grid.chunkBuyable(s, c.cx, c.cy)) {
+          UI.toast(Grid.chunkBuyWhy(s, c.cx, c.cy) || 'Land must border territory you already own.',
+            Econ.reachActive(s) ? 11000 : undefined);
+          break;
+        }
         const price = Grid.chunkPrice(c.cx, c.cy);
+        const far = Econ.reachActive(s) && !Grid.chunkAdjacentOwned(s, c.cx, c.cy);
         if (Grid.buyChunk(s, c.cx, c.cy)) {
-          Econ.log(s, '\u{1F5FA}️', 'The city bought a new parcel for ' + Util.fmtMoney(price) + '.');
+          Econ.log(s, '\u{1F5FA}️', far
+            ? 'A landfall was claimed across open water for ' + Util.fmtMoney(price) + '.'
+            : 'The city bought a new parcel for ' + Util.fmtMoney(price) + '.');
+          if (far)
+            UI.firstToast('landfall', '\u{1F6F6} LANDFALL. That ground is yours and it always will be — ' +
+              'ownership is the one thing in this game nothing takes back. Put a CANOE LANDING on it ' +
+              'and the next island opens from there.');
           UI.toast('Bought a 4×4 chunk for ' + Util.fmtMoney(price) + '. Clear its trees and rocks before building.');
           UI.firstToast('land', 'New land keeps its wild trees — use the Demolish tool to clear them ($' + TUNE.CLEAR_TREE + ' each), or Terraform to reshape it. Owned EMPTY frontier parcels can be sold back with this same tool.');
           Rend._overlayDirty = true;
@@ -361,8 +373,10 @@ const Input = {
         const dist = Math.hypot(p.x - (m.x + md.w / 2), p.y - (m.y + md.h / 2));
         if (dist < best) best = dist;
       }
-      const mult = best === Infinity || best <= TUNE.SUPPLY.freeRadius ? 1
-        : Math.min(TUNE.SUPPLY.maxMultiplier, 1 + (best - TUNE.SUPPLY.freeRadius) / TUNE.SUPPLY.premiumPer);
+
+      const freeR = supplyFree(G.s);
+      const mult = best === Infinity || best <= freeR ? 1
+        : Math.min(TUNE.SUPPLY.maxMultiplier, 1 + (best - freeR) / TUNE.SUPPLY.premiumPer);
       const d2 = DEF(Input.tool.type);
 
       let crowdTip = '';
@@ -672,6 +686,10 @@ const Input = {
       'that brush is not available in this age') + '.', 9000);
     else if (r === 'ash') UI.firstToast('ash', '\u{1F525} Ash cannot be reshaped — not for money, not ever. ' +
       'That ground is where a forest was, and the forest is not coming back.');
+
+    else if (r === 'sea') UI.firstToast('sea', '\u{1F30A} The sea cannot be filled — not for money, not ever. ' +
+      'Every other age on the ladder can dig its way out of its own geography. This is the age about ' +
+      'not being able to: you cross the water in a hull, or you do not cross it.');
     else if (r === true) UI.firstToast('terra', 'Terraforming! Sculpt grass, water, rock, mountains and trees to design your world.');
   },
 

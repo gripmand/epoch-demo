@@ -59,6 +59,13 @@ const Grid = {
          beyond: 'SALT', saltAt: 0.80, rockAt: 0.62, peakR: 6,
          terraceMax: 6, terraceScale: 22, terraceGain: 1.5 },
 
+    9: { noTrunk: true, trunkW: 0, trunkW2: 0, branch: 0, secondW: 0, wander: 0.30,
+         fertileTo: 2, dryFrom: 8, edgeJitter: 2.5,
+         beyond: 'SALT', saltAt: 0.55, rockAt: 0.56, peakR: 4,
+         archipelago: { count: 9, homeR: 45, homeOff: 0.72,
+                        sizes: [29, 29, 15, 15, 15, 15, 15, 15],
+                        gapMin: 6, gapMax: 26, coastScale: 13, coastReach: 1.10 } },
+
     14: { noTrunk: true, cenoteEvery: 34, cenoteR: 1.7, peakR: 6,
           trunkW: 0, trunkW2: 0, branch: 0, secondW: 0, wander: 0.30,
           fertileTo: 2, dryFrom: 5, edgeJitter: 2.0,
@@ -81,6 +88,18 @@ const Grid = {
     const rnd = Util.mulberry32(s.seed);
     const c = W / 2;
     const P = Grid.terrainProfile(s.era);
+
+    const smooth = (a, b, f) => a + (b - a) * (f * f * (3 - 2 * f));
+    const vnoise = (x, y, sc) => {
+      const u = x / sc, v = y / sc;
+      const iu = Math.floor(u), iv = Math.floor(v);
+      const fu = u - iu, fv = v - iv;
+      return smooth(
+        smooth(Util.hash2(iu, iv), Util.hash2(iu + 1, iv), fu),
+        smooth(Util.hash2(iu, iv + 1), Util.hash2(iu + 1, iv + 1), fu), fv);
+    };
+
+    const nz = (x, y, sc) => vnoise(x, y, sc) * 0.72 + vnoise(x, y, sc * 0.34) * 0.28;
 
     const stamp = (cx, cy, r) => {
       const ir = Math.ceil(r);
@@ -112,6 +131,44 @@ const Grid = {
               Math.max(1.1, bw * 0.62), blen, depth - 1);
       }
     };
+
+    if (P.archipelago) {
+      const A = P.archipelago;
+      t.fill(TERRAIN.WATER);
+
+      const off = Math.round(A.homeR * (A.homeOff || 0));
+      const isles = [{ x: c + off, y: c, r: A.homeR }];
+
+      const cox = rnd() * 4096, coy = rnd() * 4096;
+
+      const land = (o) => {
+        const ir = Math.ceil(o.r * 1.5);
+        for (let dy = -ir; dy <= ir; dy++)
+          for (let dx = -ir; dx <= ir; dx++) {
+            const x = Math.round(o.x) + dx, y = Math.round(o.y) + dy;
+            if (!Grid.inB(x, y)) continue;
+            const d = Math.hypot(dx, dy);
+            if (d > o.r * (0.70 + 0.62 * nz(x * 1.7 + cox, y * 1.7 + coy, A.coastScale || 13))) continue;
+            t[Grid.key(x, y)] = TERRAIN.GRASS;
+          }
+      };
+
+      const REACH = A.coastReach || 1.10;
+      const gapTo = (o, p) => Math.hypot(o.x - p.x, o.y - p.y) - (o.r + p.r) * REACH;
+      for (let tries = 0; isles.length < A.count && tries < 6000; tries++) {
+
+        const r = A.sizes[(isles.length - 1) % A.sizes.length];
+        const o = { x: 12 + rnd() * (W - 24), y: 12 + rnd() * (W - 24), r };
+        let near = Infinity, far = -Infinity;
+        for (const p of isles) { const g = gapTo(o, p); if (g < near) near = g; if (g > far) far = g; }
+
+        if (near < A.gapMin || near > A.gapMax) continue;
+        isles.push(o);
+      }
+      for (const o of isles) land(o);
+
+      G.cache.isles = isles;
+    }
 
     if (!P.noTrunk) {
       const side = Math.floor(rnd() * 2);
@@ -154,18 +211,6 @@ const Grid = {
       }
       queue = next;
     }
-
-    const smooth = (a, b, f) => a + (b - a) * (f * f * (3 - 2 * f));
-    const vnoise = (x, y, sc) => {
-      const u = x / sc, v = y / sc;
-      const iu = Math.floor(u), iv = Math.floor(v);
-      const fu = u - iu, fv = v - iv;
-      return smooth(
-        smooth(Util.hash2(iu, iv), Util.hash2(iu + 1, iv), fu),
-        smooth(Util.hash2(iu, iv + 1), Util.hash2(iu + 1, iv + 1), fu), fv);
-    };
-
-    const nz = (x, y, sc) => vnoise(x, y, sc) * 0.72 + vnoise(x, y, sc * 0.34) * 0.28;
 
     for (let y = 0; y < W; y++)
       for (let x = 0; x < W; x++) {
@@ -444,6 +489,8 @@ const Grid = {
     if (terraLocked(kind, s.era)) return 'locked';
 
     if (G.cache.terrain[Grid.key(x, y)] === TERRAIN.ASH) return 'ash';
+
+    if (Econ.reachActive(s) && G.cache.terrain[Grid.key(x, y)] === TERRAIN.WATER) return 'sea';
     const k = Grid.key(x, y);
     if (G.cache.occ[k] >= 0) return 'occupied';
 
@@ -568,19 +615,65 @@ const Grid = {
     const raw = d === 0 ? TUNE.LAND_BASE
       : Math.round(TUNE.LAND_BASE * Math.pow(d, TUNE.LAND_EXP) / 10) * 10;
 
-    return Math.round(raw * (1 - subTier(G.s).landDiscount) * landGift(G.s));
+    const K = TUNE.VOYAGE;
+    const land = Econ.reachActive(G.s) && !Grid.chunkAdjacentOwned(G.s, cx, cy)
+      ? (Econ.reachCourt(G.s) > 0 ? K.courtLandfall : K.landfallMult) : 1;
+    return Math.round(raw * (1 - subTier(G.s).landDiscount) * landGift(G.s) * land);
+  },
+
+  chunkAllWater(cx, cy) {
+    const C = G.cache, x0 = cx * TUNE.CHUNK, y0 = cy * TUNE.CHUNK;
+    for (let dy = 0; dy < TUNE.CHUNK; dy++)
+      for (let dx = 0; dx < TUNE.CHUNK; dx++) {
+        const x = x0 + dx, y = y0 + dy;
+        if (!Grid.inB(x, y)) continue;
+        if (C.terrain[Grid.key(x, y)] !== TERRAIN.WATER) return false;
+      }
+    return true;
+  },
+
+  chunkAdjacentOwned(s, cx, cy) {
+    const sea = Econ.reachActive(s);
+    for (let n = 0; n < 4; n++) {
+      const nx = cx + (n === 0 ? 1 : n === 1 ? -1 : 0);
+      const ny = cy + (n === 2 ? 1 : n === 3 ? -1 : 0);
+      if (!G.cache.ownedSet.has(nx + ',' + ny)) continue;
+      if (sea && Grid.chunkAllWater(nx, ny)) continue;
+      return true;
+    }
+    return false;
   },
 
   chunkBuyable(s, cx, cy) {
     if (G.cache.ownedSet.has(cx + ',' + cy)) return false;
 
-    return G.cache.ownedSet.has((cx + 1) + ',' + cy) || G.cache.ownedSet.has((cx - 1) + ',' + cy) ||
-           G.cache.ownedSet.has(cx + ',' + (cy + 1)) || G.cache.ownedSet.has(cx + ',' + (cy - 1));
+    if (Grid.chunkAdjacentOwned(s, cx, cy)) return true;
+
+    const f = Econ.landfallAt(s, cx, cy);
+    return !!(f && f.ok);
+  },
+
+  chunkBuyWhy(s, cx, cy) {
+    if (G.cache.ownedSet.has(cx + ',' + cy)) return 'You already own this ground.';
+    if (Grid.chunkAdjacentOwned(s, cx, cy)) return null;
+    if (Econ.reachActive(s)) {
+      const f = Econ.landfallAt(s, cx, cy);
+      if (f && f.ok) return null;
+
+      if (Grid.chunkAllWater(cx, cy))
+        return 'Open ocean. You may buy the water at your own shore — a lagoon is worth owning — but ' +
+          'the sea itself is not ground, and it does not carry your border out to anything.';
+      return Econ.reachWhy(s, cx, cy);
+    }
+    return 'Land must border territory you already own.';
   },
 
   buyChunk(s, cx, cy) {
     const price = Grid.chunkPrice(cx, cy);
     if (!Grid.chunkBuyable(s, cx, cy) || s.money < price) return false;
+
+    if (Econ.reachActive(s) && !Grid.chunkAdjacentOwned(s, cx, cy))
+      s.cum.landfalls = (s.cum.landfalls || 0) + 1;
     s.money -= price;
     s.owned.push(cx + ',' + cy);
     G.cache.ownedSet.add(cx + ',' + cy);

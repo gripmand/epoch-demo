@@ -2504,6 +2504,8 @@ const Shapes = {
     7:  { robe: 'plaster', torso: 'ware',     head: 'timber',   bulk: 1 },
 
     8:  { robe: 'ware',    torso: 'plaster',  head: 'timber',   bulk: 1 },
+
+    9:  { robe: 'ware',    torso: 'mudPale',  head: 'timber',   bulk: 0.94 },
     14: { robe: 'ware',    torso: 'mudPale',  head: 'timber',   bulk: 1 },
   },
 
