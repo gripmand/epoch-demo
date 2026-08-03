@@ -193,6 +193,45 @@ function eraFounding(era) {
 }
 
 const ERA_SITE = {
+
+  10: {
+    roadYes: '<b>the Oikos and the Synoikia, the Agora, both merchant stoas, the Kapeleion, the Kylix ' +
+      'Row, the Emporion, the Stoa Warehouse, the Bouleuterion, the Deigma and the Parthenon</b>',
+
+    roadNo: 'Olive Groves, Terraced Vineyards, Fig Terraces, Bean & Lentil Plots, Fisher’s Slipways, ' +
+      'Kolonos Clay Beds, the Pentelic Quarry, the Laurion Galleries, the Skimming Hearths, the Marble ' +
+      'Works, the Krene and the Public Cistern, Pithos Stores, the Peribolos Wall, the Agora Precinct, ' +
+      'the Palaestra, the Metroon, the Harbour Mole and the Herm — and note especially <b>the BEAN & ' +
+      'LENTIL PLOT and the FIG TERRACE, which need no road, no water and nothing off a quay, and which ' +
+      'between them close HALF the table</b>',
+    water: 'Homes, shops, the mills and presses, the washery and the civic buildings must sit inside a ' +
+      '<b>Krene’s</b> nine tiles or a <b>Public Cistern’s</b> thirteen. ★ THE CISTERN NEEDS NO WATER ' +
+      'NEAR IT AT ALL — this is a limestone country that catches winter rain, and the answer to a dry ' +
+      'hill is a cistern on top of it rather than a longer walk. The Krene is the cheap water; the ' +
+      'Cistern is the one that goes where there is none. Press <b>O</b> to see the rings.',
+    extra: [
+      '<b>Bread is half a table and never more.</b> No single food may cover more than its share of a ' +
+      'citizen’s meal — bread 50%, figs, pulses and fish a quarter each, and anything carried in from ' +
+      'another age a quarter. A city with a full granary and nothing else feeds HALF of itself and the ' +
+      'hunger clock runs on the rest. Watch the ⚖️ chip: it prints every leg, names the shortest, and ' +
+      'the answer it is asking for is never more of what you already have.',
+      '<b>Your bread is bought, not grown.</b> The EMPORION turns 0.64 oil a minute into 12.67 wheat — ' +
+      'one measure of oil for twenty of Pontic grain — and it is the only wheat in the age. It shares ' +
+      'that oil with the Oil Merchant’s Stoa, and <b>the quay draws first every tick</b>, so what the ' +
+      'stoa sells is what your dinner did not want. You can still starve with a full olive press if you ' +
+      'build four stoas and one quay.',
+      '<b>The ridge is finite and two chains are eating it.</b> The PENTELIC QUARRY cuts marble and the ' +
+      'LAURION GALLERIES mine silver ore, and both spend the same rock: 900 to a tile and then it is ' +
+      'grass forever. The quarry is your EXIT (4,243 marble) and the galleries are your richest chain; ' +
+      'they are not friends. A worked-out outcrop was somebody’s terrace, and the Peribolos Wall is ' +
+      'what stops the hillside following it into the sea.',
+      '<b>Terrain is thin and that is a gift here.</b> Only a narrow band beside the water is FERTILE, ' +
+      'and the Olive Grove, the Vineyard, the Fig Terrace and the Bean Plot all want <b>dry land</b> — ' +
+      'they are refused on the fertile ribbon, not helped by it. The scree nothing else wants is where ' +
+      'three quarters of your table and all of your export grows. ★ And FERTILE cannot be painted in ' +
+      'this age at any price: Attica does not become the black land because you paid for it.',
+    ],
+  },
   9: {
     roadYes: '<b>Hale Pili and Hale Noa, every stall, hall and works, the Hale Pāʻā, the Imu, the ' +
       'Wayfinding Court and the Adze Standard</b>',
@@ -775,12 +814,39 @@ const ERA_GUIDES = {
     firstSteps: ['Build chinampas on water edges.', 'Secure a trade route before investing in luxury workshops.'],
     mistake: 'Trying to be self-sufficient. This era rewards dependency on trade.',
   },
+
   10: {
-    headline: 'Money becomes a physical substance you manufacture.',
-    mechanic: 'Silver ore is dug, washed, cupelled into bullion and struck into coin at the Mint. From here on, workers are paid an actual wage drawn from actual coin — if the mint stops, the city stops.',
-    chain: ['Silver Mine → Washery → Cupellation → Mint', 'Olive Grove → Oil Press → export'],
-    firstSteps: ['Get the mint chain running before you expand the workforce.', 'Amphorae cap how much liquid you can export — build the pottery.'],
-    mistake: 'Hiring a workforce you cannot pay. Wages are now a real cost.',
+    headline: 'Your granary is full and half your city is hungry.',
+    mechanic: 'SET THE TABLE. Every age until now let one food feed everybody — a city with nothing but ' +
+      'bread was fed exactly as well as a city with six things in the store. Here NO SINGLE FOOD MAY ' +
+      'COVER MORE THAN ITS SHARE of a citizen’s table: bread 50%, and figs, pulses and fish a quarter ' +
+      'each. Grain alone feeds half your people no matter how much of it you have, and the hunger clock ' +
+      'runs on the rest at its ordinary rate. It is not a wall — it is a CEILING ON A SHARE, and the ' +
+      'answer is never more of what you already had. The ⚖️ chip prints every leg and names the ' +
+      'shortest one. THE PUBLIC TABLE lifts bread to 65% while you build the leg you are missing; the ' +
+      'PARTHENON adds 8 points to it forever.',
+    chain: [
+      'Emporion → Donkey Mill → The Agora  ·  THE STAPLE, and this city does not grow it: one measure of oil buys twenty of Pontic wheat',
+      'Olive Grove ×3 → Trapetum → Oil Merchant’s Stoa  ·  $26/min, and the same oil the quay drinks. The quay draws FIRST, every tick',
+      'Fig Terrace · Bean & Lentil Plot · Fisher’s Slipway  ·  the other half of the table. The first two want no water, no road and nothing off a quay',
+      'Terraced Vineyard ×2 → The Lenos → The Kapeleion  ·  $41.22 a measure, the richest per-unit trade until the silver lands',
+      'Kolonos Clay Beds ×2 → The Kerameikos → The Kylix Row  ·  $29/min, and it is what the oil and the wine leave in',
+      'Laurion Galleries ×2 → Washing Tables → Skimming Hearths → Silver Stoa  ·  FOUR links, the deepest chain in the game, $39/min at the end of it',
+      'Pentelic Quarry → Marble Works  ·  ★ THE EXIT: 4,243 marble, and the Parthenon wants dressed blocks on top of that. The Laurion is eating the same ridge',
+      'Krene / Public Cistern · Oikos + Synoikia · the Deigma, the Metroon, the Bouleuterion  ·  water, homes and the three buildings that make the rest earn more',
+    ],
+    firstSteps: [
+      'An OLIVE GROVE first ($520 of your $15,190), on any dry scree. It needs no water and no road, so your founding party can work it the moment it is down — which is what releases the rest of them into the labour pool. Everything this city sells, and half of what it eats, is downstream of it.',
+      'Then a BEAN & LENTIL PLOT ($460) and a FIG TERRACE ($1,160), both on dry land, both needing nothing at all. THIS IS THE WHOLE LESSON, bought in the first two minutes: those two close half the table between them, and no amount of bread will ever stand in for them.',
+      'Then a KRENE ($280). It waters nine tiles for under a third of a cistern and it does NOT have to stand on water — everything below wants to be inside its ring.',
+      'A TRAPETUM ($1,290) touching the grove (+25% both ways), then the EMPORION ($1,840) with a short road to it ($10 a tile). The quay is the only wheat in this age; site it near water for the bonus, but it does not need to touch any.',
+      'A DONKEY MILL ($1,150) beside the QUAY, not beside a field — at this rung the wheat arrives by sea. Then four OIKOS ($2,200) and THE AGORA ($1,150), which wants 10+ residents within 10 tiles.',
+      'An OIL MERCHANT’S STOA ($1,330) last of the opening — thirteen buildings and a short road for about $11,450, leaving you $3,740. ★ NOW WATCH THE ⚖️ CHIP FOR A MINUTE. It reads 50% the moment the last building goes down, because your founding wheat is the only thing in the store and bread stops at half; then the first figs and the first beans land and it climbs to 100% and stays there. That minute is the whole age, and it costs you nothing to watch it happen.',
+      '★ TWO THINGS ARE NOT IN THE FOUNDING PARCELS AND THE MAP SAYS SO ON EVERY SEED: nothing that stands IN water (the Fisher’s Slipway, the Harbour Mole) and no outcrop big enough for the PENTELIC QUARRY. Both are one or two parcels out — about $380 at the second ring, $660 at the third. Neither is urgent; the table closes without them, and the quarry is the EXIT rather than the opening.',
+    ],
+    mistake: 'Answering hunger with more of your best crop. Bread stops at half a table and stays there — ' +
+      'a second Donkey Mill feeds nobody new, and the ⚖️ chip has been naming the leg you are actually ' +
+      'short of the whole time.',
   },
   13: {
     headline: 'Utilities become networks with gradients, not radii.',

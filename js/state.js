@@ -43,6 +43,8 @@ const Game = {
 
       giftSupply: 0,
 
+      giftTable: 0,
+
       stock: Game.startStock(granted, era),
 
       cum: { flour: 0, food: 0, stone: 0, earned: 0, tributePaid: 0, landfalls: 0 },
@@ -86,6 +88,10 @@ const Game = {
       policySweep: false,
       policyWideIssue: false,
       policyRevet: false,
+
+      policyMoveCamps: false,
+      policyLash: false,
+      policyPublicTable: false,
       season: null,
 
       policyDoubleShift: false,
@@ -141,9 +147,13 @@ const Game = {
 
   startStock(granted, era) {
     const st = Object.assign({}, TUNE.START_STOCK);
-    if (granted) return st;
+    const rung = rungOf(era != null ? era : START_ERA);
+    if (granted) {
+      if (rung !== 1) { st.deadwood = 0; st.pemmican = 0; }
+      return st;
+    }
     for (const k in st) st[k] = 0;
-    if (rungOf(era != null ? era : START_ERA) === 1) {
+    if (rung === 1) {
       st.deadwood = TUNE.START_STOCK.deadwood;
       st.pemmican = TUNE.START_STOCK.pemmican;
     }
@@ -296,6 +306,7 @@ const Game = {
       giftIssue: s.giftIssue | 0,
       giftTerra: s.giftTerra | 0,
       giftSupply: s.giftSupply | 0,
+      giftTable: s.giftTable | 0,
 
       tribute: s.tribute ? { bank: +s.tribute.bank || 0, count: s.tribute.count | 0,
                              missed: s.tribute.missed | 0,
@@ -312,6 +323,9 @@ const Game = {
       policySweep: !!s.policySweep,
       policyWideIssue: !!s.policyWideIssue,
       policyRevet: !!s.policyRevet,
+      policyMoveCamps: !!s.policyMoveCamps,
+      policyLash: !!s.policyLash,
+      policyPublicTable: !!s.policyPublicTable,
 
       chill: +s.chill || 0,
 
@@ -637,6 +651,7 @@ const Game = {
       giftIssue: d.giftIssue | 0,
       giftTerra: d.giftTerra | 0,
       giftSupply: d.giftSupply | 0,
+      giftTable: d.giftTable | 0,
 
       tribute: (d.tribute && typeof d.tribute === 'object')
         ? { bank: Math.max(0, +d.tribute.bank || 0), count: Math.max(0, d.tribute.count | 0),
@@ -658,6 +673,9 @@ const Game = {
       policySweep: !!d.policySweep,
       policyWideIssue: !!d.policyWideIssue,
       policyRevet: !!d.policyRevet,
+      policyMoveCamps: !!d.policyMoveCamps,
+      policyLash: !!d.policyLash,
+      policyPublicTable: !!d.policyPublicTable,
       chill: Util.clamp(+d.chill || 0, 0, 1),
 
       silt: Util.clamp(+d.silt || 0, 0, 1),

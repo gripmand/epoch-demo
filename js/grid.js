@@ -49,6 +49,11 @@ const Grid = {
          beyond: 'SALT', saltAt: 0.55, rockAt: 0.94, peakR: 6,
          rockEdge: 3 },
 
+    10: { trunkW: 5.0, trunkW2: 4.2, branch: 1, secondW: 3.0, wander: 0.34,
+          fertileTo: 2, dryFrom: 5, edgeJitter: 3.4,
+          beyond: 'GRASS', saltAt: 0.99, rockAt: 0.50, peakR: 7,
+          seaEdge: 14 },
+
     7: { trunkW: 7.0, trunkW2: 6.4, branch: 0, secondW: 0, wander: 0.30,
          fertileTo: 4, dryFrom: 7, edgeJitter: 3.0,
          beyond: 'SALT', saltAt: 0.64, rockAt: 0.62, peakR: 5,

@@ -116,6 +116,8 @@ const Econ = {
 
     Econ.reachTick(s);
 
+    Econ.opsonTick(s, offline);
+
     Econ.nileTick(s, offline);
 
     Econ.soilTick(s, offline);
@@ -605,7 +607,9 @@ const Econ = {
       if (shortfall <= 0) break;
       const have = s.stock[f.kind] || 0;
       if (have <= 0) continue;
-      const useEquiv = Math.min(shortfall, have * f.eff);
+
+      const capEquiv = Econ.opsonCap(s, f.kind) * demand;
+      const useEquiv = Math.min(shortfall, have * f.eff, capEquiv);
       const useUnits = useEquiv / f.eff;
       s.stock[f.kind] -= useUnits;
       Econ.note(f.kind, 0, useUnits);
@@ -704,7 +708,7 @@ const Econ = {
       const scribeMult = b.scribed ? (1 + TUNE.SCRIBE.bonus) : 1;
 
       const throughput = staffEff * scribeMult * rankOutMult(b) * Econ.blockMult(s, b) *
-        Econ.M * (1 + C.beerBonus);
+        Econ.tableShopMult(s) * Econ.M * (1 + C.beerBonus);
 
       b.weighed = Econ.anyAuraLive(b.weighedBy);
       b.bureau = Econ.anyAuraLive(b.bureauBy);
@@ -1498,6 +1502,8 @@ const Econ = {
   },
 
   ERA_EXTRA_GATE: {
+
+    10: (s) => Econ.opsonTable(s).laid >= 0.95,
     2: (s, base) => (s.cum.tributePaid || 0) - (base.tributePaid || 0) >= TUNE.TRIBUTE.gate,
 
     6: (s) => (G.cache.gridFrac || 0) >= TUNE.GRID.gateFrac,
@@ -2400,6 +2406,72 @@ const Econ = {
       'closer to it.';
   },
 
+  opsonActive(s) { return rungOf(s.era) === 10; },
+
+  opsonCap(s, kind) {
+    if (!Econ.opsonActive(s)) return Infinity;
+    const K = TUNE.OPSON;
+    if (kind === eraStaple(s.era).cooked) return stapleCap(s);
+    return K.share[kind] !== undefined ? K.share[kind] : K.other;
+  },
+
+  opsonTable(s) {
+    const out = { on: false, legs: [], laid: 1, met: 1, secs: Infinity, soon: null, missing: [] };
+    if (!Econ.opsonActive(s)) return out;
+    out.on = true;
+    const res = Game.totalResidents(s);
+    const demand = res * TUNE.FLOUR_PER_RESIDENT;
+    if (!(demand > 0)) return out;
+    let met = 0;
+    const staple = eraStaple(s.era).cooked;
+    for (const f of TUNE.FOODS) {
+      const cap = Econ.opsonCap(s, f.kind);
+      if (!(cap > 0)) continue;
+      const capEquiv = cap * demand;
+      const have = (s.stock[f.kind] || 0) * f.eff;
+      const cover = Math.min(capEquiv, have);
+      met += cover;
+
+      if (f.kind !== staple && TUNE.OPSON.share[f.kind] === undefined) continue;
+
+      const drawUnits = cover / f.eff;
+      const secs = drawUnits > 0
+        ? ((s.stock[f.kind] || 0) / drawUnits) * 60 / TUNE.TEMPO : Infinity;
+      const leg = { kind: f.kind, name: goodLabel(s.era, f.kind), cap,
+                    coverEquiv: cover, share: cover / demand, secs };
+      out.legs.push(leg);
+      if (cover <= 0.0001) out.missing.push(leg);
+      else if (secs < out.secs) { out.secs = secs; out.soon = leg; }
+    }
+    out.met = met / demand;
+    out.laid = Math.min(1, out.met);
+    return out;
+  },
+
+  tableShopMult(s) {
+    return (Econ.opsonActive(s) && s.policyPublicTable) ? (1 - TUNE.OPSON.lawShopCut) : 1;
+  },
+
+  opsonTick(s, offline) {
+    const C = G.cache;
+    C.opson = null;
+    if (!Econ.opsonActive(s)) return;
+    const t = Econ.opsonTable(s);
+    C.opson = t;
+    if (offline || t.laid >= 0.999) { if (t.laid >= 0.999) C.opsonTold = 0; return; }
+    if (t.secs > TUNE.OPSON.rearmSecs) C.opsonTold = 0;
+    if (C.opsonTold) return;
+    const gap = t.missing.length
+
+      ? 'It has no ' + t.missing.map(l => l.name.toLowerCase()).join(' and no ') + ' on it'
+      : 'The ' + (t.soon ? t.soon.name.toLowerCase() : 'shortest leg') + ' runs out first';
+    C.opsonTold = 1;
+    UI.toast('⚖️ THE TABLE IS ' + Math.round(t.laid * 100) + '% LAID. ' + gap +
+      ', and this city cannot eat its way out of that with bread — a Greek table is grain, ' +
+      'figs, pulses and fish, and no one of them feeds everybody. Sow a BEAN & LENTIL PLOT ' +
+      'or a FIG ORCHARD: neither needs water, a road or anything off a quay.', 12000);
+  },
+
   levyActive(s) { return rungOf(s.era) === 2; },
 
   realSecs() { return Econ.M / Econ.BASE_M; },
@@ -3255,7 +3327,12 @@ const Econ = {
                 'olives', 'unguent', 'purplecloth', 'saffron', 'tin', 'bronze',
 
                 'mulberry', 'cocoon', 'silk', 'brocade',
-                'copperore', 'ritualbronze', 'brine'],
+                'copperore', 'ritualbronze', 'brine',
+
+                'brick', 'cotton', 'cottoncloth', 'carnelian', 'beads', 'shell', 'bangles',
+                'coir', 'sennit', 'bast', 'tapa', 'nacre', 'lure', 'adze', 'feathers', 'cloak',
+
+                'grapes', 'wine', 'silver'],
 
   capOf(s, kind) {
 

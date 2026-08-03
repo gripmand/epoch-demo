@@ -90,6 +90,17 @@ body[data-era-theme="shang"]     { --chip-bg: rgba(26, 22, 17, 0.91); --chip-bor
    is a lit turquoise, because in this age the water is bright and the LAND is the
    dark thing. That inversion is the whole visual identity of the rung. */
 body[data-era-theme="oceanic"]   { --chip-bg: rgba(8, 40, 48, 0.90); --chip-border: rgba(216, 207, 186, 0.38); --accent: #e2ddcb; }
+/* ★ rung 10 — Ancient Greece. The chip body is ERA_ROAD[10]'s Piraeus limestone
+   (0x59646e) taken down, and the accent is ERA_GRADE[10]'s pale apron (0xbdb9a2)
+   lifted. It has to sit apart from `classical` (#e8e6e0, a near-white marble
+   grey) — which is what rung 10 used to inherit — and from `aegean` (#ddd6c2,
+   the same sea three rungs earlier). The difference from `classical` is that
+   this body is BLUE-grey rather than neutral, and the accent is warm limestone
+   rather than white: Attica is stone in sunlight, not stone in a museum. The
+   difference from `aegean` is the body again — that chip is nearly black-blue
+   because rung 7's sea is the dark thing on its map, and here the SEA is bright
+   and the paving is what is dark. */
+body[data-era-theme="attic"]     { --chip-bg: rgba(20, 26, 32, 0.90); --chip-border: rgba(189, 185, 162, 0.40); --accent: #ddd8c4; }
 body[data-era-theme="egypt"]     { --chip-bg: rgba(38, 28, 12, 0.90); --chip-border: rgba(212, 175, 55, 0.40); --accent: #e8c96a; }
 body[data-era-theme="jungle"]    { --chip-bg: rgba(14, 30, 18, 0.90); --chip-border: rgba(110, 190, 130, 0.35); --accent: #8fd9a0; }
 body[data-era-theme="classical"] { --chip-bg: rgba(28, 30, 36, 0.90); --chip-border: rgba(220, 220, 230, 0.35); --accent: #e8e6e0; }

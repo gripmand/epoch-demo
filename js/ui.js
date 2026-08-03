@@ -36,6 +36,8 @@ const UI = {
     UI.els.levy = document.getElementById('hud-levy');
     UI.els.unrestChip = document.getElementById('chip-unrest');
     UI.els.unrest = document.getElementById('hud-unrest');
+    UI.els.tableChip = document.getElementById('chip-table');
+    UI.els.table = document.getElementById('hud-table');
 
     UI.buildPalette();
 
@@ -82,9 +84,11 @@ const UI = {
       infra: 'Infrastructure', food: 'Food & Industry', housing: 'Housing',
       commerce: 'Commerce', civic: 'Civic', industry: 'Industry',
       knowledge: 'Knowledge', logistics: 'Logistics', luxury: 'Luxury', military: 'Military',
+
+      craft: 'Workshops', shop: 'Shops',
       monument: 'Monuments', beauty: 'Beautify',
     };
-    const order = ['infra', 'food', 'industry', 'housing', 'commerce', 'civic', 'monument', 'beauty', 'knowledge', 'logistics', 'luxury', 'military'];
+    const order = ['infra', 'food', 'craft', 'industry', 'housing', 'commerce', 'shop', 'civic', 'monument', 'beauty', 'knowledge', 'logistics', 'luxury', 'military'];
     const present = new Set();
     for (const k in BUILDINGS) {
       const d = BUILDINGS[k];
@@ -494,6 +498,8 @@ const UI = {
 
     if (era === 9) return 'oceanic';
     if (era <= 9) return 'egypt';
+
+    if (era === 10) return 'attic';
     if (era <= 13) return 'classical';
     if (era <= 14) return 'jungle';
     if (era <= 27) return 'medieval';
@@ -954,6 +960,72 @@ const UI = {
             : 'A landfall costs ' + (r.court ? TUNE.VOYAGE.courtLandfall : TUNE.VOYAGE.landfallMult) +
               '× the ordinary parcel price — and it is yours permanently.')) +
         ' — ' + r.landfalls + ' of ' + r.need + ' crossings made this age.' + lash;
+    }
+
+    const showTable = Econ.opsonActive(s);
+    if (UI.els.tableChip) {
+      UI.els.tableChip.classList.toggle('hidden', !showTable);
+      UI.els.tableChip.style.display = showTable ? '' : 'none';
+    }
+    if (showTable && UI.els.table) {
+      const t = Econ.opsonTable(s);
+      const pct = Math.round(t.laid * 100);
+      const shortName = t.missing.length ? t.missing[0].name
+                      : (t.soon ? t.soon.name : null);
+      const mm = Math.floor(t.secs / 60), ss = Math.round(t.secs % 60);
+      const clock = (t.missing.length || !isFinite(t.secs)) ? ''
+                  : ' ' + mm + ':' + (ss < 10 ? '0' : '') + ss;
+      UI.els.table.textContent = pct + '%' +
+        (pct >= 100 ? '' : ' \u{00B7} ' + (shortName || '?').toLowerCase() + clock);
+
+      const short = t.laid < 0.999;
+
+      const doomedLegs = t.legs.filter(l => l.coverEquiv > 0.0001 &&
+        l.secs < TUNE.OPSON.warnSecs && (t.met - l.share) < 0.999);
+      const doom = doomedLegs.length
+        ? doomedLegs.reduce((a, b) => a.secs < b.secs ? a : b) : null;
+      const doomed = !!doom;
+      UI.els.tableChip.classList.toggle('bad', short && t.missing.length > 0);
+      UI.els.tableChip.classList.toggle('warn',
+        !(short && t.missing.length > 0) &&
+        (doomed || (short && (t.missing.length === 0 || t.secs < TUNE.OPSON.warnSecs))));
+
+      const clockOf = (secs) => {
+        const n = Math.round(secs);
+        if (!isFinite(n) || n >= 5940) return 'plenty';
+        return Math.floor(n / 60) + 'm' + (n % 60 < 10 ? '0' : '') + (n % 60) + 's';
+      };
+      const legs = t.legs.map(l => l.name + ' ' + Math.round(l.share * 100) + '%' +
+        (l.coverEquiv <= 0.0001 ? ' (none)' : ' (' + clockOf(l.secs) + ')')).join(' \u{00B7} ');
+      const ceiling = Math.round(stapleCap(s) * 100);
+      UI.els.tableChip.title =
+        'YOUR TABLE IS ' + pct + '% LAID. ' + legs + '.' +
+
+        (!short
+
+          ? (doomed
+              ? ' \u{2014} laid, but not for long: the ' + doom.name.toUpperCase() +
+                ' leg empties in ' + clockOf(doom.secs) +
+                ' and there is not enough of the rest to cover it.'
+              : t.missing.length
+                ? ' \u{2014} laid in full, with no ' +
+                  t.missing.map(l => l.name.toLowerCase()).join(' and no ') +
+                  ' on it at all. The four ceilings come to 125% of a meal, so one leg is always spare.'
+                : ' \u{2014} every leg is stocked.')
+          : t.missing.length
+            ? ' \u{2014} YOUR TABLE HAS NO ' + t.missing.map(l => l.name.toUpperCase()).join(' AND NO ') +
+              ' ON IT, and no amount of bread will stand in: a BEAN & LENTIL PLOT or a FIG TERRACE ' +
+              'needs no water, no road and nothing off a quay, and either one closes a whole quarter.'
+            : ' \u{2014} the ' + (t.soon ? t.soon.name.toLowerCase() : 'shortest leg') +
+              ' runs out first.') +
+        ' Bread may cover ' + ceiling + '% of it' +
+        (s.policyPublicTable ? ' (THE PUBLIC TABLE is keeping the common mess, +' +
+          Math.round(TUNE.OPSON.lawStaple * 100) + ' points, and every shop moves ' +
+          Math.round(TUNE.OPSON.lawShopCut * 100) + '% fewer goods for it)'
+         : (s.giftTable ? ' (the Parthenon’s reckoning is worth +' +
+             Math.round(TUNE.OPSON.giftStep * 100 * (s.giftTable | 0)) + ')' : '')) +
+        '; everything else is capped at ' + Math.round(TUNE.OPSON.other * 100) + '%. ' +
+        'A city that specialises is a city that is half fed with every store full.';
     }
 
     const showGrid = Econ.gridActive(s);
