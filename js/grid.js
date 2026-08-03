@@ -54,6 +54,11 @@ const Grid = {
          beyond: 'SALT', saltAt: 0.64, rockAt: 0.62, peakR: 5,
          seaEdge: 20 },
 
+    8: { trunkW: 5.0, trunkW2: 4.6, branch: 2, secondW: 2.4, wander: 0.50,
+         fertileTo: 4, dryFrom: 9, edgeJitter: 3,
+         beyond: 'SALT', saltAt: 0.80, rockAt: 0.62, peakR: 6,
+         terraceMax: 6, terraceScale: 22, terraceGain: 1.5 },
+
     14: { noTrunk: true, cenoteEvery: 34, cenoteR: 1.7, peakR: 6,
           trunkW: 0, trunkW2: 0, branch: 0, secondW: 0, wander: 0.30,
           fertileTo: 2, dryFrom: 5, edgeJitter: 2.0,
@@ -290,9 +295,44 @@ const Grid = {
       }
     }
 
+    const EL = G.cache.elev;
+    EL.fill(0);
+    if (P.terraceMax > 0) {
+      const mx = P.terraceMax, gain = P.terraceGain || 1;
+      const eox = rnd() * 4096, eoy = rnd() * 4096;
+      for (let y = 0; y < W; y++)
+        for (let x = 0; x < W; x++) {
+          const v = (nz(x + eox, y + eoy, P.terraceScale) - 0.5) * gain + 0.5;
+          const step = Math.floor(v * (mx + 1));
+          EL[Grid.key(x, y)] = step < 0 ? 0 : step > mx ? mx : step;
+        }
+    }
+
     for (const k in (s.terraEdits || {})) t[k] = s.terraEdits[k];
 
+    for (const k in (s.elevEdits || {})) {
+      const v = s.elevEdits[k] | 0;
+      EL[k] = v < 0 ? 0 : v > 127 ? 127 : v;
+    }
+
     G.cache.ownedSet = new Set(s.owned);
+  },
+
+  elevAt(x, y) {
+    if (!Grid.inB(x, y) || !G.cache || !G.cache.elev) return 0;
+    return G.cache.elev[Grid.key(x, y)];
+  },
+
+  setElev(s, x, y, v) {
+    if (!Grid.inB(x, y)) return false;
+    const P = Grid.terrainProfile(s.era);
+    const mx = P.terraceMax || 0;
+    if (v < 0 || v > mx) return false;
+    const k = Grid.key(x, y);
+    if (G.cache.elev[k] === v) return false;
+    G.cache.elev[k] = v;
+    s.elevEdits[k] = v;
+    return true;
   },
 
   TREE_DENSITY: {
@@ -409,6 +449,15 @@ const Grid = {
 
     const cost = terraCost(kind, s.era);
     if (s.money < cost) return 'money';
+
+    if (kind === 'ram' || kind === 'cut') {
+      const now = G.cache.elev[k];
+      if (!Grid.setElev(s, x, y, now + (kind === 'ram' ? 1 : -1))) return false;
+      s.money -= cost;
+
+      if (window.Rend && Rend.invalidateTerrain) Rend.invalidateTerrain();
+      return true;
+    }
 
     if (kind === 'tree') {
       const t = G.cache.terrain[k];

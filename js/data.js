@@ -37,16 +37,19 @@ const TUNE = {
                  carnelian: 0, beads: 0, shell: 0, bangles: 0,
 
                  olives: 0, unguent: 0, purplecloth: 0,
-                 saffron: 0, tin: 0, bronze: 0 },
+                 saffron: 0, tin: 0, bronze: 0,
+
+                 rice: 0, mulberry: 0, cocoon: 0, silk: 0,
+                 brocade: 0, copperore: 0, ritualbronze: 0, brine: 0 },
 
   FOUNDING_CREW: 10,
 
   ERA_STARTER: { 1: 'deadwoodcutter', 2: 'terraceplot', 3: 'snailbeds', 4: 'farm',
                  5: 'emmerfield', 6: 'leveefield',
 
-                 7: 'figorchard', 14: 'milpa' },
+                 7: 'figorchard', 8: 'milletfield', 14: 'milpa' },
 
-  ERA_START_MONEY: { 0: 1080 },
+  ERA_START_MONEY: { 0: 1080, 8: 8850 },
 
   MIGRATION: {
     perMinute: 8,
@@ -88,6 +91,9 @@ const TUNE = {
 
   OLIVES_CAP: 46, UNGUENT_CAP: 38, SAFFRON_CAP: 46,
   TIN_CAP: 46, BRONZE_CAP: 29, PURPLECLOTH_CAP: 30,
+
+  RICE_CAP: 146, MULBERRY_CAP: 70, COCOON_CAP: 70, SILK_CAP: 44,
+  BROCADE_CAP: 35, COPPERORE_CAP: 87, RITUALBRONZE_CAP: 52, BRINE_CAP: 70,
   PRICES: { grain: 0.5, flour: 2, stone: 1, blocks: 4,
             clay: 0.6, pottery: 4, wool: 1.2, cloth: 7, beer: 3,
             dates: 1.8, fish: 1.5, salt: 1.5, reeds: 0.35, baskets: 8.9,
@@ -106,7 +112,10 @@ const TUNE = {
             carnelian: 2.34, beads: 33.81, shell: 1.56, bangles: 7.30,
 
             olives: 1.48, unguent: 19.28, purplecloth: 38.55,
-            saffron: 2.22, tin: 1.63, bronze: 7.89 },
+            saffron: 2.22, tin: 1.63, bronze: 7.89,
+
+            rice: 0.61, mulberry: 0.59, cocoon: 2.03, silk: 11.84,
+            brocade: 31.70, copperore: 1.45, ritualbronze: 6.76, brine: 1.01 },
 
   NO_EXPORT: { water: 1 },
 
@@ -117,9 +126,13 @@ const TUNE = {
   LAND_EXP: 1.35,
 
   GIFT_LAND_STEP: 0.15,
+
+  GIFT_TERRA_STEP: 0.20,
   DEMOLISH_REFUND: 0.5,
   CLEAR_TREE: 15,
-  TERRA: { grass: 20, fertile: 45, water: 80, rock: 60, mountain: 150, tree: 25 },
+
+  TERRA: { grass: 20, fertile: 45, water: 80, rock: 60, mountain: 150, tree: 25,
+           ram: 45, cut: 35 },
 
   TICK_MIN: 1 / 60,
 
@@ -200,6 +213,24 @@ const TUNE = {
   },
 
   WIDEISSUE: { mult: 2.0, widen: 8 },
+
+  CASCADE: {
+
+    maxDrop: 1,
+
+    hopLimit: 60,
+
+    dryYield: 0.15,
+
+    warnSpare: 2.0,
+
+    rearmSpare: 4.0,
+
+    gateFields: 3,
+    gateFrac: 0.75,
+  },
+
+  REVET: { per: 0.60, add: 2.0 },
 
   TRIBUTE: {
     share: 0.35,
@@ -346,6 +377,8 @@ const TUNE = {
     5: { kind: 'grain', price: 2, who: 'A river barge sold the estate', unit: 'sack' },
 
     6: { kind: 'grain', price: 2, who: 'A boat up from Lothal sold the city', unit: 'sack' },
+
+    8: { kind: 'grain', price: 2, who: 'A tribute train from the western marches sold the city', unit: 'load' },
     14: { kind: 'grain', price: 2, who: 'A highland trader sold the city', unit: 'load' },
   },
 
@@ -406,7 +439,8 @@ const TUNE = {
 const HOUSE_RUNG_COST_MULT = [0.6, 1.0, 1.8, 3.0];
 
 const HOUSE_RUNG_REF = { 0: 'nestmound', 1: 'hidetent', 3: 'brushshelter', 4: 'house',
-                         5: 'villa', 14: 'stonehouse' };
+                         5: 'villa', 6: 'brickhouse', 7: 'ashlarhouse',
+                         8: 'courtyardcompound', 14: 'stonehouse' };
 function houseRungRefCost(era) {
   const rung = rungOf(era);
   const keys = Object.keys(HOUSE_RUNG_REF).map(Number).sort((a, b) => a - b);
@@ -480,7 +514,7 @@ function eraInfo(era) {
   return r === 0 ? ERA_PROLOGUE : (ERAS[r - 1] || ERA_PROLOGUE);
 }
 
-const WRITTEN_RUNGS = [0, 1, 2, 3, 4, 5, 6, 7, 14];
+const WRITTEN_RUNGS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 14];
 
 const START_ERA = WRITTEN_RUNGS[0];
 function nextWrittenEra(era) {
@@ -688,6 +722,11 @@ const ERA_TERRA_LOCK = {
       'and there is no fresh water in any of it — that is what the Spring House is for',
   },
 
+  8: {
+    water: 'the river is the river, and a pond you dug yourself has no fall in it — this age is about ' +
+      'where the water goes, not where it is. Ram the ground instead, and cut through what is in the way',
+  },
+
   14: {
     fertile: 'there is no deep soil to buy in the Petén — it is a few inches of leaf mould over ' +
       'limestone, and the only rich ground here is ground you made with ash and terraces',
@@ -709,12 +748,25 @@ function startMoneyFor(era) {
   return v !== undefined ? v : TUNE.START_MONEY;
 }
 
+function terraGift(s) {
+  const st = s || (typeof G !== 'undefined' && G ? G.s : null);
+  return Math.pow(1 - TUNE.GIFT_TERRA_STEP, (st && st.giftTerra) | 0);
+}
+
 function terraCost(kind, era) {
   const e = rungOf(curEra(era));
-  return Math.max(5, Math.round(TUNE.TERRA[kind] * Math.pow(HALL_COST_GROWTH, e - 4)));
+  return Math.max(5, Math.round(TUNE.TERRA[kind] * Math.pow(HALL_COST_GROWTH, e - 4) * terraGift()));
 }
+
+const TERRA_ONLY = { ram: 8, cut: 8 };
+const TERRA_ONLY_WHY = 'moving the earth itself is one age’s art. Only the rammed-earth builders ' +
+  'of the Huan valley cut and raised the ground to run water across it, and nothing before or after ' +
+  'them on this ladder reshapes a hillside to feed a field';
 function terraLocked(kind, era) {
-  const L = ERA_TERRA_LOCK[rungOf(curEra(era))];
+  const rung = rungOf(curEra(era));
+  const only = TERRA_ONLY[kind];
+  if (only !== undefined && only !== rung) return TERRA_ONLY_WHY;
+  const L = ERA_TERRA_LOCK[rung];
   return (L && L[kind]) || null;
 }
 
@@ -741,7 +793,16 @@ const ROAD_REQUIRED = ['townhall', 'house', 'villa', 'stonehouse', 'market', 'ba
   'charcoalclamp2', 'retortkiln', 'pitchboilery', 'asphaltworks',
   'hairclothshed', 'tentweavers', 'blockyard', 'masonsquay',
   'tributeyard', 'countinghouse', 'oreheap', 'sortingfloors',
-  'overseerpost', 'ridgerelay', 'tallystone', 'reckoningpost'];
+  'overseerpost', 'ridgerelay', 'tallystone', 'reckoningpost',
+
+  'courtyardcompound', 'clancompound',
+  'mealcounter', 'granarycourt', 'silkhall', 'bolttreasury',
+  'bronzemarket', 'vesselhall', 'weighingfloor', 'saltcommission',
+  'alehall', 'libationhall', 'wallworks', 'gangcommissary',
+  'bonestall', 'awlcombrow',
+  'timbergranary', 'platformgranary', 'clanstore', 'sealedvault',
+  'cauldroncourt', 'lineagetemple', 'cowrietreasury', 'standardhouse',
+  'divinercourt', 'oraclearchive', 'rammedyard', 'courseyard'];
 
 const BUILDINGS = {
   townhall: {
@@ -2318,7 +2379,8 @@ const BUILDINGS = {
   },
   tablethouse: {
     name: 'Tablet House (Edubba)', tier: 'civic', era: 4, w: 2, h: 2, cost: 350, upkeep: 0.30,
-    icon: '\u{1F4D0}', color: '#cbb98a', workers: 3, needsWater: true,
+    icon: '\u{1F4D0}', color: '#cbb98a', workers: 3, needsWater: true, rankDiscount: 0.15,
+
     desc: 'The school where scribes are beaten into shape. While staffed and road-connected, every RANK ' +
       'upgrade in the city costs 15% less — the identity purchase for a rank-heavy strategy.',
   },
@@ -4957,6 +5019,652 @@ const BUILDINGS = {
       'AND counts as a supply point on the far bank.',
   },
 
+  sluicegate: {
+    name: 'Diversion Gate', tier: 'infra', era: 8, w: 1, h: 2, cost: 170, upkeep: 0.29,
+    icon: '\u{1F6AA}', color: '#6f9ec9', nearWater: 1,
+    cascadeSource: 6.0, waterRadius: 5,
+
+    desc: 'A timber gate in a channel bank. Emits 6.0 HEAD a minute into any ditch or field it can ' +
+      'reach — and head only ever runs downhill or level, ONE STEP AT A TIME, never up. A field draws ' +
+      '2.0, so THREE FIELDS TO A GATE, at any distance. On the bank it also waters 5 tiles, and ' +
+      'standing beside water pays +50%.',
+  },
+  fieldditch: {
+    name: 'Field Ditch', tier: 'infra', era: 8, w: 1, h: 1, cost: 30, upkeep: 0,
+    icon: '\u{1F4A6}', color: '#7fa8c2', cascadeCarry: true,
+
+    desc: 'A cut and puddled ditch on the contour. Carries head one tile — level, or ONE step down, ' +
+      'never up — and loses NOTHING doing it. $30 to dig and nothing to keep. Drag to paint, and mind ' +
+      'which way the ground goes.',
+  },
+  cutchannel: {
+    name: 'Cut Channel', tier: 'infra', era: 8, w: 1, h: 2, cost: 330, upkeep: 0.41,
+    icon: '\u{26CF}\u{FE0F}', color: '#5f8aa8', workers: 1, nearWater: 1,
+    cascadeCut: 1, cascadeThrough: 6.0,
+
+    desc: 'Dug deep enough to pass THROUGH a rise instead of over it: carries up to 6.0 head across ONE ' +
+      'step of rising ground — the only thing in this age that can, and a well never is. One person to ' +
+      'keep it clear, forever. It cannot lift water above its source; nothing can.',
+  },
+  windlasswell: {
+    name: 'Windlass Well', tier: 'infra', era: 8, w: 1, h: 1, cost: 170, upkeep: 0.29,
+    icon: '\u{26F2}', color: '#7fb4c9', waterRadius: 9,
+
+    desc: 'Rope, drum and a rammed kerb. Waters 9 tiles for homes, shops and workshops — and does ' +
+      'NOTHING WHATEVER for a bunded field. Rice does not want a radius; it wants head. This is the ' +
+      'trap of the age and it is worth falling into once.',
+  },
+  pitgranary: {
+    name: 'Pit Granary', tier: 'infra', era: 8, w: 1, h: 1, cost: 220, upkeep: 0.12,
+    icon: '\u{1F573}\u{FE0F}', color: '#b08a5a', storeGrain: 61, storeFlour: 37,
+
+    desc: 'A bell-shaped pit cut into the loess, lined and lidded — the storage this landscape gives ' +
+      'you for free. +61 grain and +37 meal, NO workers: the famine buffer that does not eat.',
+  },
+  timbergranary: {
+    name: 'Raised Timber Granary', tier: 'infra', era: 8, w: 3, h: 3, cost: 1400, upkeep: 0.58,
+    icon: '\u{1F33E}', color: '#c9a878', workers: 4, needsRoad: true,
+    storeGrain: 329, storeFlour: 205, threshing: true, depot: true,
+
+    desc: 'Timber cribs on a rammed platform with a threshing floor at their foot. +329 grain, +205 ' +
+      'meal, and a supply point for carting. The +25% reaches every MILLET FIELD it touches — a ' +
+      'flooded bund has nothing to thresh, and you do not thresh rice on a floor.',
+  },
+  clanstore: {
+    name: 'Clan Store Room', tier: 'infra', era: 8, w: 2, h: 2, cost: 550, upkeep: 0.59,
+    icon: '\u{1F4E6}', color: '#b59a72', workers: 2, needsWater: true, needsRoad: true,
+    depot: true, storeCraft: 35,
+
+    desc: 'Racked shelves and sealed jars behind the compound wall: +35 capacity for EVERY craft good ' +
+      '(silk, cocoon, ritual bronze, salt, brine and the rest). Bank goods through a shop’s bad ' +
+      'spell instead of dumping them abroad at half price — and it is a supply point for carting.',
+  },
+
+  bundedfield: {
+    name: 'Bunded Rice Field', tier: 'food', era: 8, w: 2, h: 3, cost: 360, upkeep: 0.59,
+    icon: '\u{1F33E}', color: '#7fae62', workers: 2,
+    out: { rice: 3.65 }, needsHead: true, cascadeDraw: 2.0,
+
+    desc: 'A levelled, bunded, flooded plot: 3.65 rice a minute at full head, and it does not want a ' +
+      'well — it wants a GATE ABOVE IT. Draws 2.0 head; a gate emits 6.0, so three of these to a gate. ' +
+      'With no head it still takes 15% off the rain, so a mistake bleeds rather than kills. It never ' +
+      'salts its ground, because the water washes the salt down past the roots.',
+  },
+
+  milletfield: {
+    name: 'Millet Field', tier: 'food', era: 8, w: 2, h: 2, cost: 280, upkeep: 0.44,
+    icon: '\u{1F33E}', color: '#c9b872', workers: 2, needsWater: true, plowed: true,
+    out: { grain: 2.43 },
+
+    desc: 'The northern staple and this state’s actual bread: 2.43 grain a minute. +50% on silt, ' +
+      '+20% under an Ox Byre, +25% beside a granary floor. A well, a plough, dry ground — everything ' +
+      'the rice field is not, and it keeps feeding you when the head does not reach. It DOES salt its ' +
+      'ground; the rice field does not.',
+  },
+  mulberrygrove: {
+    name: 'Mulberry Grove', tier: 'food', era: 8, w: 3, h: 3, cost: 690, upkeep: 0.74,
+    icon: '\u{1F343}', color: '#6faf62', workers: 4, dryLand: true,
+    out: { mulberry: 6.98 },
+
+    desc: 'Hard-pollarded mulberry on the loess above the fields: 6.98 leaf a minute. Wants DRY ground ' +
+      '(+50%) — never your field silt, never a ditch bank. Silk starts on the worst soil you own, and ' +
+      'it is above the rice on purpose: expanding one eats the other.',
+  },
+
+  oreadit: {
+    name: 'Ore Adit', tier: 'food', era: 8, w: 2, h: 3, cost: 440, upkeep: 0.44,
+    icon: '\u{26CF}\u{FE0F}', color: '#a8794a', workers: 2, onRock: true, industry: true,
+    out: { copperore: 2.79 },
+
+    desc: 'A timbered gallery driven into the ridge: 2.79 copper ore a minute, +50% standing on rock. ' +
+      'It fights the quarry for the same outcrops, and this civilisation is remembered for what comes ' +
+      'out of it.',
+  },
+  saltlakepan: {
+    name: 'Salt-Lake Pan', tier: 'food', era: 8, w: 2, h: 2, cost: 330, upkeep: 0.35,
+    icon: '\u{1F9C2}', color: '#dcd8c8', workers: 2, onSalt: true,
+    out: { brine: 1.74 },
+
+    desc: 'Shallow pans scraped into the lake crust and worked by sun and wind: 1.74 brine a minute, ' +
+      '+50% on the crust itself. The salt basin is 1% of this map and it is the ONE piece of ground in ' +
+      'the age you cannot manufacture — there is no salt brush, and there never will be.',
+  },
+
+  stonequarry: {
+    name: 'Rubble & Tamping Quarry', tier: 'food', era: 8, w: 3, h: 3, cost: 1240, upkeep: 1.03,
+    icon: '\u{1FAA8}', color: '#b0a894', workers: 5, onRock: true, industry: true, quarried: true,
+    out: { stone: 4.0 },
+
+    desc: 'Broken rock for wall footings and tamping grit for the courses above: 4.0 stone a minute. ' +
+      'STAND IT ON THE ROCK — off the outcrop it runs at half and eats nothing. The seam is FINITE and ' +
+      'a worked-out face is worked out forever. This is the first age on the ladder that is asked for ' +
+      'stone at all, and this is the building that answers.',
+  },
+
+  apricotgrove: {
+    name: 'Apricot Orchard', tier: 'food', era: 8, w: 2, h: 2, cost: 310, upkeep: 0.26,
+    icon: '\u{1F338}', color: '#c98f8f', workers: 2,
+    out: { dates: 1.62 }, saltProof: true,
+
+    desc: 'Apricots in rows behind the compound: 1.62 fruit a minute, eaten like grain. Needs NO water, ' +
+      'NO head and NO road, and it IGNORES the salt clock — the one thing you can plant when a fan has ' +
+      'gone dry and you have not found the break yet. On ruined ground it yields +50%.',
+  },
+  riverweir: {
+    name: 'Huan River Weir', tier: 'food', era: 8, w: 1, h: 3, cost: 440, upkeep: 0.44,
+    icon: '\u{1F41F}', color: '#6f9fb5', workers: 2, onWater: true,
+    out: { fish: 2.92 },
+
+    desc: 'Stake and wattle set across the Huan: 2.92 fish a minute. It stands IN the channel, owes the ' +
+      'cascade nothing, and the oracle bones ask about the fishing as often as about the rain.',
+  },
+
+  oxpens: {
+    name: 'Ox & Cattle Pens', tier: 'food', era: 8, w: 2, h: 4, cost: 1110, upkeep: 0.88,
+    icon: '\u{1F402}', color: '#9c7f5c', workers: 2, dryLand: true, needsWater: true,
+    oxTeam: true,
+
+    desc: 'The state’s herd, kept for the plough, the table and the altar. It eats 0.4 grain a ' +
+      'minute as fodder and ploughs EVERY Millet Field within 14 tiles to +20%. It makes no bone ' +
+      'itself: that is what the midden beside it is for.',
+  },
+  bonemidden: {
+    name: 'Bone Midden', tier: 'food', era: 8, w: 2, h: 2, cost: 360, upkeep: 0.44,
+    icon: '\u{1F9B4}', color: '#cfc4ae', workers: 2, dryLand: true,
+    out: { bone: 1.74 },
+
+    desc: 'The pit the pens throw their waste into, worked over for scapulae, long bones and horn: 1.74 ' +
+      'a minute. Anyang’s bone workshops counted their waste in the tens of thousands and nobody ' +
+      'expects them; the scapulae go to the diviners and the rest becomes pins and arrowheads.',
+  },
+
+  loesspits: {
+    name: 'Loess Manure Pits', tier: 'food', era: 8, w: 1, h: 1, cost: 250, upkeep: 0.24,
+    icon: '\u{1F5D1}\u{FE0F}', color: '#8a7a5c', soilRadius: 6,
+
+    desc: 'Pits of stable sweepings and night soil dug into the loess and turned back over the strips. ' +
+      'Land within 6 tiles recovers from the salt 3x faster. Pair it with a fallow field — cropping one ' +
+      'plot forever will exhaust it, and the bunds cannot help the upland.',
+  },
+
+  troughhammer: {
+    name: 'Trough Hammer', tier: 'food', era: 8, w: 2, h: 3, cost: 690, upkeep: 0.74,
+    icon: '\u{1F35A}', color: '#b09a7e', workers: 2, nearWater: 1, industry: true,
+    procIn: 'rice', procOut: 'flour', procRate: 7.30, procRatio: 0.62,
+
+    desc: 'A cam on a waterwheel drops a stone pestle: 7.30 rice a minute hulled into 4.53 meal. TWO ' +
+      'hands where a Pestle Yard takes four, because the river is doing the work — which is the whole ' +
+      'argument for water power, and why it wants to stand on the stream (+50%).',
+  },
+  pestleyard: {
+    name: 'Pestle Yard', tier: 'food', era: 8, w: 2, h: 2, cost: 690, upkeep: 0.74,
+    icon: '\u{2699}\u{FE0F}', color: '#c9b48a', workers: 4, needsWater: true,
+    grainMill: true, industry: true,
+    procIn: 'grain', procOut: 'flour', procRate: 7.30, procRatio: 0.60,
+
+    desc: 'Wooden pestles, stone mortars and four people swinging them: 7.30 grain into 4.38 meal. ' +
+      'Slightly worse yield, twice the mouths, and it stands anywhere a well reaches. The building you ' +
+      'use until you find a stream — and the one that keeps grinding when the head does not.',
+  },
+  aleshed: {
+    name: 'Millet Ale Shed', tier: 'craft', era: 8, w: 2, h: 2, cost: 660, upkeep: 0.77,
+    icon: '\u{1F376}', color: '#c9a24a', workers: 4, needsWater: true, industry: true,
+    procIn: 'grain', procOut: 'beer', procRate: 3.49, procRatio: 0.5,
+
+    desc: 'Millet mashed, fermented and strained for the ancestral libation: 3.49 grain into 1.74 ale. ' +
+      'It drinks the grain your Pestle Yard wanted — the jue and the gu exist for exactly this, and the ' +
+      'bones record the offering.',
+  },
+  wormshed: {
+    name: 'Silkworm Shed', tier: 'craft', era: 8, w: 2, h: 3, cost: 750, upkeep: 0.83,
+    icon: '\u{1F41B}', color: '#cdbb92', workers: 4, needsWater: true, industry: true,
+    procIn: 'mulberry', procOut: 'cocoon', procRate: 6.98, procRatio: 0.5,
+
+    desc: 'Tiered trays in a warmed, draught-free room; the worms are fed chopped leaf every two hours ' +
+      'for a month. 6.98 leaf into 3.49 cocoons. One grove feeds one shed exactly.',
+  },
+  reelinghouse: {
+    name: 'Reeling House', tier: 'craft', era: 8, w: 2, h: 2, cost: 830, upkeep: 0.88,
+    icon: '\u{1F9F5}', color: '#e2d8c0', workers: 4, nearWater: 1, industry: true,
+    procIn: 'cocoon', procOut: 'silk', procRate: 3.49, procRatio: 0.5,
+
+    desc: 'Cocoons in near-boiling basins, the filament caught and wound several strands at a time: ' +
+      '3.49 cocoons into 1.74 raw silk. The basins ARE the process, so it wants the water (+50%).',
+  },
+  patternloom: {
+    name: 'Patterned-Silk Loom Shed', tier: 'craft', era: 8, w: 2, h: 3, cost: 1000, upkeep: 0.94,
+    icon: '\u{1F9F6}', color: '#b58fc9', workers: 5, needsWater: true, industry: true,
+    procIn: 'silk', procOut: 'brocade', procRate: 1.74, procRatio: 0.6667,
+
+    desc: 'Warp-patterned weaving on a shedding frame: 1.74 silk into 1.16 bolts. It loses a third to ' +
+      'waste, because that is what reeling and weaving cost. Fragments of exactly this cloth survive ' +
+      'stuck to the corrosion on Shang bronzes.',
+  },
+
+  piecemould: {
+    name: 'Piece-Mould Foundry', tier: 'craft', era: 8, w: 3, h: 3, cost: 830, upkeep: 1.03,
+    icon: '\u{1F3FA}', color: '#7f8a5c', workers: 5, needsWater: true, industry: true,
+    procIn: 'copperore', procOut: 'ritualbronze', procRate: 3.49, procRatio: 0.5,
+
+    desc: 'Fired clay section-moulds assembled around a core — the Chinese method, and the reason Shang ' +
+      'bronzes carry decoration no lost-wax casting could produce. 3.49 ore a minute into 1.74 vessels. ' +
+      'Two adits keep one foundry busy.',
+  },
+  boilingshed: {
+    name: 'Salt Boiling Shed', tier: 'craft', era: 8, w: 2, h: 2, cost: 610, upkeep: 0.65,
+    icon: '\u{1F525}', color: '#d8c9a8', workers: 2, industry: true,
+    procIn: 'brine', procOut: 'salt', procRate: 3.49, procRatio: 0.5,
+
+    desc: 'Brine boiled down over long fires in rows of pottery moulds — there is no iron yet, so the ' +
+      'pans are clay. 3.49 brine into 1.74 salt. Two pans feed one shed, and at Shouguang the broken ' +
+      'moulds are counted in the thousands.',
+  },
+  rammedyard: {
+    name: 'Rammed-Earth Yard', tier: 'craft', era: 8, w: 2, h: 2, cost: 830, upkeep: 0.88,
+    icon: '\u{1F9F1}', color: '#c2ac8a', workers: 5, needsRoad: true, industry: true,
+    procIn: 'stone', procOut: 'blocks', procRate: 8.0, procRatio: 0.5,
+
+    desc: 'Boards, rammers and a gang: 8.0 stone a minute beaten into 4.0 courses of finished walling. ' +
+      'Two quarries keep one yard busy. This is the chain the Wall eats, and it is the only reason this ' +
+      'age wants stone at all.',
+  },
+  bonecarver: {
+    name: "Bone Carver's Yard", tier: 'craft', era: 8, w: 2, h: 2, cost: 500, upkeep: 0.59,
+    icon: '\u{1FAA1}', color: '#cfc4ae', workers: 3, needsWater: true, industry: true,
+    procIn: 'bone', procOut: 'carvings', procRate: 3.49, procRatio: 0.5,
+
+    desc: 'Hairpins, awls, arrowheads and inlaid handles, sawn and polished: 3.49 bone a minute into ' +
+      '1.74 finished pieces. Two middens feed one yard.',
+  },
+
+  mealcounter: {
+    name: 'The Meal Counter', tier: 'commerce', era: 8, w: 2, h: 3, cost: 690, upkeep: 0.88,
+    icon: '\u{1F3EA}', color: '#c97f7f', workers: 2, needsRoad: true, needsWater: true,
+    sells: 'flour', sellRate: 1.46, sellPrice: 6.30, custRadius: 8, custMin: 8,
+
+    desc: 'Sells 1.46 meal a minute at $6.30 — rice or millet, the counter does not care, which is ' +
+      'exactly why it is one counter. Needs 8 residents at any distance; hauls over 20 tiles cost carting.',
+  },
+  silkhall: {
+    name: 'Silk Gift Hall', tier: 'commerce', era: 8, w: 2, h: 3, cost: 890, upkeep: 1.03,
+    icon: '\u{1F380}', color: '#b98b6a', workers: 2, needsRoad: true, needsWater: true,
+    sells: 'brocade', sellRate: 0.70, sellPrice: 31.70, custRadius: 9, custMin: 12,
+
+    desc: 'Bolts weighed, wrapped and given — there is no Silk Road in 1600 BCE, so this is less a shop ' +
+      'than a treasury of gifts. 0.70 bolts a minute at $31.70, the richest thing the age makes.',
+  },
+  bronzemarket: {
+    name: 'Ancestral Bronze Market', tier: 'commerce', era: 8, w: 2, h: 2, cost: 660, upkeep: 0.88,
+    icon: '\u{1F3FA}', color: '#7f8a5c', workers: 2, needsRoad: true, needsWater: true,
+    sells: 'ritualbronze', sellRate: 0.87, sellPrice: 19.45, custRadius: 9, custMin: 9,
+
+    desc: 'Ding, gui, jue and gu, sold by weight and by lineage: 0.87 vessels a minute at $19.45. The ' +
+      'most recognisable thing this state made, and the second-richest thing it sells.',
+  },
+
+  weighingfloor: {
+    name: 'The Weighing Floor', tier: 'commerce', era: 8, w: 2, h: 2, cost: 610, upkeep: 0.83,
+    icon: '\u{1F9C2}', color: '#d8d4c4', workers: 2, needsRoad: true, needsWater: true,
+    sells: 'salt', sellRate: 1.22, sellPrice: 7.30, custRadius: 8, custMin: 8,
+
+    desc: 'Salt weighed into the court’s account and carried inland: 1.22 a minute at $7.30. It ' +
+      'pays least of anything here, and it is the only chain in the age whose ground cannot be ' +
+      'manufactured.',
+  },
+  alehall: {
+    name: 'Ancestral Ale Hall', tier: 'commerce', era: 8, w: 2, h: 2, cost: 610, upkeep: 0.83,
+    icon: '\u{1F376}', color: '#c9a05f', workers: 2, needsRoad: true, needsWater: true,
+    sells: 'beer', sellRate: 1.22, sellPrice: 11.50, custRadius: 8, custMin: 8,
+
+    desc: 'Ale poured for the ancestors and then for the living: 1.22 a minute at $11.50. It drinks the ' +
+      'grain your Pestle Yard wanted, so every hall is a decision about dinner.',
+  },
+  wallworks: {
+    name: 'Wall Works Yard', tier: 'commerce', era: 8, w: 2, h: 2, cost: 660, upkeep: 0.88,
+    icon: '\u{1F3D7}\u{FE0F}', color: '#c2ac8a', workers: 2, needsRoad: true, needsWater: true,
+    sells: 'blocks', sellRate: 1.22, sellPrice: 12.10, custRadius: 8, custMin: 9,
+
+    desc: 'Finished walling sold to whoever is building: 1.22 courses a minute at $12.10. It pays less ' +
+      'than silk and does not care — the real return on this chain is the Wall and the stone gate, and ' +
+      'this counter is what keeps the quarry paying its own upkeep in between.',
+  },
+  bonestall: {
+    name: 'Bone & Horn Stall', tier: 'commerce', era: 8, w: 2, h: 2, cost: 610, upkeep: 0.83,
+    icon: '\u{1F9B4}', color: '#cfc4ae', workers: 2, needsRoad: true, needsWater: true,
+    sells: 'carvings', sellRate: 0.70, sellPrice: 22.00, custRadius: 7, custMin: 6,
+
+    desc: 'Pins, combs, inlaid hafts and turquoise-set handles: 0.70 a minute at $22.00. Three ' +
+      'buildings on ground nobody is fighting you for, and the pens at the head of it plough your ' +
+      'millet as well.',
+  },
+
+  clanground: {
+    name: 'Clan Ground', tier: 'civic', era: 8, w: 1, h: 1, cost: 220, upkeep: 0.15,
+    icon: '\u{1F3DB}\u{FE0F}', color: '#c9a86a', capRadius: 20, amenityRadius: 20,
+
+    desc: 'The swept ground at the compound gate, where the drum is. +1 housing capacity and a ' +
+      'contentment lift for every home within 20 tiles. One is enough; a second adds nothing to a home ' +
+      'already covered.',
+  },
+  cauldroncourt: {
+    name: 'Cauldron Court', tier: 'civic', era: 8, w: 2, h: 2, cost: 1110, upkeep: 0.74,
+    icon: '\u{1F372}', color: '#b5713f', workers: 2, needsRoad: true, needsWater: true,
+    ovenRadius: 10,
+
+    desc: 'One bank of bronze cauldrons instead of a hundred cold hearths, kept for the lineage feast ' +
+      'and used by everyone in between. Homes within 10 tiles eat 15% less.',
+  },
+  cowrietreasury: {
+    name: 'Cowrie Treasury', tier: 'civic', era: 8, w: 2, h: 3, cost: 1380, upkeep: 1.33,
+    icon: '\u{1FA99}', color: '#c9b48f', workers: 5, needsRoad: true, needsWater: true,
+    weighRadius: 10,
+
+    desc: 'Strings of cowrie shells, ten to a peng, and bronze ingots weighed against a standard. Shops ' +
+      'within 10 tiles sell at +12%. Stacks with the Diviner’s Court’s +10% throughput — ' +
+      'throughput wide, price tight.',
+  },
+  divinercourt: {
+    name: "Diviner's Court", tier: 'civic', era: 8, w: 2, h: 2, cost: 970, upkeep: 0.88,
+    icon: '\u{1F4DC}', color: '#cbb98a', workers: 4, needsRoad: true, needsWater: true,
+    keepsTally: true, scribeRadius: 20, rankDiscount: 0.15,
+
+    desc: 'Scapulae and turtle plastrons, scored, heated, cracked and then written on — the earliest ' +
+      'Chinese writing, and the state’s only archive. Keeps the books for every shop within 20 ' +
+      'tiles (+10% throughput) AND makes every rank upgrade in the city cost 15% less. Ranking a ' +
+      'cascade is expensive, so read the bund’s own note before you buy it.',
+  },
+
+  courtyardcompound: {
+    name: 'Courtyard Compound', tier: 'housing', era: 8, w: 2, h: 2, cost: 330, upkeep: 0.15,
+    icon: '\u{1F3E0}', color: '#c9a878', cap: 6, needsWater: true, needsRoad: true,
+
+    desc: 'Ranges around a swept court on a rammed-earth platform. Homes 3 residents when it goes up, ' +
+      'rising to 21 as it earns its rungs. +1 capacity near a Clan Ground, −1 next to industry.',
+  },
+
+  clancompound: {
+    name: 'Clan Compound', tier: 'housing', era: 8, w: 3, h: 3, cost: 830, upkeep: 0.29,
+    icon: '\u{1F3E1}', color: '#b58f6a', cap: 9, needsWater: true, needsRoad: true,
+    levels: ['Clan Compound', 'Walled Clan Compound', 'Twin-Court Compound',
+             'Lineage Compound', 'Great Lineage Seat', 'Royal Clan Terrace'],
+
+    desc: 'The courtyard plan repeated behind one wall, with its own storerooms and its own gate. Homes ' +
+      '5 residents when it goes up, rising to 31. This is what a lineage looks like when it stops being ' +
+      'a household — two and a half times the price of a compound for one and a half times the room.',
+  },
+  altarterrace: {
+    name: 'Rammed-Earth Altar Terrace', tier: 'beauty', era: 8, w: 1, h: 2, cost: 70, upkeep: 0,
+    icon: '\u{26E9}\u{FE0F}', color: '#c9b48f', cosmetic: true,
+
+    desc: 'A tamped earth platform with a stair up one side and nothing on top of it but the sky. No ' +
+      'output and no upkeep — it is here because a city that only makes things is not a city.',
+  },
+
+  kingsweir: {
+    name: "King's Weir", tier: 'infra', era: 8, w: 1, h: 2, cost: 430, upkeep: 0.46,
+    icon: '\u{1F6AA}', color: '#5f8fc9', nearWater: 1,
+    cascadeSource: 8.70, waterRadius: 7,
+    desc: 'The bank cut back and revetted, with a sill and a proper sluice: 8.70 head a minute — FOUR ' +
+      'fields at the gate instead of three, on the ditches you already dug. Waters 7 tiles while it is there.',
+  },
+  deepcut: {
+    name: 'Twin Cut', tier: 'infra', era: 8, w: 1, h: 2, cost: 830, upkeep: 0.66,
+    icon: '\u{26CF}\u{FE0F}', color: '#5f8aa8', workers: 2, nearWater: 1,
+    cascadeCut: 1, cascadeThrough: 8.70,
+
+    desc: 'Two channels driven through the same swell and revetted: 8.70 head across ONE step of rise, ' +
+      'up from 6.0. It carries more, not higher — nothing here lifts water.',
+  },
+  tiledcistern: {
+    name: 'Lined Cistern', tier: 'infra', era: 8, w: 1, h: 1, cost: 550, upkeep: 0.47,
+    icon: '\u{1F4A7}', color: '#6fa8c9', waterRadius: 16,
+
+    desc: 'A sunken, clay-lined tank fed off a ditch: 16 tiles of coverage. The widest water reach in ' +
+      'the age so far — and it still does nothing at all for a bunded field.',
+  },
+  battercistern: {
+    name: 'Battered Well-House', tier: 'infra', era: 8, w: 1, h: 1, cost: 1380, upkeep: 0.75,
+    icon: '\u{1F4A7}', color: '#5f9ec2', waterRadius: 23,
+    desc: 'Roofed, battered and kept clean by the ward: 23 tiles. Past this the age has no more water ' +
+      'to give you — the rest is head.',
+  },
+  sealedpit: {
+    name: 'Sealed Pit Store', tier: 'infra', era: 8, w: 1, h: 1, cost: 550, upkeep: 0.19,
+    icon: '\u{1F573}\u{FE0F}', color: '#b08a5a', storeGrain: 88, storeFlour: 54,
+    desc: 'Lined, capped and sealed with clay against damp and rats: +88 grain, +54 meal, still no workers.',
+  },
+  platformgranary: {
+    name: 'Platform Granary Range', tier: 'infra', era: 8, w: 3, h: 3, cost: 3500, upkeep: 0.93,
+    icon: '\u{1F33E}', color: '#c9a878', workers: 5, needsRoad: true,
+    storeGrain: 477, storeFlour: 297, threshing: true, depot: true,
+    desc: 'A second range raised on the same platform: +477 grain and +297 meal, still +25% to every ' +
+      'Millet Field it touches, still a supply point.',
+  },
+  sealedvault: {
+    name: 'Sealed Tribute Vault', tier: 'infra', era: 8, w: 2, h: 2, cost: 1380, upkeep: 0.94,
+    icon: '\u{1F4E6}', color: '#b59a72', workers: 3, needsWater: true, needsRoad: true,
+    depot: true, storeCraft: 51,
+    desc: 'Sealed, stamped and inventoried: +51 for every craft good. Bank a whole season of silk ' +
+      'against a slow hall.',
+  },
+
+  terracedbund: {
+    name: 'Levelled Bund Terrace', tier: 'food', era: 8, w: 2, h: 3, cost: 860, upkeep: 1.03,
+    icon: '\u{1F33E}', color: '#7fae62', workers: 3,
+    out: { rice: 7.30 }, needsHead: true, cascadeDraw: 2.0,
+    desc: 'The plot re-cut, re-levelled and double-bunded: 7.30 rice a minute — twice the yield on THE ' +
+      'SAME 2.0 HEAD. This is how you grow a cascade without finding another fall.',
+  },
+  oxploughfield: {
+    name: 'Ox-Plough Millet Strips', tier: 'food', era: 8, w: 2, h: 2, cost: 670, upkeep: 0.77,
+    icon: '\u{1F33E}', color: '#c9b872', workers: 3, needsWater: true, plowed: true,
+    out: { grain: 4.86 },
+    desc: 'Paired oxen on a long strip instead of a hoe on a patch: 4.86 grain a minute, and it still ' +
+      'owes the cascade nothing at all.',
+  },
+  pollardgrove: {
+    name: 'Pollarded Mulberry Rows', tier: 'food', era: 8, w: 3, h: 3, cost: 1660, upkeep: 1.30,
+    icon: '\u{1F343}', color: '#6faf62', workers: 5, dryLand: true,
+    out: { mulberry: 13.96 },
+    desc: 'Cut back hard every year and set in rows a cart can pass: 13.96 leaf a minute, enough for two sheds.',
+  },
+  lodegallery: {
+    name: 'The Lode Gallery', tier: 'food', era: 8, w: 2, h: 3, cost: 1060, upkeep: 0.77,
+    icon: '\u{26CF}\u{FE0F}', color: '#a8794a', workers: 3, onRock: true, industry: true,
+    out: { copperore: 5.58 },
+    desc: 'Timbered, laddered and driven far enough in to need lamps: 5.58 ore a minute.',
+  },
+  brinepanrow: {
+    name: 'Terraced Brine Pans', tier: 'food', era: 8, w: 2, h: 2, cost: 790, upkeep: 0.61,
+    icon: '\u{1F9C2}', color: '#dcd8c8', workers: 3, onSalt: true,
+    out: { brine: 3.48 },
+    desc: 'Pans cut in steps so the brine concentrates as it falls: 3.48 a minute, and one row now ' +
+      'feeds two sheds.',
+  },
+
+  rubbleface: {
+    name: 'Benched Rubble Face', tier: 'food', era: 8, w: 3, h: 3, cost: 2980, upkeep: 1.80,
+    icon: '\u{1FAA8}', color: '#b0a894', workers: 6, onRock: true, industry: true, quarried: true,
+    out: { stone: 8.0 },
+    desc: 'Worked in benches with a ramp down to the carts: 8.0 stone a minute — and it eats the seam ' +
+      'twice as fast, which is the honest cost of a finite thing.',
+  },
+  walledorchard: {
+    name: 'Walled Fruit Garden', tier: 'food', era: 8, w: 2, h: 2, cost: 740, upkeep: 0.46,
+    icon: '\u{1F338}', color: '#c98f8f', workers: 3,
+    out: { dates: 3.24 }, saltProof: true,
+    desc: 'Walled, underplanted and watered by hand: 3.24 fruit a minute, and it STILL needs no water ' +
+      'coverage, no head and no road. It is what feeds you while you find the break.',
+  },
+  fishgarth: {
+    name: 'The Fish Garth', tier: 'food', era: 8, w: 1, h: 3, cost: 1060, upkeep: 0.77,
+    icon: '\u{1F41F}', color: '#6f9fb5', workers: 3, onWater: true,
+    out: { fish: 5.84 },
+    desc: 'A permanent stake-and-wattle enclosure with holding pens: 5.84 fish a minute, and the river ' +
+      'does not care which way your ditches run.',
+  },
+  royalherd: {
+    name: 'Royal Herd Enclosure', tier: 'food', era: 8, w: 2, h: 4, cost: 2780, upkeep: 1.41,
+    icon: '\u{1F402}', color: '#9c7f5c', workers: 3, dryLand: true, needsWater: true,
+    oxTeam: true, oxRadius: 20, oxBonus: 0.29,
+
+    desc: 'The herd the divinations are made from and the plough teams are drawn from. It ploughs every ' +
+      'Millet Field within 20 tiles to +29%, up from 14 and +20%.',
+  },
+  hornpits: {
+    name: 'The Horn Pits', tier: 'food', era: 8, w: 2, h: 2, cost: 860, upkeep: 0.77,
+    icon: '\u{1F9B4}', color: '#cfc4ae', workers: 3, dryLand: true,
+    out: { bone: 3.48 },
+    desc: 'Sorted, stacked and worked in pits under the yard: 3.48 a minute, and the scapulae come out ' +
+      'graded for the diviners.',
+  },
+  compostwalks: {
+    name: 'The Compost Walks', tier: 'food', era: 8, w: 1, h: 1, cost: 630, upkeep: 0.38,
+    icon: '\u{1F5D1}\u{FE0F}', color: '#8a7a5c', soilRadius: 9,
+    desc: 'The whole ward’s sweepings carted, composted and turned out on the strips: land within 9 ' +
+      'tiles recovers from the salt 3x faster.',
+  },
+
+  hammerrow: {
+    name: 'Trip-Hammer Row', tier: 'food', era: 8, w: 2, h: 3, cost: 1170, upkeep: 1.01,
+    icon: '\u{1F35A}', color: '#b09a7e', workers: 3, nearWater: 1, industry: true,
+    procIn: 'rice', procOut: 'flour', procRate: 10.22, procRatio: 0.62,
+    desc: 'Four hammers off one shaft: 10.22 rice a minute hulled into 6.34 meal, and still only three hands.',
+  },
+  mortargang: {
+    name: 'Mortar Gang Yard', tier: 'food', era: 8, w: 2, h: 2, cost: 1170, upkeep: 1.01,
+    icon: '\u{2699}\u{FE0F}', color: '#c9b48a', workers: 5, needsWater: true,
+    grainMill: true, industry: true,
+    procIn: 'grain', procOut: 'flour', procRate: 10.22, procRatio: 0.60,
+    desc: 'A whole gang on the mortars, working in shifts: 10.22 grain into 6.13 meal — and it still ' +
+      'stands wherever a well reaches.',
+  },
+  mashbrewhouse: {
+    name: 'The Mash Brewhouse', tier: 'craft', era: 8, w: 2, h: 2, cost: 1120, upkeep: 1.05,
+    icon: '\u{1F376}', color: '#c9a24a', workers: 5, needsWater: true, industry: true,
+    procIn: 'grain', procOut: 'beer', procRate: 4.89, procRatio: 0.5,
+    desc: 'Brewed to a rite and to a schedule: 4.89 grain into 2.44 ale. It drinks even more of your ' +
+      'dinner, which is the decision.',
+  },
+  tieredwormhouse: {
+    name: 'Tiered Rearing House', tier: 'craft', era: 8, w: 2, h: 3, cost: 1280, upkeep: 1.13,
+    icon: '\u{1F41B}', color: '#cdbb92', workers: 5, needsWater: true, industry: true,
+    procIn: 'mulberry', procOut: 'cocoon', procRate: 9.77, procRatio: 0.5,
+    desc: 'Eight tiers of trays and a charcoal brazier to hold the room: 9.77 leaf into 4.89 cocoons.',
+  },
+  filamenthall: {
+    name: 'The Filament Hall', tier: 'craft', era: 8, w: 2, h: 2, cost: 1410, upkeep: 1.20,
+    icon: '\u{1F9F5}', color: '#e2d8c0', workers: 5, nearWater: 1, industry: true,
+    procIn: 'cocoon', procOut: 'silk', procRate: 4.89, procRatio: 0.5,
+    desc: 'Basins kept at a steady heat and reeled six strands at a time: 4.89 cocoons into 2.44 raw silk.',
+  },
+  damaskloom: {
+    name: 'Damask Frame Shed', tier: 'craft', era: 8, w: 2, h: 3, cost: 1700, upkeep: 1.28,
+    icon: '\u{1F9F6}', color: '#b58fc9', workers: 6, needsWater: true, industry: true,
+    procIn: 'silk', procOut: 'brocade', procRate: 2.44, procRatio: 0.6667,
+    desc: 'A shedding frame with a second harness and a drawboy: 2.44 silk into 1.63 bolts of figured cloth.',
+  },
+  sectionalfoundry: {
+    name: 'Sectional Casting Hall', tier: 'craft', era: 8, w: 3, h: 3, cost: 1410, upkeep: 1.40,
+    icon: '\u{1F3FA}', color: '#7f8a5c', workers: 6, needsWater: true, industry: true,
+    procIn: 'copperore', procOut: 'ritualbronze', procRate: 4.89, procRatio: 0.5,
+    desc: 'Moulds built in numbered sections and poured from three crucibles at once — this is how an ' +
+      '800-kilogram ding gets made. 4.89 ore a minute into 2.44 vessels.',
+  },
+  moundhearths: {
+    name: 'Banked Boiling Hearths', tier: 'craft', era: 8, w: 2, h: 2, cost: 1040, upkeep: 0.88,
+    icon: '\u{1F525}', color: '#d8c9a8', workers: 3, industry: true,
+    procIn: 'brine', procOut: 'salt', procRate: 4.89, procRatio: 0.5,
+    desc: 'Hearths banked in a long mound so one fire serves six moulds: 4.89 brine into 2.44 salt.',
+  },
+  courseyard: {
+    name: 'Coursed Tamping Yard', tier: 'craft', era: 8, w: 2, h: 2, cost: 1410, upkeep: 1.20,
+    icon: '\u{1F9F1}', color: '#c2ac8a', workers: 6, needsRoad: true, industry: true,
+    procIn: 'stone', procOut: 'blocks', procRate: 11.20, procRatio: 0.5,
+    desc: 'Shuttering re-used down a whole run and a gang that never stops: 11.20 stone a minute into ' +
+      '5.60 courses. The Wall wants 3,352 stone of its own; this is how you get there before the age turns.',
+  },
+  inlayworkshop: {
+    name: 'Turquoise-Inlay Workshop', tier: 'craft', era: 8, w: 2, h: 2, cost: 850, upkeep: 0.80,
+    icon: '\u{1FAA1}', color: '#cfc4ae', workers: 4, needsWater: true, industry: true,
+    procIn: 'bone', procOut: 'carvings', procRate: 4.89, procRatio: 0.5,
+    desc: 'Bone and ivory cut, polished and set with turquoise: 4.89 a minute into 2.44 finished ' +
+      'pieces. The cups out of Fu Hao’s tomb are made exactly here.',
+  },
+
+  granarycourt: {
+    name: 'The Granary Court', tier: 'commerce', era: 8, w: 2, h: 3, cost: 1380, upkeep: 1.23,
+    icon: '\u{1F3EA}', color: '#c97f7f', workers: 3, needsRoad: true, needsWater: true,
+    sells: 'flour', sellRate: 2.92, sellPrice: 6.30, custRadius: 8, custMin: 8,
+    desc: 'A walled square with its own gate and its own weights: 2.92 meal a minute, double the counter.',
+  },
+  bolttreasury: {
+    name: 'The Bolt Treasury', tier: 'commerce', era: 8, w: 2, h: 3, cost: 1780, upkeep: 1.44,
+    icon: '\u{1F380}', color: '#b98b6a', workers: 3, needsRoad: true, needsWater: true,
+    sells: 'brocade', sellRate: 1.40, sellPrice: 31.70, custRadius: 9, custMin: 12,
+    desc: 'Bolts counted into the court’s own inventory: 1.40 a minute at $31.70 — $44 a minute, the ' +
+      'richest single building in the age.',
+  },
+  vesselhall: {
+    name: 'Ritual Vessel Hall', tier: 'commerce', era: 8, w: 2, h: 2, cost: 1320, upkeep: 1.23,
+    icon: '\u{1F3FA}', color: '#7f8a5c', workers: 3, needsRoad: true, needsWater: true,
+    sells: 'ritualbronze', sellRate: 1.74, sellPrice: 19.45, custRadius: 9, custMin: 9,
+    desc: 'A roofed hall with standing stock and an inscribed inventory: 1.74 vessels a minute.',
+  },
+  saltcommission: {
+    name: 'The Salt Commission', tier: 'commerce', era: 8, w: 2, h: 2, cost: 1220, upkeep: 1.16,
+    icon: '\u{1F9C2}', color: '#d8d4c4', workers: 3, needsRoad: true, needsWater: true,
+    sells: 'salt', sellRate: 2.44, sellPrice: 7.30, custRadius: 8, custMin: 8,
+    desc: 'A standing account, a sealed measure and a road inland: 2.44 salt a minute out to the interior.',
+  },
+  libationhall: {
+    name: 'Libation Hall', tier: 'commerce', era: 8, w: 2, h: 2, cost: 1220, upkeep: 1.16,
+    icon: '\u{1F376}', color: '#c9a05f', workers: 3, needsRoad: true, needsWater: true,
+    sells: 'beer', sellRate: 2.44, sellPrice: 11.50, custRadius: 8, custMin: 8,
+    desc: 'Ale poured at the rite and sold at the gate: 2.44 a minute. It also drinks twice the grain, ' +
+      'so check your meal before you buy it.',
+  },
+  gangcommissary: {
+    name: 'The Gang Commissary', tier: 'commerce', era: 8, w: 2, h: 2, cost: 1320, upkeep: 1.23,
+    icon: '\u{1F3D7}\u{FE0F}', color: '#c2ac8a', workers: 3, needsRoad: true, needsWater: true,
+    sells: 'blocks', sellRate: 2.44, sellPrice: 12.10, custRadius: 8, custMin: 9,
+    desc: 'The works office: it issues to the gangs, sells the surplus and keeps the tally. 2.44 ' +
+      'courses a minute out the gate.',
+  },
+  awlcombrow: {
+    name: 'Awl & Comb Row', tier: 'commerce', era: 8, w: 2, h: 2, cost: 1220, upkeep: 1.16,
+    icon: '\u{1F9B4}', color: '#cfc4ae', workers: 3, needsRoad: true, needsWater: true,
+    sells: 'carvings', sellRate: 1.40, sellPrice: 22.00, custRadius: 7, custMin: 6,
+    desc: 'A row of benches under one roof rather than a stall: 1.40 pieces a minute at $22.00.',
+  },
+
+  drumground: {
+    name: 'Drum Ground', tier: 'civic', era: 8, w: 1, h: 1, cost: 550, upkeep: 0.24,
+    icon: '\u{1F941}', color: '#c9a86a', capRadius: 29, amenityRadius: 29,
+    desc: 'A bronze drum on a stand and ground swept for a crowd: capacity and contentment out to 29 tiles.',
+  },
+  lineagetemple: {
+    name: 'Lineage Temple', tier: 'civic', era: 8, w: 2, h: 2, cost: 2780, upkeep: 1.18,
+    icon: '\u{1F372}', color: '#b5713f', workers: 3, needsRoad: true, needsWater: true,
+    ovenRadius: 15,
+    desc: 'The full temple and its kitchen, feeding the dead and the living on the same fires: homes ' +
+      'within 15 tiles eat 15% less.',
+  },
+  standardhouse: {
+    name: 'Standard-Weight House', tier: 'civic', era: 8, w: 2, h: 3, cost: 3450, upkeep: 2.13,
+    icon: '\u{1FA99}', color: '#c9b48f', workers: 6, needsRoad: true, needsWater: true,
+    weighRadius: 15,
+    desc: 'One set of weights everybody has to use, kept under seal: +12% price for shops out to 15 tiles.',
+  },
+  oraclearchive: {
+    name: 'Oracle Bone Archive', tier: 'civic', era: 8, w: 2, h: 2, cost: 2430, upkeep: 1.41,
+    icon: '\u{1F4DC}', color: '#cbb98a', workers: 5, needsRoad: true, needsWater: true,
+    keepsTally: true, scribeRadius: 29, rankDiscount: 0.22,
+
+    desc: 'The used bones filed in pits under the floor, in order, by year — which is why we can read ' +
+      'them at all. +10% throughput out to 29 tiles, and every rank in the city costs 22% less.',
+  },
+
   coal: {
     name: 'Coal Plant', tier: 'infra', era: 30, w: 2, h: 2, cost: 800, upkeep: 1.0,
     icon: '\u{1F3ED}', color: '#8d8d99', workers: 4, needsWater: true, industry: true,
@@ -5010,6 +5718,9 @@ const HOUSE_LEVELS = {
   6: ['Reed-Mat Shelter', 'Brick Courtyard House', 'Bathing-Room House',
       'Two-Storey Court House', "Merchant's House", 'Citadel House'],
   14: ['Thatch House', 'Stone House', 'Corbelled House', 'Terraced House', 'Noble Compound', 'Lineage Palace'],
+
+  8: ['Pit Dwelling', 'Courtyard Compound', 'Two-Court Compound',
+      'Walled Compound', 'Royal Terrace House', 'Ancestral Seat'],
   30: ['Tenement Room', 'Brick Terrace', 'Merchant Townhouse', 'Mansion Flat', 'City Mansion', 'Merchant Palace'],
 };
 
@@ -5169,6 +5880,23 @@ const MONUMENT_GIFT = {
     apply(s) { s.giftIssue = (s.giftIssue | 0) + 1; },
   },
 
+  8: {
+    key: 'terra',
+    icon: '📏',
+    title: 'The Line Runs True',
+    lead: 'The Wall is closed. Seven kilometres of tamped earth, and the two ends met.',
+    body: 'To ram a wall in level courses over seven kilometres of falling ground the gangs had to be ' +
+          'able to carry a line across country and still know it was level when it got there. Nobody ' +
+          'built the wall in order to learn that. It is simply what they had to work out to build it ' +
+          'at all — and it outlasts the wall by three thousand years.',
+    grant: '<b>Every terraform brush costs 20% less, in this age and in every age after it — ' +
+           'ramming, cutting, water, rock, soil and trees alike.</b>',
+    toast: '📏 The surveyors’ line is yours. Every brush costs 20% less, in this age and ' +
+           'every age after it.',
+    log: 'Their gift: a level line carried across country — the ground is cheaper to move now, forever.',
+    apply(s) { s.giftTerra = (s.giftTerra | 0) + 1; },
+  },
+
 };
 function monumentGift(era) { return MONUMENT_GIFT[rungOf(era)] || null; }
 
@@ -5242,6 +5970,18 @@ const ERA_POLICY = {
     off: 'The wide issue is lifted. Watch the \u{1F4DC} chip: the outermost quarter may have just come off the roll.',
   },
 
+  8: {
+    key: 'policyRevet', icon: '\u{1F30A}', name: 'The Revetted Ditch Order',
+    tip: 'The ward turns out and lines every run below a gate in tamped courses, so the sluice can be ' +
+      'opened wider: each DIVERSION GATE emits ' + TUNE.REVET.add.toFixed(1) + ' more head — one more ' +
+      'BUNDED FIELD per gate, on the ditches you already dug. It costs ' + TUNE.REVET.per.toFixed(2) +
+      ' blocks a minute PER LIVE GATE and stops the moment the blocks run short — and those are the ' +
+      'same blocks the Wall is waiting for.',
+    on: 'The order is called. Every run below a gate is lined and beaten, and every sluice opens wider.',
+    off: 'The order is stood down. Watch the \u{1F30A} chip — the outermost field on each fan may have ' +
+      'just gone dry.',
+  },
+
   14: {
     key: 'policyRation', icon: '\u{1F4A7}', name: 'The Reservoir Ration',
     tip: 'The city draws ' + Math.round(TUNE.RATION.drawCut * 100) + '% less water — and every ' +
@@ -5303,6 +6043,12 @@ const ERA_ROAD = {
              'harbour and up to the summit shrine. ★ IT IS NOT A TRADE ROUTE: there is no market at ' +
              'the end of it. Everything on this road is going to or from a magazine. $10 a tile, ' +
              'nothing to keep.' },
+
+  8: { flavour: 'Rammed Way', color: 0x4a4034, hw: 0.32,
+       desc: 'Earth wetted, laid in courses and beaten flat with the same rammers that raise the wall. ' +
+             'Only SOME buildings need one — homes, markets, stores, the civic buildings and the two ' +
+             'yards that ship walling; fields, ditches, gates, wells, groves, adits, pans, middens and ' +
+             'the quarry never do. $10 a tile, nothing to keep.' },
   14: { flavour: 'Sacbé', color: 0xe6e0d2, hw: 0.38,
         desc: 'A raised roadbed of rubble faced with cut stone and finished in white lime plaster — ' +
               'dead straight, and visible from a long way off. With no carts and no draft animals, ' +
@@ -5341,6 +6087,11 @@ const MONUMENTS = [
     desc: 'Twelve hundred rooms on five storeys round a central court, with light wells, stairs ' +
       'that double back on themselves, and no defensive wall anywhere on the site. Nobody has ' +
       'established what most of it was for.' },
+
+  { id: 'rammedwall',  name: 'The Rammed-Earth Wall', era: 8, cost: 14900, icon: '\u{1F9F1}',
+    desc: 'Seven kilometres of tamped earth round the settlement, raised one eight-centimetre course ' +
+      'at a time between shuttering boards and beaten until a rammer rings on it. The gangs had to ' +
+      'carry a level line across seven kilometres of falling ground and have the two ends meet.' },
   { id: 'templePyr',   name: 'Temple-Pyramid',  era: 14, cost: 46000,     icon: '\u{1F3EF}', desc: 'Stepped limestone crowned with a roof-comb.' },
   { id: 'temploMayor', name: 'Templo Mayor',    era: 26, cost: 150000,    icon: '⛩️', desc: 'Twin shrines above the sacred precinct.' },
   { id: 'parthenon',   name: 'Parthenon',       era: 10, cost: 480000,    icon: '\u{1F3DB}️', desc: 'Pentelic marble, refined to the millimetre.' },
@@ -5462,6 +6213,30 @@ const RP_WEIGHT = {
   brickweir: 1.0, weirpens: 1.3, bergarden: 1.0, berorchard: 1.3,
   zebubyre: 0.8, zebuspan: 1.0,
   unicornseal: 0, peepal: 0,
+
+  sluicegate: 0.15, fieldditch: 0, cutchannel: 0.2, windlasswell: 0.1,
+  tiledcistern: 0.15, battercistern: 0.2, kingsweir: 0.2, deepcut: 0.25,
+  pitgranary: 0.1, sealedpit: 0.15, timbergranary: 0.8, platformgranary: 1.0,
+  clanstore: 0.4, sealedvault: 0.5,
+  bundedfield: 1.0, terracedbund: 1.4, milletfield: 1.0, oxploughfield: 1.4,
+  mulberrygrove: 1.0, pollardgrove: 1.4, oreadit: 1.0, lodegallery: 1.4,
+  saltlakepan: 1.0, brinepanrow: 1.4, stonequarry: 1.2, rubbleface: 1.6,
+  apricotgrove: 1.0, walledorchard: 1.4, riverweir: 1.0, fishgarth: 1.4,
+  bonemidden: 1.0, hornpits: 1.4,
+
+  oxpens: 0.4, royalherd: 0.5, loesspits: 0.2, compostwalks: 0.3,
+  troughhammer: 1.6, hammerrow: 1.8, pestleyard: 1.6, mortargang: 1.8,
+  aleshed: 1.6, mashbrewhouse: 1.8, wormshed: 1.6, tieredwormhouse: 1.8,
+  reelinghouse: 1.8, filamenthall: 2.0, patternloom: 1.8, damaskloom: 2.0,
+  piecemould: 1.6, sectionalfoundry: 1.8, boilingshed: 1.6, moundhearths: 1.8,
+  rammedyard: 1.6, courseyard: 1.8, bonecarver: 1.6, inlayworkshop: 1.8,
+  mealcounter: 2.4, granarycourt: 2.8, silkhall: 3.0, bolttreasury: 3.4,
+  bronzemarket: 2.6, vesselhall: 3.0, weighingfloor: 2.4, saltcommission: 2.8,
+  alehall: 2.4, libationhall: 2.8, wallworks: 2.4, gangcommissary: 2.8,
+  bonestall: 2.4, awlcombrow: 2.8,
+  clanground: 0.2, drumground: 0.3, cauldroncourt: 0.6, lineagetemple: 0.8,
+  cowrietreasury: 1.0, standardhouse: 1.2, divinercourt: 0.6, oraclearchive: 0.8,
+  courtyardcompound: 0.3, clancompound: 0.3, altarterrace: 0.1,
 };
 for (const k in RP_WEIGHT) if (BUILDINGS[k]) BUILDINGS[k].rp = RP_WEIGHT[k];
 
@@ -5469,7 +6244,9 @@ for (const t of ROAD_REQUIRED) if (BUILDINGS[t]) BUILDINGS[t].needsRoad = true;
 for (const k in BUILDINGS) if (BUILDINGS[k].monument) BUILDINGS[k].needsRoad = true;
 
 const PLOWED = ['farm', 'estate', 'farm2', 'sesamefield', 'terraceplot', 'irrigatedbank',
-                'leveefield', 'inundationfield', 'tilfield', 'tilterrace'];
+                'leveefield', 'inundationfield', 'tilfield', 'tilterrace',
+
+                'milletfield', 'oxploughfield'];
 for (const t of PLOWED) if (BUILDINGS[t]) BUILDINGS[t].plowed = true;
 
 const QUARRIED = ['quarry', 'deepquarry', 'granitequarry', 'desertquarry',
@@ -5479,7 +6256,9 @@ const QUARRIED = ['quarry', 'deepquarry', 'granitequarry', 'desertquarry',
   'prospectpit', 'adit', 'deeplevel', 'malachitecut', 'openstope',
   'limestonecut', 'benchquarry',
 
-  'pillarquarry', 'flintdiggings', 'beddingtrench', 'chertadit'];
+  'pillarquarry', 'flintdiggings', 'beddingtrench', 'chertadit',
+
+  'stonequarry', 'rubbleface'];
 for (const t of QUARRIED) if (BUILDINGS[t]) BUILDINGS[t].quarried = true;
 
 const MONUMENT_BUILD = {
@@ -5493,6 +6272,8 @@ const MONUMENT_BUILD = {
   greatbath: { money: 7820, brick: 980, beads: 196 },
 
   labyrinth: { money: 10250, blocks: 1280, unguent: 214 },
+
+  rammedwall: { money: 13410, stone: 3352, ritualbronze: 447 },
   ziggurat:  { money: 3600, clay: 900, beer: 300 },
   pyramid:   { money: 12000, clay: 2200, stone: 900 },
   templePyr: { money: 40000, stone: 3000, blocks: 1200 },
@@ -5506,7 +6287,9 @@ const MONUMENT_RATE = { money: 24, clay: 6, beer: 2, stone: 6, blocks: 3, potter
                         brick: 3, beads: 0.6,
 
                         unguent: 0.5, purplecloth: 0.3, saffron: 0.5,
-                        olives: 4, tin: 1, bronze: 0.8 };
+                        olives: 4, tin: 1, bronze: 0.8,
+
+                        ritualbronze: 0.8 };
 
 function monumentBuild(type, era) {
   return MONUMENT_BUILD[type] || { money: Math.round((BUILDINGS[type] || {}).cost * 0.9) || 1000 };
@@ -5841,6 +6624,46 @@ const UPGRADES = {
   overseerpost:   { to: 'ridgerelay',      cost: 180,  era: 2, label: 'The Ridge Relay' },
   tributeyard:    { to: 'countinghouse',   cost: 1020, era: 2, label: 'The Counting House' },
   rockladder:     { to: 'cutstair',        cost: 60,   era: 2, label: 'The Cut Stair' },
+
+  sluicegate:     { to: 'kingsweir',        cost: 260,  era: 8, label: "King's Weir" },
+  cutchannel:     { to: 'deepcut',          cost: 500,  era: 8, label: 'Twin Cut' },
+  windlasswell:   { to: 'tiledcistern',     cost: 260,  era: 8, label: 'Lined Cistern' },
+  tiledcistern:   { to: 'battercistern',    cost: 830,  era: 8, label: 'Battered Well-House' },
+  pitgranary:     { to: 'sealedpit',        cost: 330,  era: 8, label: 'Sealed Pit Store' },
+  timbergranary:  { to: 'platformgranary',  cost: 2100, era: 8, label: 'Platform Granary Range' },
+  clanstore:      { to: 'sealedvault',      cost: 830,  era: 8, label: 'Sealed Tribute Vault' },
+  bundedfield:    { to: 'terracedbund',     cost: 720,  era: 8, label: 'Levelled Bund Terrace' },
+  milletfield:    { to: 'oxploughfield',    cost: 560,  era: 8, label: 'Ox-Plough Millet Strips' },
+  mulberrygrove:  { to: 'pollardgrove',     cost: 1380, era: 8, label: 'Pollarded Mulberry Rows' },
+  oreadit:        { to: 'lodegallery',      cost: 880,  era: 8, label: 'The Lode Gallery' },
+  saltlakepan:    { to: 'brinepanrow',      cost: 660,  era: 8, label: 'Terraced Brine Pans' },
+  stonequarry:    { to: 'rubbleface',       cost: 2480, era: 8, label: 'Benched Rubble Face' },
+  apricotgrove:   { to: 'walledorchard',    cost: 620,  era: 8, label: 'Walled Fruit Garden' },
+  riverweir:      { to: 'fishgarth',        cost: 880,  era: 8, label: 'The Fish Garth' },
+  oxpens:         { to: 'royalherd',        cost: 1670, era: 8, label: 'Royal Herd Enclosure' },
+  bonemidden:     { to: 'hornpits',         cost: 720,  era: 8, label: 'The Horn Pits' },
+  loesspits:      { to: 'compostwalks',     cost: 380,  era: 8, label: 'The Compost Walks' },
+  troughhammer:   { to: 'hammerrow',        cost: 690,  era: 8, label: 'Trip-Hammer Row' },
+  pestleyard:     { to: 'mortargang',       cost: 690,  era: 8, label: 'Mortar Gang Yard' },
+  aleshed:        { to: 'mashbrewhouse',    cost: 660,  era: 8, label: 'The Mash Brewhouse' },
+  wormshed:       { to: 'tieredwormhouse',  cost: 750,  era: 8, label: 'Tiered Rearing House' },
+  reelinghouse:   { to: 'filamenthall',     cost: 830,  era: 8, label: 'The Filament Hall' },
+  patternloom:    { to: 'damaskloom',       cost: 1000, era: 8, label: 'Damask Frame Shed' },
+  piecemould:     { to: 'sectionalfoundry', cost: 830,  era: 8, label: 'Sectional Casting Hall' },
+  boilingshed:    { to: 'moundhearths',     cost: 610,  era: 8, label: 'Banked Boiling Hearths' },
+  rammedyard:     { to: 'courseyard',       cost: 830,  era: 8, label: 'Coursed Tamping Yard' },
+  bonecarver:     { to: 'inlayworkshop',    cost: 500,  era: 8, label: 'Turquoise-Inlay Workshop' },
+  mealcounter:    { to: 'granarycourt',     cost: 1040, era: 8, label: 'The Granary Court' },
+  silkhall:       { to: 'bolttreasury',     cost: 1340, era: 8, label: 'The Bolt Treasury' },
+  bronzemarket:   { to: 'vesselhall',       cost: 990,  era: 8, label: 'Ritual Vessel Hall' },
+  weighingfloor:    { to: 'saltcommission',   cost: 920,  era: 8, label: 'The Salt Commission' },
+  alehall:        { to: 'libationhall',     cost: 920,  era: 8, label: 'Libation Hall' },
+  wallworks:      { to: 'gangcommissary',   cost: 990,  era: 8, label: 'The Gang Commissary' },
+  bonestall:      { to: 'awlcombrow',       cost: 920,  era: 8, label: 'Awl & Comb Row' },
+  clanground:     { to: 'drumground',       cost: 330,  era: 8, label: 'Drum Ground' },
+  cauldroncourt:  { to: 'lineagetemple',    cost: 1670, era: 8, label: 'Lineage Temple' },
+  cowrietreasury: { to: 'standardhouse',    cost: 2070, era: 8, label: 'Standard-Weight House' },
+  divinercourt:   { to: 'oraclearchive',    cost: 1460, era: 8, label: 'Oracle Bone Archive' },
 };
 
 const UPGRADE_TARGETS = (function () {
@@ -5862,6 +6685,9 @@ const TERRA_TOOLS = [
   { kind: 'rock',     icon: '\u{1FAA8}', name: 'Rock' },
   { kind: 'mountain', icon: '⛰️', name: 'Mountain' },
   { kind: 'tree',     icon: '\u{1F333}', name: 'Tree' },
+
+  { kind: 'ram',      icon: '\u{1F3D4}\u{FE0F}', name: 'Ram (+1)' },
+  { kind: 'cut',      icon: '\u{26CF}\u{FE0F}', name: 'Cut (−1)' },
 ];
 
 const PALETTE_TABS = [
@@ -6111,7 +6937,9 @@ const ERA_FOOD_LABEL = { 7: 'Meal issued this age',
                          3: 'Food gathered this age',
                          4: 'Flour milled this age',
                          5: 'Flour milled this age',
-                         6: 'Flour milled this age', 14: 'Food ground this age' };
+                         6: 'Flour milled this age',
+
+                         8: 'Meal husked this age', 14: 'Food ground this age' };
 function eraFoodLabel(era) { return ERA_FOOD_LABEL[rungOf(era)] || 'Food produced this age'; }
 
 const ERA_VOICE = {
@@ -6207,6 +7035,23 @@ const ERA_VOICE = {
     saltAnswers: 'the AMURCA PITS in range (×3 recovery), a spell fallow — the plot will rest itself ' +
       'if you leave it — or convert to FIG ORCHARDS, which thrive on ruined ground and are never on ' +
       'the roll either',
+  },
+  8: {
+
+    settlers: ['Bin', 'Zheng', 'Que', 'Xing', 'Li', 'Chu'],
+    place: 'city',
+
+    mill: 'Pestle Yard',
+    tally: "Diviner's Court",
+    tallyLine: 'The plastron is scored, heated until it cracks, and then written on beside the crack. ' +
+      'The state has a memory now — and so do your accounts.',
+    ration: 'The founding tribute is finished — the last of the stored millet is issued.',
+    saltName: 'the loess going white under the millet',
+
+    saltAnswers: 'LOESS MANURE PITS in range (×3 recovery), a spell fallow — the strip will rest ' +
+      'itself if you leave it — or plant an APRICOT ORCHARD, which ignores the salt clock entirely. ' +
+      'A BUNDED RICE FIELD never salts its ground either, but it wants a gate above it and the ' +
+      'millet is up on the loess',
   },
   6: {
 
@@ -6352,6 +7197,20 @@ const ERA_STAPLE = {
     goodNames: { grain: 'Emmer', flour: 'Meal', dates: 'Figs', oil: 'Olive Oil', wool: 'Fleece',
                  cloth: 'Aegean Cloth', clay: 'Potter\u2019s Clay', pottery: 'Stirrup Jars',
                  stone: 'Gypsum', blocks: 'Ashlar' },
+  },
+  8: {
+    raw: 'grain', cooked: 'flour',
+    rawIcon: '\u{1F33E}', cookedIcon: '\u{1F35A}',
+    rawName: 'Millet', cookedName: 'Meal',
+    cookedVerb: 'husked', rawFrom: 'the millet strips and the bunded fields',
+    rawNote: 'the pestle yards draw on it before the ale sheds do',
+    shortNote: 'Each chain adds mouths and no meal — sow more MILLET FIELDS, or plumb another ' +
+      'BUNDED FIELD, or fall back on the orchard and the weir.',
+    hungerFix: 'sow a Millet Field and set a Pestle Yard grinding — neither wants a drop of head',
+
+    goodNames: { grain: 'Millet', flour: 'Meal', dates: 'Apricots', bone: 'Scapulae',
+                 carvings: 'Bone Work', stone: 'Rubble', blocks: 'Rammed Courses',
+                 beer: 'Millet Ale', salt: 'Pan Salt' },
   },
   6: {
     raw: 'grain', cooked: 'flour',

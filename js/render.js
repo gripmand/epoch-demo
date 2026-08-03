@@ -21,7 +21,7 @@ const Rend = {
   chunks: new Map(),
   buildingObjs: new Map(),
   heights: null,
-  showWater: false, showPower: false, showSoil: false,
+  showWater: false, showPower: false, showSoil: false, showHead: false,
 
   showBlocks: false,
 
@@ -84,6 +84,16 @@ const Rend = {
       cliff: 0x7b7670, bed: 0x223d55, grain: 0.12, macro: 0.18,
     },
 
+    8: {
+      base:     { color: 0xc7b482, tex: 'silt' },
+      fertile:  { color: 0x8a7a4a, tex: 'field' },
+      salt:     { color: 0xd4cdb8, tex: 'salt' },
+      saltRidge: 0xe2dcc9,
+      rock:     { color: 0xc4a878, tex: 'rock' },
+      cliff:    0xd2b98a,
+      bed:      0x8a7340,
+      grain: 0.14, macro: 0.17,
+    },
     7: {
       base:     { color: 0x8a8f6e, tex: 'silt' },
       fertile:  { color: 0x9c5a3c, tex: 'field' },
@@ -205,6 +215,8 @@ const Rend = {
     return new THREE.CanvasTexture(c);
   },
 
+  ELEV_STEP: 0.30,
+
   TERRAIN_SHAPE: {
     scale: 26,
     relief: 0.85,
@@ -262,6 +274,22 @@ const Rend = {
     for (let y = 0; y < W; y++)
       for (let x = 0; x < W; x++) L[y * W + x] = Rend.tileLift(t[Grid.key(x, y)]);
 
+    const EV = new Float32Array(W * W);
+    const el = G.cache.elev;
+    if (el) {
+      for (let y = 0; y < W; y++)
+        for (let x = 0; x < W; x++) {
+          const k = Grid.key(x, y);
+          EV[k] = t[k] === TERRAIN.WATER ? 0 : el[k] * Rend.ELEV_STEP;
+        }
+      const S = EV.slice();
+      for (let y = 1; y < W - 1; y++)
+        for (let x = 1; x < W - 1; x++) {
+          const k = y * W + x;
+          EV[k] = (S[k] * 4 + S[k - 1] + S[k + 1] + S[k - W] + S[k + W]) / 8;
+        }
+    }
+
     const LB = new Float32Array(L);
     for (let pass = 0; pass < 2; pass++) {
       const S = LB.slice();
@@ -280,6 +308,7 @@ const Rend = {
     };
     const liftAt = (x, y) => sample(L, x, y);
     const liftBlur = (x, y) => sample(LB, x, y);
+    const evAt = (x, y) => sample(EV, x, y);
 
     const TER = Rend.TERRAIN_SHAPE;
     const fbm = (x, y) => {
@@ -301,11 +330,13 @@ const Rend = {
         const roll = (fbm(x, y) - 0.5) * TER.relief + (ridge(x, y) - 0.5) * TER.dunes;
         const ls = liftAt(x, y), lb = liftBlur(x, y);
 
-        let h = roll + Math.min(ls, lb);
+        const ev = evAt(x, y);
+
+        let h = roll + Math.min(ls, lb) + ev;
         if (ls > -0.45) {
 
           const shore = Util.clamp(-lb / 0.45, 0, 1);
-          h = Math.max(h, TER.dryFloor + shore * (TER.shoreFloor - TER.dryFloor));
+          h = Math.max(h, TER.dryFloor + shore * (TER.shoreFloor - TER.dryFloor) + ev);
         } else {
 
           h = Math.min(h, TER.channelFloor);
@@ -1003,6 +1034,15 @@ const Rend = {
             g.fillStyle = 'rgba(240,238,225,' + (0.55 * (1 - soil)).toFixed(3) + ')';
             g.fillRect(x * px, y * px, px, px);
           }
+        }
+
+        if (Rend.showHead && G.cache.elev) {
+          const e = G.cache.elev[k];
+          const P8 = Grid.terrainProfile(s.era), mx = (P8 && P8.terraceMax) || 1;
+          const t = e / mx;
+          g.fillStyle = 'rgba(' + Math.round(40 + 190 * t) + ',' +
+            Math.round(60 + 170 * t) + ',' + Math.round(90 + 120 * t) + ',0.30)';
+          g.fillRect(x * px, y * px, px, px);
         }
 
         if (Rend.showBlocks && Rend._blockSet) {
@@ -2303,7 +2343,7 @@ const Rend = {
 
     const toolKey = Input.tool.mode + ':' + (Input.tool.type || '') + ':' +
                     (Rend.showWater ? 1 : 0) + ':' + (Rend.showPower ? 1 : 0) + ':' +
-                    (Rend.showSoil ? 1 : 0) + (Rend.showBlocks ? 4 : 0);
+                    (Rend.showSoil ? 1 : 0) + (Rend.showBlocks ? 4 : 0) + (Rend.showHead ? 8 : 0);
     if (toolKey !== Rend._toolKey || Rend._overlayDirty) {
       Rend._toolKey = toolKey;
       Rend._overlayDirty = false;

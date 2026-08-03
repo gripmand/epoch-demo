@@ -39,6 +39,8 @@ const Game = {
       giftDrain: 0,
       giftIssue: 0,
 
+      giftTerra: 0,
+
       stock: Game.startStock(granted, era),
 
       cum: { flour: 0, food: 0, stone: 0, earned: 0, tributePaid: 0 },
@@ -59,6 +61,8 @@ const Game = {
 
       founded: false,
       terraEdits: {},
+
+      elevEdits: {},
       soilEdits: {},
       rockSpent: {},
       cleared: {},
@@ -79,6 +83,7 @@ const Game = {
       policyRation: false,
       policySweep: false,
       policyWideIssue: false,
+      policyRevet: false,
       season: null,
 
       policyDoubleShift: false,
@@ -207,6 +212,8 @@ const Game = {
 
       magazine: new Uint8Array(n),
       midden: new Uint8Array(n),
+
+      elev: new Int8Array(n),
       ownedSet: new Set(),
       byId: new Map(),
       net: 0,
@@ -256,6 +263,7 @@ const Game = {
       era1Call: s.era1Call | 0,
       founded: !!s.founded,
       terraEdits: s.terraEdits, cleared: s.cleared, planted: s.planted,
+      elevEdits: s.elevEdits,
       soilEdits: s.soilEdits, rockSpent: s.rockSpent,
       lastSeenMs: Date.now(), cp: s.cp, cpFrac: s.cpFrac, hallJob: s.hallJob, subTier: s.subTier,
       settlerAcc: s.settlerAcc || 0,
@@ -284,6 +292,7 @@ const Game = {
       giftDrain: s.giftDrain | 0,
 
       giftIssue: s.giftIssue | 0,
+      giftTerra: s.giftTerra | 0,
 
       tribute: s.tribute ? { bank: +s.tribute.bank || 0, count: s.tribute.count | 0,
                              missed: s.tribute.missed | 0,
@@ -299,6 +308,7 @@ const Game = {
       policyRation: !!s.policyRation,
       policySweep: !!s.policySweep,
       policyWideIssue: !!s.policyWideIssue,
+      policyRevet: !!s.policyRevet,
 
       chill: +s.chill || 0,
 
@@ -523,7 +533,7 @@ const Game = {
       });
     }
 
-    for (const field of ['cleared', 'planted', 'terraEdits', 'soilEdits']) {
+    for (const field of ['cleared', 'planted', 'terraEdits', 'elevEdits', 'soilEdits']) {
       const src = d[field];
       if (!src || typeof src !== 'object' || Array.isArray(src)) continue;
       const out = {};
@@ -591,6 +601,8 @@ const Game = {
       era1Call: d.era1Call | 0,
       founded: !!d.founded,
       terraEdits: d.terraEdits || {}, cleared: d.cleared || {}, planted: d.planted || {},
+
+      elevEdits: d.elevEdits || {},
       soilEdits: d.soilEdits || {}, rockSpent: d.rockSpent || {},
       lastSeenMs: +d.lastSeenMs || Date.now(),
       subTier: SUB_TIERS[d.subTier] ? d.subTier : 'free',
@@ -619,6 +631,7 @@ const Game = {
       giftDrain: d.giftDrain | 0,
 
       giftIssue: d.giftIssue | 0,
+      giftTerra: d.giftTerra | 0,
 
       tribute: (d.tribute && typeof d.tribute === 'object')
         ? { bank: Math.max(0, +d.tribute.bank || 0), count: Math.max(0, d.tribute.count | 0),
@@ -639,6 +652,7 @@ const Game = {
       policyRation: !!d.policyRation,
       policySweep: !!d.policySweep,
       policyWideIssue: !!d.policyWideIssue,
+      policyRevet: !!d.policyRevet,
       chill: Util.clamp(+d.chill || 0, 0, 1),
 
       silt: Util.clamp(+d.silt || 0, 0, 1),

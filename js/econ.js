@@ -112,6 +112,8 @@ const Econ = {
     Econ.stampMagazine(s);
     Econ.rationTick(s, offline);
 
+    Econ.cascadeTick(s);
+
     Econ.nileTick(s, offline);
 
     Econ.soilTick(s, offline);
@@ -262,6 +264,24 @@ const Econ = {
       const per = TUNE.MAGAZINE.issuePer.oil * TUNE.WIDEISSUE.mult;
       const hold = per * TUNE.MAGAZINE.reserveMin * (TUNE.MAGAZINE.freeAdmin + 1);
       C.wideIssue = wasWide ? (s.stock.oil >= hold) : (s.stock.oil >= hold * 2);
+    }
+
+    const wasRevet = !!C.revetAdd;
+    C.revetAdd = 0;
+    if (s.policyRevet && Econ.cascadeActive(s)) {
+      let live = 0;
+      for (const b of s.buildings) {
+        const d = DEF(b.type);
+        if (!d || !d.cascadeSource || !Econ.campLive(b) || (d.workers && !(b.staff > 0))) continue;
+        live++;
+      }
+      const need = TUNE.REVET.per * live * Econ.M;
+      const on = wasRevet ? (s.stock.blocks >= need) : (s.stock.blocks >= need * 3);
+      if (need > 0 && on) {
+        s.stock.blocks -= need;
+        Econ.note('blocks', 0, need);
+        C.revetAdd = TUNE.REVET.add;
+      }
     }
 
     if (!!C.swept !== wasSwept && !offline) Grid.recomputeBlocks(s);
@@ -493,6 +513,7 @@ const Econ = {
       b.rate = made;
 
       b.status = staffEff < 1 ? 'understaffed'
+        : (b.headDry && Econ.cascadeActive(s)) ? 'no_head'
         : ((b.forageCrowd | 0) > 0 && Econ.rangeActive(s)) ? 'crowded' : 'ok';
     }
 
@@ -1012,7 +1033,8 @@ const Econ = {
   },
 
   siteMult(s, b) {
-    return Econ.groundMult(b) * Econ.forageMult(s, b) * Econ.blockMult(s, b);
+    return Econ.groundMult(b) * Econ.forageMult(s, b) * Econ.blockMult(s, b) *
+           Econ.headMult(s, b);
   },
 
   oxFodder(d) { return (d && d.oxFodder) || TUNE.OX.fodder; },
@@ -1462,6 +1484,11 @@ const Econ = {
       const f = Econ.rationForecast(s);
       return f.billable > 0 && f.administered >= f.billable * TUNE.MAGAZINE.gateFrac;
     },
+
+    8: (s) => {
+      const f = Econ.cascadeForecast(s);
+      return f.drawers >= TUNE.CASCADE.gateFields && f.frac >= TUNE.CASCADE.gateFrac;
+    },
   },
   eraExtraGate(s) {
     const f = Econ.ERA_EXTRA_GATE[rungOf(s.era)];
@@ -1556,7 +1583,9 @@ const Econ = {
 
     s.buildings = [];
     s.owned = [];
-    s.cleared = {}; s.planted = {}; s.terraEdits = {}; s.soilEdits = {}; s.rockSpent = {};
+
+    s.cleared = {}; s.planted = {}; s.terraEdits = {}; s.elevEdits = {};
+    s.soilEdits = {}; s.rockSpent = {};
 
     s.woodSpent = {}; s.herds = null; s.hunt = null; s.chill = 0;
     s.nextId = 1; s.placeCounter = 0;
@@ -1708,6 +1737,7 @@ const Econ = {
     if (d.needsBlock && !b.inBlock) return 'no_block';
 
     if (b.noIssue && Econ.magazineActive(G.s || {})) return 'no_magazine';
+
     return null;
   },
 
@@ -1985,6 +2015,179 @@ const Econ = {
                                                          : ' · room for ' + out.room)
       : 'nothing on the ledger';
     return out;
+  },
+
+  cascadeActive(s) { return rungOf(s.era) === 8; },
+
+  headNeed(b) {
+    const d = DEF(b.type);
+    if (!d || !d.cascadeDraw) return 0;
+    return d.cascadeDraw * rankOutMult(b);
+  },
+
+  gateHead(s, d) {
+    return (d.cascadeSource || 0) + ((G.cache && G.cache.revetAdd) || 0);
+  },
+
+  cascadeTick(s) {
+    const C = G.cache;
+    C.cascade = null;
+    if (!Econ.cascadeActive(s)) return;
+    const K = TUNE.CASCADE;
+
+    const net = new Map();
+    const gates = [], drawers = [];
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d) continue;
+      if (d.cascadeSource) {
+        b.headOut = 0;
+        if (b.done !== false && Econ.campLive(b) && (!d.workers || b.staff > 0)) gates.push(b);
+      }
+      if (!(d.cascadeCarry || d.cascadeCut || d.cascadeDraw)) continue;
+      if (b.done === false) continue;
+      if (d.cascadeDraw) { b.headIn = 0; b.headDry = true; b.headBlock = 'unreached'; }
+      const live = Econ.campLive(b) && (!d.workers || b.staff > 0);
+
+      if (!live && !d.cascadeDraw) continue;
+      Grid.tilesOf(b, (x, y) => { if (Grid.inB(x, y)) net.set(Grid.key(x, y), b); });
+      if (d.cascadeDraw && live) drawers.push(b);
+    }
+    gates.sort((a, b) => a.placed - b.placed);
+
+    let emitted = 0, drawn = 0, spare = 0;
+    const served = new Set(), touched = new Set();
+    let breakAt = null;
+    for (const g of gates) {
+      const gd = DEF(g.type);
+      const source = Econ.gateHead(s, gd);
+      emitted += source;
+      let budget = source;
+
+      const seen = new Set();
+      const q = [];
+      Grid.tilesOf(g, (x, y) => {
+        if (!Grid.inB(x, y)) return;
+        seen.add(Grid.key(x, y));
+        q.push({ x, y, hop: 0, cuts: null });
+      });
+      const reached = [], reachedSet = new Set();
+      const cutUse = new Map();
+      for (let qi = 0; qi < q.length; qi++) {
+        const cur = q[qi];
+        if (cur.hop >= K.hopLimit) continue;
+        const ce = Grid.elevAt(cur.x, cur.y);
+        for (let n = 0; n < 4; n++) {
+          const nx = cur.x + (n === 0 ? 1 : n === 1 ? -1 : 0);
+          const ny = cur.y + (n === 2 ? 1 : n === 3 ? -1 : 0);
+          if (!Grid.inB(nx, ny)) continue;
+          const nk = Grid.key(nx, ny);
+          if (seen.has(nk)) continue;
+          const nb = net.get(nk);
+          if (!nb) continue;
+          const nd = DEF(nb.type);
+          const drop = ce - Grid.elevAt(nx, ny);
+          let cuts = cur.cuts;
+          if (drop < 0) {
+
+            if (!nd.cascadeCut || -drop > nd.cascadeCut) {
+              if (!breakAt) breakAt = { x: nx, y: ny, gate: g, up: -drop, down: 0 };
+              continue;
+            }
+            cuts = cuts ? cuts.concat([nb]) : [nb];
+          } else if (drop > K.maxDrop) {
+
+            if (!breakAt) breakAt = { x: nx, y: ny, gate: g, up: 0, down: drop };
+            continue;
+          }
+          seen.add(nk);
+          q.push({ x: nx, y: ny, hop: cur.hop + 1, cuts });
+          if (nd.cascadeDraw && !reachedSet.has(nb)) {
+            reachedSet.add(nb);
+            reached.push({ b: nb, hop: cur.hop + 1, cuts });
+          }
+        }
+      }
+
+      reached.sort((a, b) => a.hop - b.hop || a.b.placed - b.b.placed);
+      for (const r of reached) {
+        touched.add(r.b.id);
+        if (served.has(r.b.id)) continue;
+        const need = Econ.headNeed(r.b);
+        if (!(need > 0)) continue;
+        if (need > budget) { r.b.headBlock = 'budget'; continue; }
+
+        let ok = true;
+        if (r.cuts) for (const c of r.cuts) {
+          const cap = DEF(c.type).cascadeThrough || 0;
+          if ((cutUse.get(c.id) || 0) + need > cap) { ok = false; break; }
+        }
+        if (!ok) { r.b.headBlock = 'cut'; continue; }
+        if (r.cuts) for (const c of r.cuts) cutUse.set(c.id, (cutUse.get(c.id) || 0) + need);
+        budget -= need;
+        served.add(r.b.id);
+        r.b.headIn = need; r.b.headDry = false; r.b.headBlock = null;
+        drawn += need;
+      }
+      g.headOut = source - budget;
+      spare += budget;
+    }
+    for (const b of drawers) if (b.headDry && !touched.has(b.id)) b.headBlock = 'unreached';
+
+    const dry = drawers.filter(b => b.headDry).length;
+    C.cascade = { gates: gates.length, emitted, drawn, spare, dry,
+                  drawers: drawers.length, breakAt };
+  },
+
+  headMult(s, b) {
+    if (!Econ.cascadeActive(s)) return 1;
+    const d = DEF(b.type);
+    if (!d || !d.cascadeDraw) return 1;
+    return b.headDry ? TUNE.CASCADE.dryYield : 1;
+  },
+
+  cascadeForecast(s) {
+    const out = { active: false, gates: 0, emitted: 0, drawn: 0, spare: 0, dry: 0,
+                  drawers: 0, breakAt: null, frac: 1, text: 'no gate yet' };
+    if (!Econ.cascadeActive(s)) return out;
+    out.active = true;
+    const c = (G.cache && G.cache.cascade) || null;
+    if (!c) return out;
+    out.gates = c.gates; out.emitted = c.emitted; out.drawn = c.drawn;
+    out.spare = c.spare; out.dry = c.dry; out.drawers = c.drawers;
+    out.breakAt = c.breakAt;
+
+    out.frac = c.drawers > 0 ? (c.drawers - c.dry) / c.drawers : 1;
+    out.text = c.drawers
+      ? (c.drawers - c.dry) + ' / ' + c.drawers + ' plumbed' +
+        (c.dry ? ' · ' + c.dry + ' dry' : ' · spare ' + c.spare.toFixed(1))
+      : 'no bunded fields yet';
+    return out;
+  },
+
+  headWhy(s, b) {
+    const f = Econ.cascadeForecast(s);
+    const d = DEF(b.type);
+    const need = Econ.headNeed(b);
+    if (!f.active || !d || !d.cascadeDraw) return null;
+    if (!b.headDry) return null;
+    if (b.headBlock === 'budget')
+      return 'This bund wants ' + need.toFixed(1) + ' head and every gate above it is already spent. ' +
+        'A gate emits ' + TUNE.CASCADE.warnSpare * 3 + ' and a field draws ' + TUNE.CASCADE.warnSpare +
+        ', so THREE fields to a gate: put in another DIVERSION GATE, upgrade this one to a KING\'S ' +
+        'WEIR, or mothball a field nearer the gate and this one runs instead. A well will not help.';
+    if (b.headBlock === 'cut')
+      return 'The run reaches this bund through a CUT CHANNEL that is already carrying all it can. ' +
+        'Drive a second cut through the same rise, or upgrade it to a TWIN CUT.';
+    const at = f.breakAt;
+    return 'No head reaches this bund at all. ' + (at
+      ? 'The run out of your gate ' + (at.up ? 'CLIMBS ' + at.up + ' step' + (at.up > 1 ? 's' : '') +
+          ' at (' + at.x + ', ' + at.y + ') — head only ever runs downhill, so nothing past that tile ' +
+          'gets any. CUT the ground there, or drive a CUT CHANNEL through it.'
+        : 'FALLS ' + at.down + ' steps at once at (' + at.x + ', ' + at.y + '), which scours the ditch ' +
+          'out. RAM the tile below it, or CUT the tile above.')
+      : 'Dig FIELD DITCHES from a DIVERSION GATE down to it — level, or one step down, never up.') +
+      ' A well stamps a circle; a field wants a flow.';
   },
 
   levyActive(s) { return rungOf(s.era) === 2; },
@@ -2839,7 +3042,10 @@ const Econ = {
                 'ore', 'concentrate', 'malachite', 'gold', 'goldleaf',
                 'copper', 'bitumen', 'pitch',
 
-                'olives', 'unguent', 'purplecloth', 'saffron', 'tin', 'bronze'],
+                'olives', 'unguent', 'purplecloth', 'saffron', 'tin', 'bronze',
+
+                'mulberry', 'cocoon', 'silk', 'brocade',
+                'copperore', 'ritualbronze', 'brine'],
 
   capOf(s, kind) {
 
@@ -3101,9 +3307,14 @@ const Econ = {
   },
 
   rankDiscount(s) {
-    const t = s.buildings.find(b => b.type === 'tablethouse' && b.done !== false &&
-      !b.mothballed && b.staff > 0 && !Econ.blockOf(b));
-    return t ? 0.85 : 1;
+    let best = 0;
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d || !d.rankDiscount) continue;
+      if (b.done === false || b.mothballed || !(b.staff > 0) || Econ.blockOf(b)) continue;
+      if (d.rankDiscount > best) best = d.rankDiscount;
+    }
+    return 1 - best;
   },
 
   importGrain(s) {

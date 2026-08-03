@@ -26,6 +26,8 @@ const UI = {
     UI.els.grid = document.getElementById('hud-grid');
     UI.els.rollChip = document.getElementById('chip-roll');
     UI.els.roll = document.getElementById('hud-roll');
+    UI.els.headChip = document.getElementById('chip-head');
+    UI.els.head = document.getElementById('hud-head');
     UI.els.herdChip = document.getElementById('chip-herd');
     UI.els.herd = document.getElementById('hud-herd');
     UI.els.levyChip = document.getElementById('chip-levy');
@@ -447,17 +449,25 @@ const UI = {
   toggleOverlays() {
     const btn = document.getElementById('btn-overlay');
     const salt = UI.saltActive(G.s);
-    if (!Rend.showWater && !Rend.showSoil) {
-      Rend.showWater = true; Rend.showPower = true; Rend.showSoil = false;
+    const head = Econ.cascadeActive(G.s);
+    if (!Rend.showWater && !Rend.showSoil && !Rend.showHead) {
+      Rend.showWater = true; Rend.showPower = true; Rend.showSoil = false; Rend.showHead = false;
       if (btn) { btn.classList.add('active'); btn.textContent = 'Coverage'; }
       UI.firstToast('overlaycov', 'Coverage overlay: blue = watered ground.' +
-        (salt ? ' Press O again for the SALT map.' : ' Press O again to turn it off.'));
-    } else if (Rend.showWater && salt) {
-      Rend.showWater = false; Rend.showPower = false; Rend.showSoil = true;
+        (head ? ' Press O again for the HEAD MAP — which way the ground falls.'
+              : salt ? ' Press O again for the SALT map.' : ' Press O again to turn it off.'));
+    } else if (Rend.showWater && head) {
+      Rend.showWater = false; Rend.showPower = false; Rend.showSoil = false; Rend.showHead = true;
+      if (btn) { btn.classList.add('active'); btn.textContent = 'Head map'; }
+      UI.firstToast('overlayhead', '\u{1F30A} Head map: DARK is low ground and PALE is high. Head runs ' +
+        'from a Diversion Gate to any tile level with the last one or ONE STEP BELOW it, and never a ' +
+        'step above — so a ditch has to go from pale to dark, one shade at a time.');
+    } else if ((Rend.showWater || Rend.showHead) && salt) {
+      Rend.showWater = false; Rend.showPower = false; Rend.showHead = false; Rend.showSoil = true;
       if (btn) { btn.classList.add('active'); btn.textContent = 'Salt map'; }
       UI.firstToast('overlaysalt', 'Salt map: the whiter a tile, the more the salt has taken it. Fields fade as they crop; fallow, middens, shadufs and water bring them back.');
     } else {
-      Rend.showWater = false; Rend.showPower = false; Rend.showSoil = false;
+      Rend.showWater = false; Rend.showPower = false; Rend.showSoil = false; Rend.showHead = false;
       if (btn) { btn.classList.remove('active'); btn.textContent = 'Coverage'; }
     }
     Rend.rebakeAll(G.s);
@@ -477,6 +487,8 @@ const UI = {
     if (era === 6) return 'indus';
 
     if (era === 7) return 'aegean';
+
+    if (era === 8) return 'shang';
     if (era <= 9) return 'egypt';
     if (era <= 13) return 'classical';
     if (era <= 14) return 'jungle';
@@ -873,6 +885,39 @@ const UI = {
             's if production stopped.' : '')) + wide;
     }
 
+    const showHead = Econ.cascadeActive(s);
+    if (UI.els.headChip) {
+      UI.els.headChip.classList.toggle('hidden', !showHead);
+      UI.els.headChip.style.display = showHead ? '' : 'none';
+    }
+    if (showHead && UI.els.head) {
+      const h = Econ.cascadeForecast(s);
+      UI.els.head.textContent = h.drawers
+        ? (h.drawers - h.dry) + '/' + h.drawers + (h.dry ? ' ⚠' + h.dry : ' +' + h.spare.toFixed(1))
+        : '—';
+
+      UI.els.headChip.classList.toggle('bad', h.dry > 0);
+      UI.els.headChip.classList.toggle('warn',
+        h.dry === 0 && h.drawers > 0 && h.spare < TUNE.CASCADE.warnSpare);
+      const revet = G.cache.revetAdd
+        ? ' The Revetted Ditch Order is PAYING: every gate emits ' + TUNE.REVET.add.toFixed(1) +
+          ' more.'
+        : (s.policyRevet ? ' The Revetted Ditch Order is ON BUT NOT PAYING — no blocks in store, so ' +
+            'every sluice is back to its own head.' : '');
+      UI.els.headChip.title = (h.gates === 0
+        ? 'NO DIVERSION GATE YET. A Bunded Rice Field does not want a well — it wants a gate above it, ' +
+          'and a run of Field Ditches that only ever goes downhill.'
+        : h.gates + (h.gates === 1 ? ' gate emits ' : ' gates emit ') + h.emitted.toFixed(1) +
+          ' head a minute; ' + (h.drawers - h.dry) + ' of ' + h.drawers + ' bunds draw ' +
+          h.drawn.toFixed(1) + '. Spare ' + h.spare.toFixed(1) + ' — ' +
+          (h.spare >= TUNE.CASCADE.warnSpare
+            ? 'room for one more field somewhere on the fan.'
+            : 'NOT ENOUGH FOR ANOTHER FIELD. Upgrade a gate to a King\'s Weir, or find a second fall.') +
+          (h.dry ? ' ' + h.dry + ' bund' + (h.dry === 1 ? ' is' : 's are') + ' running on rain at ' +
+            Math.round(TUNE.CASCADE.dryYield * 100) + '% — click the amber marker and it names the ' +
+            'tile the run broke at.' : '')) + revet;
+    }
+
     const showGrid = Econ.gridActive(s);
     if (UI.els.gridChip) {
       UI.els.gridChip.classList.toggle('hidden', !showGrid);
@@ -1067,7 +1112,7 @@ const UI = {
   },
 
   AMBER_STATUS: { understaffed: 1, resting: 1, flooded: 1, dry_season: 1,
-                  halted: 1, building: 1, crowded: 1 },
+                  halted: 1, building: 1, crowded: 1, no_head: 1 },
 
   statusText(b) {
     const M = {
@@ -1107,6 +1152,12 @@ const UI = {
       })(), 'warn'],
 
       struck: ['THE PICKS ARE DOWN — this is a refusal, not a staffing problem. The age can turn', 'bad'],
+
+      no_head: [(() => {
+        const w = Econ.headWhy(G.s, Input.selected);
+        return 'DRY — running on rain at ' + Math.round(TUNE.CASCADE.dryYield * 100) + '%. ' +
+          (w || 'No head reaches it.');
+      })(), 'warn'],
       no_staff: ['NO WORKERS available', 'bad'], understaffed: ['UNDERSTAFFED', 'warn'],
       no_input: ['NO INPUT in stock', 'bad'], no_customers: ['NOT ENOUGH CUSTOMERS', 'bad'],
       hungry: ['RESIDENTS HUNGRY', 'bad'],

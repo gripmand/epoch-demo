@@ -73,6 +73,15 @@ body[data-era-theme="indus"]     { --chip-bg: rgba(30, 20, 14, 0.91); --chip-bor
    snow — and apart from `egypt` (#e8c96a) by being its opposite on the wheel,
    which is the point: the rung below it is mud and the rung above it is gold. */
 body[data-era-theme="aegean"]    { --chip-bg: rgba(10, 30, 42, 0.91); --chip-border: rgba(217, 210, 189, 0.36); --accent: #ddd6c2; }
+/* ★ rung 8 — Ancient China (Shang). The chip body is ERA_ROAD[8]'s rammed earth
+   (0x4a4034) taken right down, and the accent is ERA_GRADE[8]'s loess apron
+   (0xc7b482) lifted. The whole age is ONE MATERIAL at different wetnesses —
+   dust, damp silt, and a river the same colour as both — so the palette is the
+   least saturated warm one on the ladder on purpose. It has to sit apart from
+   `indus` (#d9bb8e, warm brown) and `egypt` (#e8c96a, gold): #ddc9a2 is paler
+   and greyer than either, which is the difference between mud brick, gilding
+   and wind-blown loess. */
+body[data-era-theme="shang"]     { --chip-bg: rgba(26, 22, 17, 0.91); --chip-border: rgba(199, 180, 130, 0.34); --accent: #ddc9a2; }
 body[data-era-theme="egypt"]     { --chip-bg: rgba(38, 28, 12, 0.90); --chip-border: rgba(212, 175, 55, 0.40); --accent: #e8c96a; }
 body[data-era-theme="jungle"]    { --chip-bg: rgba(14, 30, 18, 0.90); --chip-border: rgba(110, 190, 130, 0.35); --accent: #8fd9a0; }
 body[data-era-theme="classical"] { --chip-bg: rgba(28, 30, 36, 0.90); --chip-border: rgba(220, 220, 230, 0.35); --accent: #e8e6e0; }

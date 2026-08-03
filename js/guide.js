@@ -63,6 +63,12 @@ const ERA_RECORD = {
         chronicle: 'The Chronicle', chronBtn: 'Chronicle',
         chronSub: 'Set down as it happened. The record keeps the last 200 entries.',
         keeper: 'whoever keeps this city’s records' },
+  8:  { icon: '\u{1FAA1}', tally: 'The Bone Tally', tallyBtn: 'Bone Tally',
+        tallySub: 'Scored into scapula and plastron, heated until it cracks, then read.',
+        chronicle: 'The Oracle Record', chronBtn: 'Oracle Record',
+        chronSub: 'Cut into the bone beside the crack, after the answer was read. The archive keeps ' +
+                  'the last 200 entries.',
+        keeper: "a Diviner's Court" },
   7:  { icon: '\u{1F4DC}', tally: 'The Tablets', tallyBtn: 'Tablets',
         tallySub: 'What was issued, to whom, and what came back in.',
         chronicle: 'The Archive', chronBtn: 'Archive', chronSub: 'Set down in wet clay and filed by the month. The record keeps the last 200 entries.',
@@ -121,6 +127,11 @@ const ERA_FOUNDING = {
         placeholder: '', ok: 'Found the city', skip: 'It needs no name yet',
         founded: ' was founded.',
         toast: ' is founded. May its tally always run positive.' },
+  8:  { icon: '\u{1F3DB}\u{FE0F}', title: 'Name Your City',
+        sub: 'The diviners will put the question to the ancestors and cut the answer into bone.',
+        placeholder: 'Great Settlement Shang', ok: 'Found the city', skip: 'It needs no name yet',
+        founded: ' was founded on the break of slope — above the wet ground and below the ridge.',
+        toast: ' is founded. May the water run the way you send it.' },
 
   0:  { icon: '\u{1F332}', title: 'Name This Range',
         sub: 'Nothing here can name it. Sixty-six million years from now, somebody will.',
@@ -286,6 +297,36 @@ const ERA_SITE = {
     water: 'Most buildings must sit inside a <b>Canal Well’s</b> eight tiles, or an ' +
       '<b>Inundation Basin’s</b> eleven. Press <b>O</b> to see it.',
     extra: [],
+  },
+  8: {
+    roadYes: '<b>Courtyard and Clan Compounds, every counter and hall, the granaries and stores, the ' +
+      'Cauldron Court, the Cowrie Treasury, the Diviner’s Court and the two yards that ship walling</b>',
+    roadNo: 'Diversion Gates, Field Ditches, Cut Channels, wells and cisterns, Bunded Rice Fields, ' +
+      'Millet Fields, Mulberry Groves, the Ore Adit, Salt-Lake Pans, the Quarry, Apricot Orchards, the ' +
+      'River Weir, the Ox Pens, the Bone Midden, the Manure Pits, the Trough Hammer, the Pestle Yard, ' +
+      'the Ale Shed, the Silkworm Shed, the Reeling House, the Loom Shed, the Foundry, the Boiling ' +
+      'Shed, the Bone Carver’s Yard, the Pit Granary and the Altar Terrace',
+    water: 'Homes, shops and workshops must sit inside a <b>Windlass Well’s</b> nine tiles or a ' +
+      '<b>Lined Cistern’s</b> sixteen. ★ STANDING BESIDE THE RIVER DOES NOT COUNT — coverage comes ' +
+      'from a well and never from water on the ground. Press <b>O</b> to see the rings.',
+    extra: [
+      '<b>Head runs downhill.</b> A Bunded Rice Field does not want a radius, it wants HEAD. A ' +
+      '<b>Diversion Gate</b> emits 6.0 a minute and a field draws 2.0, so <b>THREE FIELDS TO A ' +
+      'GATE</b> — at any distance, because a ditch loses nothing to length. What stops it is the ' +
+      'GROUND: head reaches a tile level with the last one or ONE STEP BELOW it, and never a step ' +
+      'above. A rise in the way stops everything past that tile dead, and the only things that answer ' +
+      'a rise are the <b>CUT</b> brush and a <b>Cut Channel</b>. A well never is.',
+      '<b>You can move the earth here, and nowhere else on the ladder.</b> <b>RAM</b> raises a tile ' +
+      'one step and <b>CUT</b> drops it one, in the Terraform palette. That is how a flat corner of ' +
+      'the map becomes a fan, and how a fan you broke gets fixed. It is also how you break one: ram a ' +
+      'platform above your own ditch and everything below it goes dry on that tick.',
+      '<b>A dry field is not a dead field.</b> With no head at all a bund still takes 15% off the ' +
+      'rain, so a mistake bleeds instead of killing — and it flies an amber marker, never a red !. ' +
+      'Click it and it names the tile the run broke at.',
+      '<b>The two staples run opposite clocks.</b> A Bunded Field never salts its ground, because the ' +
+      'standing water washes the salt down past the roots. A Millet Field salts up normally and wants ' +
+      'the LOESS MANURE PITS beside it. Build one of each and watch.',
+    ],
   },
   7: {
     roadYes: '<b>Ashlar Houses, Town Houses, every magazine, the Stirrup-Jar Store and the Mule Train ' +
@@ -514,6 +555,40 @@ const ERA_GUIDES = {
     mistake: 'Expanding farmland without storage. A good flood you cannot store is wasted.',
   },
 
+  8: {
+    headline: 'Water is not a circle here. It is a budget, and it only ever runs downhill.',
+    mechanic: 'ROUTE THE WATER DOWNHILL. A DIVERSION GATE emits 6.0 head a minute; a BUNDED RICE ' +
+      'FIELD draws 2.0 — so THREE FIELDS TO A GATE, at any distance, because a ditch loses nothing to ' +
+      'length. What costs you is the GROUND: head reaches a tile level with the last one or ONE STEP ' +
+      'BELOW it, never a step above. A rise between your gate and your field stops everything past ' +
+      'that tile, and the only answers are the CUT brush or a CUT CHANNEL. A WINDLASS WELL waters ' +
+      'homes and workshops and does NOTHING for a field. A field with no head still takes 15% off the ' +
+      'rain, so a mistake bleeds instead of killing — watch the 🌊 chip and find the break.',
+    chain: [
+      'Millet Field → Pestle Yard → The Meal Counter  ·  $92/min. The staple, and it owes the cascade nothing',
+      'Bunded Rice Field → Trough Hammer → The Meal Counter  ·  same counter, 50% more food per tile — if you can plumb it',
+      'Mulberry Grove → Silkworm Shed → Reeling House → Loom Shed → Silk Gift Hall  ·  $222/min, the richest thing here',
+      'Ore Adit → Piece-Mould Foundry → Ancestral Bronze Market  ·  $169/min. What this civilisation IS',
+      'Ox Pens + Bone Midden → Bone Carver’s Yard → Bone &amp; Horn Stall  ·  $154/min — and the pens plough your millet',
+      'Millet → Ale Shed → Ancestral Ale Hall  ·  $140/min, and it drinks the grain you were going to eat',
+      'Rubble Quarry → Rammed-Earth Yard → Wall Works Yard  ·  $148/min. ★ THE EXIT: 1,763 stone, and the Wall wants 3,352 more',
+      'Salt-Lake Pan → Boiling Shed → The Weighing Floor  ·  $89/min, on the only ground you cannot buy',
+    ],
+    firstSteps: [
+      'A WINDLASS WELL first ($170), dead centre. It has no siting rule at all, and homes, shops and workshops all need it. It has nothing whatever to do with the fields.',
+      'Then TWO MILLET FIELDS ($560). Your founding party works these before anything else and they need no head — which is what releases the other six into the labour pool.',
+      'Then a PESTLE YARD ($690) inside the well’s ring, FOUR COURTYARD COMPOUNDS ($1,320) on a road from the Ancestral Hall, and THE MEAL COUNTER ($690). Four compounds open at three residents each, and the counter needs eight.',
+      'Then an APRICOT ORCHARD ($310). No water, no head, no road, no ground — it is what feeds you the first time a fan goes dry.',
+      'NOW the cascade — ONE field first, because the lesson is worth more than the rice. Press O twice for the HEAD MAP (dark is low, pale is high), find a fall inside your own land, and put a DIVERSION GATE at the top, four FIELD DITCHES running down it, and ONE BUNDED RICE FIELD at the bottom. $650, and it either runs or it does not.',
+      'If it does not, the ground RISES somewhere along the run and nothing past that tile gets a drop. CUT the tile (−1 step, $97) or drive a CUT CHANNEL through it ($330). If the corner you picked is dead flat, RAM a tile at the top (+1 step, $124) and make your own fall — this is the one age on the ladder that lets you.',
+      'Once it runs, add the SECOND AND THIRD FIELDS off the same gate as the ground allows, and a TROUGH HAMMER on the stream ($690). A gate emits 6.0 and a field draws 2.0, so THREE TO A GATE and not one more — read the 🌊 chip before the fourth. To go past three: upgrade the gate to a KING’S WEIR (8.70 head = four fields) or buy a parcel toward a second fall. And RANK FROM THE TAIL UPWARD — a rank multiplies a field’s yield AND its draw, so ranking the field nearest the gate takes the water off everything below it. The UPGRADE does not: a Levelled Bund Terrace doubles the yield on the same 2.0.',
+      'Then your second earning chain — SALT ($1,550) or BONE ($1,470) both fit what is left — a second MEAL COUNTER once the store fills, and the RUBBLE & TAMPING QUARRY on an outcrop. Stand it ON the rock: the age cannot be left without 1,763 stone, and the Rammed-Earth Wall wants 3,352 more on top.',
+    ],
+    mistake: 'Answering a dry field with another well. It is the one action that cannot possibly help — ' +
+      'a well stamps a circle and a field wants a flow. The cause is always upstream: a ditch that ' +
+      'climbs a step, a fourth field on a gate that only pays for three, or a run past sixty tiles. ' +
+      'Click the amber marker and it names the tile.',
+  },
   7: {
     headline: 'There is no market. Everything goes to the palace, and the palace has to feed it.',
     mechanic: 'THE ROLL. Every building that PRODUCES or SHIPS must stand inside a magazine’s disc — ' +
