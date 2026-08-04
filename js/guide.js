@@ -116,6 +116,22 @@ const ERA_RECORD = {
         chronicle: 'The Seal Impressions', chronBtn: 'Impressions',
         chronSub: 'Pressed into clay as it happened, under six signs nobody alive can read. The impressions keep the last 200 entries.',
         keeper: 'a Seal Cutter’s Office' },
+
+  10: { icon: '\u{1F5D2}\u{FE0F}', tally: 'The Deme Register', tallyBtn: 'Deme Register',
+        tallySub: 'Whitewashed boards in the agora, repainted each year.',
+        chronicle: 'The Archon List', chronBtn: 'Archon List',
+        chronSub: 'Cut into stone under the year’s archon. It keeps the last 200 entries.',
+        keeper: 'an Anagrapheis Office' },
+  11: { icon: '\u{1F4DC}', tally: 'The Tabulae', tallyBtn: 'Tabulae',
+        tallySub: 'Wax and wood, closed at the lustrum and filed by tribe.',
+        chronicle: 'The Fasti', chronBtn: 'Fasti',
+        chronSub: 'Entered under the year’s consuls, on stone. It keeps the last 200 entries.',
+        keeper: 'a Tabularium' },
+  12: { icon: '\u{1F4C3}', tally: 'The Roll', tallyBtn: 'The Roll',
+        tallySub: 'Reed pen on papyrus, in the hand of a clerk who was sent here too.',
+        chronicle: 'The Ephemeris', chronBtn: 'Ephemeris',
+        chronSub: 'A day-book, written up each evening and shelved. It keeps the last 200 entries.',
+        keeper: 'a Bibliotheke' },
   14: { icon: '\u{1F4D6}', tally: 'The Codex Tally', tallyBtn: 'Codex Tally',
         tallySub: 'Painted on bark paper, against the day-count.',
         chronicle: 'The Long Count', chronBtn: 'Long Count',
@@ -194,6 +210,51 @@ function eraFounding(era) {
 
 const ERA_SITE = {
 
+  12: {
+    roadYes: '<b>the Katoikia and the Amphodon, the Artopolion, the Lachanopolion, the ' +
+      'Hyalopolion, the Chartopoleion, the Dromos, the Pissopolion, the NEORION, the Apotheke, ' +
+      'the Katagogion, the Bibliotheke, the Trapeza, the Agoranomion and the Pharos</b>',
+    roadNo: 'the Kleros, the Paradeisos, the Aipolion, the Mareotis, the natron flats, the ' +
+      'Latomia, the Hyle, the Hydromylos, the Hyalourgeion, the Diphtheron, the Lithoxoeion, the ' +
+      'Hydreion and the Dexamene, the Thesauros, the Plateia, the Kopron, the Gymnasion, the ' +
+      'Heptastadion and the Heroon — and note especially <b>the KLEROS and the PARADEISOS, which ' +
+      'need no road, no water and nothing from anybody, and which between them are the whole ' +
+      'dinner of a founding city</b>',
+    water: 'Homes, the mill, the glasshouse, the parchment works, the Agoranomion and three of ' +
+      'the shops must sit inside a <b>Hydreion’s</b> eleven tiles or a <b>Dexamene’s</b> sixteen. ' +
+      '★ THE DEXAMENE NEEDS NO WATER NEAR IT AT ALL — a plastered cistern is filled by rain and by ' +
+      'hand, and it is what lets a founding city put its water where its people are instead of ' +
+      'where the harbour is. The Hydreion is the cheap one and must touch the bank. Press ' +
+      '<b>O</b> to see the rings. ★ And there is no aqueduct in this age and will not be one: ' +
+      'water here is a DISC, not a quantity.',
+    extra: [
+      '<b>A citizen of this city is not born here and does not wander in. A citizen is SENT.</b> ' +
+      'Every settler who arrives spends one CROSSING out of your store, and when the store is ' +
+      'empty nobody comes — your houses stand built, fed, watered, connected and EMPTY, with a red ' +
+      '! on every one of them. The ⛵ chip counts what you are holding and how many beds are ' +
+      'waiting on it. Nothing else in the game is subtracted; the city simply stops growing.',
+      '<b>Crossings are made by a chain like any other, and they can never be sold.</b> THE HYLE ' +
+      'taps resin on any dry slope and THE NEORION turns it into berths — 4.245 a minute, against ' +
+      'a natural pull of 8. ★ ONE CHAIN RUNS YOUR CITY AT HALF SPEED AND TWO IS THE AGE. The ' +
+      'labour and the ground you spend on them earn NOTHING directly: `passage` has no shelf price ' +
+      'anywhere and cannot be dumped abroad. What you can sell is the surplus RESIN, at the ' +
+      'Pissopolion — and the yard always draws first.',
+      '<b>Bank crossings before you build the houses that will need them.</b> This is the age’s ' +
+      'one real skill and it costs exactly what it looks like it costs. Fill the store while ' +
+      'ground is cheap and hands are spare; an APOTHEKE raises what you can hold, because a berth ' +
+      'banks like any other traded good. A city that builds an Amphodon first has thirty-eight ' +
+      'beds and no way to fill them.',
+      '<b>The natron is not in the city and the quarry is not either.</b> The NATRON FLATS want a ' +
+      '2×4 of pan and the nearest is 19 to 39 tiles out on three seeds; a quarry-grade 3×3 of rock ' +
+      'is 12 to 13. Neither is in the founding grant and nothing deadlocks on either — the glass ' +
+      'chain is an export and the stone is your EXIT, so walk to the rock early and to the pans ' +
+      'when you can afford the ground.',
+      '<b>One stone yard cannot cover the tower and the trade.</b> The LITHOXOEION dresses 4.245 ' +
+      'courses a minute; the Pharos draws 3.00 of it and the DROMOS wants 1.22 to sell. That is ' +
+      'the age’s one real production squeeze and it is deliberate — a second yard, a rank, or a ' +
+      'decision about which of the two you would rather have waiting.',
+    ],
+  },
   11: {
     roadYes: '<b>the Casa Colonica and the Atrium Domus, the Macellum, the Forum Holitorium, the Forum ' +
       'Piscarium, the Taberna Vestiaria, the Mercatus Tegularum, the Crepidines, the Porticus Aemilia, ' +
@@ -858,6 +919,49 @@ const ERA_GUIDES = {
     mistake: 'Trying to be self-sufficient. This era rewards dependency on trade.',
   },
 
+  12: {
+    headline: 'Your houses are built, fed, watered, joined to the street — and empty.',
+    mechanic: 'SEND FOR THEM. A citizen of this city is not born here and does not wander in. A ' +
+      'citizen is SENT, and somebody has to pay their passage. Every settler who arrives spends ' +
+      'one CROSSING out of your store; when the store is empty, nobody comes. Nothing is ' +
+      'subtracted and nothing starves — the city produces, eats, earns and holds exactly as it ' +
+      'did. It simply STOPS GROWING, with a red ! on every empty house and `nopassage` on the ' +
+      'population chip. ★ CROSSINGS ARE MADE BY A CHAIN LIKE ANY OTHER: a HYLE taps resin on a ' +
+      'dry slope, a NEORION turns it into berths at 4.245 a minute against a natural pull of ' +
+      'eight. ONE CHAIN RUNS YOUR CITY AT HALF SPEED AND TWO IS THE AGE. ★★ AND A BERTH CAN ' +
+      'NEVER BECOME MONEY: `passage` has no shelf price anywhere in the game and cannot be dumped ' +
+      'abroad, so the ground and the hands you spend on growth earn NOTHING directly — and you ' +
+      'can watch them not earning. You arrive holding 60 crossings, which is about seven and a ' +
+      'half minutes of unimpeded growth. Spend them building the thing that makes more.',
+    chain: [
+      'The Hyle ×2 → The Neorion  ·  ★ THE AGE. 4.245 crossings/min, and NOT ONE OF THEM IS FOR SALE. Two Hyle keep one yard with a little spare',
+      'The Pissopolion  ·  the spare resin, at $4.58 — the yard always draws first, and selling too much is selling your own growth',
+      'The Kleros ×3 → The Hydromylos → The Artopolion  ·  THE STAPLE. Three allotments feed one water-mill exactly; nothing walks in a circle to turn it',
+      'The Paradeisos → The Lachanopolion  ·  the leg that cannot fail: no water, no road, nothing from anybody',
+      'The Mareotis  ·  fish off the harbour, and the only food that wants the water. One parcel out on every seed',
+      'The Natron Flats → The Hyalourgeion → The Hyalopolion  ·  the flux, and then GLASS at $32.88. The pans are 19-39 tiles out — a mid-age expansion',
+      'The Aipolion → The Diphtheron → The Chartopoleion  ·  $65/min in parchment, the richest chain on the board, and it never touches the water',
+      'The Latomia → The Lithoxoeion → The Dromos  ·  ★ THE EXIT: 10,214 stone, and the Pharos wants nine times that. One yard cannot cover the tower AND the street',
+      'The Dexamene · The Katoikia + The Amphodon · the Apotheke, the Trapeza, the Bibliotheke  ·  water, homes, and the warehouse that BANKS CROSSINGS',
+    ],
+    firstSteps: [
+      'A KLEROS first ($760 of your $26,100), anywhere at all. It is the one grain field in this age with no water predicate and no road — a settler’s allotment, dry-farmed — so your founding party can work it the moment it is down, and nothing can hold them waiting.',
+      'A DEXAMENE ($1,530) next. It waters sixteen tiles and it needs NO WATER ANYWHERE NEAR IT — a plastered cistern is filled by rain and by hand. Everything below wants to be inside its ring. (The HYDREION at $460 is the cheap version, but it must touch the bank.)',
+      'A second KLEROS ($760) and a HYDROMYLOS ($1,910) inside the cistern’s sixteen tiles. THE MILL IS A WATER-WHEEL — nothing walks in a circle to turn it, which is new — and three allotments would feed it exactly. You have hands for two.',
+      'A PARADEISOS ($760) on dry ground. No water, no road, nothing off anybody’s quay, and it feeds at 80% of bread. THIS IS THE LEG THAT CANNOT FAIL, and it is the last building your founding crew can staff: two Kleroi (4) + the Hydromylos (4) + the Paradeisos (2) is EXACTLY TEN.',
+      'A LANE out of the Hall ($10 a tile — about $120). It has to TOUCH THE HALL: a building is connected when it stands on a road network that reaches the Hall, not when it happens to be beside a road tile.',
+      'Three KATOIKIAI ($2,760) on the lane, and an ARTOPOLION ($1,910) on it too. The bread market wants TWELVE residents within ten tiles. You have twenty-seven beds and sixty crossings, so they fill.',
+      '★ NOW BUILD THE THING THAT MAKES MORE. A HYLE ($980) on any dry slope — no water, no road — and a NEORION ($3,890) on the lane. That is $4,870 and SIX HANDS, and the hands come from the people who have just arrived: the founding crew is already spent, which is the whole shape of this age.',
+      '★★ MEASURED on three seeds: eleven buildings for $15,380 of your $26,100, every one of them working, hunger 0.00, twenty-three housed, and the treasury at $11,294 / $11,940 / $13,376 at forty, eighty and a hundred and sixty authored minutes. The store sits at its cap of 120 crossings, which means the yard is already outrunning the pull — and that is what a SECOND chain is for.',
+      '★ THREE THINGS ARE NOT IN THE FOUNDING GRANT AND THE MAP SAYS SO ON EVERY SEED: the MAREOTIS (open water, ring 2 — one parcel), a quarry-grade outcrop for the LATOMIA (12-13 tiles, three or four parcels), and the NATRON FLATS (19-39 tiles, about nine). The quarry is your EXIT and is worth walking to early; the natron is an export chain and can wait. Nothing in this age deadlocks on either.',
+      '★ AND WHEN YOU CAN AFFORD IT, AN APOTHEKE ($1,530). A berth banks like any other traded good, so a warehouse raises how many crossings you can hold — which is what turns "build houses and hope" into "fill the bank while the ground is cheap, then build the quarter in one go".',
+    ],
+    mistake: 'Building the houses first. An AMPHODON is thirty-eight beds for $3,160 and it will sit ' +
+      'there empty with a red ! on it, because beds were never the constraint — CROSSINGS are, and ' +
+      'the only place they come from is a Neorion. Watch the ⛵ chip: it prints what you are ' +
+      'holding and how many beds are waiting on it. When the second number runs away from the ' +
+      'first, you are short a chain.',
+  },
   11: {
     headline: 'Every stock is full, nothing is red, and a third of your city is invisible.',
     mechanic: 'TAKE THE CENSUS. Your city is governed by the LAST CENSUS IT TOOK, not by what it is ' +

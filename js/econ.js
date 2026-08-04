@@ -570,6 +570,8 @@ const Econ = {
       Econ.addStock(s, d.procOut, made);
 
       if (d.procOut === 'flour') { flourMade += made; s.cum.flour += made; }
+
+      if (d.procOut === 'passage') s.cum.passage = (s.cum.passage || 0) + made;
       if (made > 0) Econ.noteFood(s, d.procOut, made);
       b.rate = made;
 
@@ -1186,6 +1188,8 @@ const Econ = {
     else if ((s.chill || 0) >= TUNE.COLD.stopGrowth) why = 'cold';
     else if (blocked === houses.length) why = 'blocked';
     else if (open <= 0) why = 'full';
+
+    else if (Econ.passageLeft(s) < 1) why = 'nopassage';
     C.migrateWhy = why;
 
     if (why !== 'ok') {
@@ -1215,6 +1219,9 @@ const Econ = {
     while (s.settlerAcc >= 1 && guard++ < 200) {
       while (i < beds.length && beds[i].residents >= beds[i].cap) i++;
       if (i >= beds.length) { s.settlerAcc = 0; break; }
+
+      if (Econ.passageLeft(s) < 1) { s.settlerAcc = Math.min(s.settlerAcc, 0.99); break; }
+      Econ.spendPassage(s);
       beds[i].residents++;
       s.settlerAcc -= 1;
       if (s.records) s.records.settlers = (s.records.settlers || 0) + 1;
@@ -1506,6 +1513,8 @@ const Econ = {
     10: (s) => Econ.opsonTable(s).laid >= 0.95,
 
     11: (s) => Econ.censusState(s).frac >= TUNE.CENSUS.gateFrac,
+
+    12: (s, base) => (s.cum.passage || 0) - (base.passage || 0) >= TUNE.PASSAGE.gateLanded,
     2: (s, base) => (s.cum.tributePaid || 0) - (base.tributePaid || 0) >= TUNE.TRIBUTE.gate,
 
     6: (s) => (G.cache.gridFrac || 0) >= TUNE.GRID.gateFrac,
@@ -2521,8 +2530,9 @@ const Econ = {
 
   duesPer(s, d) {
     const base = (d && d.dues) || TUNE.DUES.per;
-    if (!Econ.censusActive(s) || !s.policyProfessio) return base;
-    return base * TUNE.PROFESSIO.duesCut;
+    if (Econ.censusActive(s) && s && s.policyProfessio) return base * TUNE.PROFESSIO.duesCut;
+    if (Econ.passageActive(s) && s && s.policyAteleia) return base * TUNE.ATELEIA.duesCut;
+    return base;
   },
 
   censusState(s) {
@@ -2564,6 +2574,43 @@ const Econ = {
 
   closeRegister(s) {
     s.census = { at: s.placeCounter | 0, taken: 1 };
+  },
+
+  passageActive(s) { return rungOf(s.era) === 12; },
+
+  passageLeft(s) {
+    if (!Econ.passageActive(s)) return Infinity;
+    return Math.floor((s.stock.passage || 0) / TUNE.PASSAGE.per);
+  },
+
+  spendPassage(s) {
+    if (!Econ.passageActive(s)) return;
+    s.stock.passage = Math.max(0, (s.stock.passage || 0) - TUNE.PASSAGE.per);
+  },
+
+  passageState(s) {
+    const on = Econ.passageActive(s);
+    const out = { on, left: 0, open: 0, short: 0, rate: 0, warn: false };
+    if (!on) return out;
+    out.left = Econ.passageLeft(s);
+    let open = 0;
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d || !d.cap || b.block || b.done === false) continue;
+      open += Math.max(0, (d.cap || 0) - (b.residents || 0));
+    }
+    out.open = open;
+
+    out.short = Math.max(0, open - out.left);
+
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d || d.procOut !== 'passage' || b.block || b.mothballed) continue;
+      if (d.workers && !(b.staff > 0)) continue;
+      out.rate += d.procRate * (d.workers ? b.staff / d.workers : 1) * rankOutMult(b);
+    }
+    out.warn = out.short >= TUNE.PASSAGE.warnBeds;
+    return out;
   },
 
   levyActive(s) { return rungOf(s.era) === 2; },
@@ -2717,7 +2764,10 @@ const Econ = {
   trophicActive(s) { return rungOf(s.era) === 0; },
 
   calvingRate(s) {
-    return Econ.trophicActive(s) ? TUNE.PRED.calving : TUNE.MIGRATION.perMinute;
+    const base = Econ.trophicActive(s) ? TUNE.PRED.calving : TUNE.MIGRATION.perMinute;
+    const gift = Math.pow(1 + TUNE.GIFT_BEACON_STEP, ((s && s.giftBeacon) | 0));
+    const lever = (Econ.passageActive(s) && s && s.policyAteleia) ? (1 + TUNE.ATELEIA.pull) : 1;
+    return base * gift * lever;
   },
 
   diluteAt(head) {
@@ -3428,7 +3478,11 @@ const Econ = {
 
                 'grapes', 'wine', 'silver',
 
-                'salsamentum', 'tegula', 'silex'],
+                'salsamentum', 'tegula', 'silex',
+
+                'passage',
+
+                'natron', 'glass', 'pergamena', 'epistyle'],
 
   capOf(s, kind) {
 

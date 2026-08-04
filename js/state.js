@@ -47,9 +47,11 @@ const Game = {
 
       giftExport: 0,
 
+      giftBeacon: 0,
+
       stock: Game.startStock(granted, era),
 
-      cum: { flour: 0, food: 0, stone: 0, earned: 0, tributePaid: 0, landfalls: 0 },
+      cum: { flour: 0, food: 0, stone: 0, earned: 0, tributePaid: 0, landfalls: 0, passage: 0 },
       hunger: 0,
       settlerAcc: 0,
 
@@ -96,6 +98,7 @@ const Game = {
       policyPublicTable: false,
 
       policyProfessio: false,
+      policyAteleia: false,
 
       census: { at: 0, taken: 1 },
       season: null,
@@ -158,6 +161,8 @@ const Game = {
     const rung = rungOf(era != null ? era : START_ERA);
     if (granted) {
       if (rung !== 1) { st.deadwood = 0; st.pemmican = 0; }
+
+      if (rung !== 12) st.passage = 0;
       return st;
     }
     for (const k in st) st[k] = 0;
@@ -165,6 +170,8 @@ const Game = {
       st.deadwood = TUNE.START_STOCK.deadwood;
       st.pemmican = TUNE.START_STOCK.pemmican;
     }
+
+    if (rung === 12) st.passage = TUNE.START_STOCK.passage;
     return st;
   },
 
@@ -316,6 +323,7 @@ const Game = {
       giftSupply: s.giftSupply | 0,
       giftTable: s.giftTable | 0,
       giftExport: s.giftExport | 0,
+      giftBeacon: s.giftBeacon | 0,
 
       tribute: s.tribute ? { bank: +s.tribute.bank || 0, count: s.tribute.count | 0,
                              missed: s.tribute.missed | 0,
@@ -335,6 +343,7 @@ const Game = {
       policyMoveCamps: !!s.policyMoveCamps,
       policyLash: !!s.policyLash,
       policyPublicTable: !!s.policyPublicTable,
+      policyAteleia: !!s.policyAteleia,
       policyProfessio: !!s.policyProfessio,
 
       census: { at: (s.census && s.census.at) | 0, taken: (s.census && s.census.taken) ? 1 : 0 },
@@ -624,7 +633,9 @@ const Game = {
       cum: { flour: +d.cum.flour || 0,
              food: d.cum.food != null ? (+d.cum.food || 0) : (+d.cum.flour || 0),
              stone: +d.cum.stone || 0, earned: +d.cum.earned || 0,
-             tributePaid: +d.cum.tributePaid || 0, landfalls: +d.cum.landfalls || 0 },
+             tributePaid: +d.cum.tributePaid || 0, landfalls: +d.cum.landfalls || 0,
+
+             passage: +d.cum.passage || 0 },
       hunger: +d.hunger || 0,
       nextId: d.nextId | 0 || 1, placeCounter: d.placeCounter | 0 || 0,
       owned: d.owned.slice(), firsts: d.firsts || {}, prompted: d.prompted || {},
@@ -665,6 +676,7 @@ const Game = {
       giftSupply: d.giftSupply | 0,
       giftTable: d.giftTable | 0,
       giftExport: d.giftExport | 0,
+      giftBeacon: d.giftBeacon | 0,
 
       tribute: (d.tribute && typeof d.tribute === 'object')
         ? { bank: Math.max(0, +d.tribute.bank || 0), count: Math.max(0, d.tribute.count | 0),
@@ -689,6 +701,7 @@ const Game = {
       policyMoveCamps: !!d.policyMoveCamps,
       policyLash: !!d.policyLash,
       policyPublicTable: !!d.policyPublicTable,
+      policyAteleia: !!d.policyAteleia,
       policyProfessio: !!d.policyProfessio,
 
       census: d.census

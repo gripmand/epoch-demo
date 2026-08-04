@@ -79,6 +79,11 @@ const Grid = {
     11: { trunkW: 5.4, trunkW2: 4.4, branch: 2, secondW: 3.2, wander: 0.42,
           fertileTo: 3, dryFrom: 6, edgeJitter: 3.0,
           beyond: 'SALT', saltAt: 0.72, rockAt: 0.56, peakR: 6 },
+
+    12: { trunkW: 6.4, trunkW2: 5.6, branch: 1, secondW: 2.4, wander: 0.34,
+          fertileTo: 3, dryFrom: 6, edgeJitter: 3.0,
+          beyond: 'SALT', saltAt: 0.72, rockAt: 0.56, peakR: 6,
+          seaEdge: 16 },
   },
 
   terrainProfile(era) {

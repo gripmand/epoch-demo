@@ -40,6 +40,8 @@ const UI = {
     UI.els.table = document.getElementById('hud-table');
     UI.els.censusChip = document.getElementById('chip-census');
     UI.els.census = document.getElementById('hud-census');
+    UI.els.passageChip = document.getElementById('chip-passage');
+    UI.els.passage = document.getElementById('hud-passage');
 
     UI.buildPalette();
 
@@ -521,6 +523,10 @@ const UI = {
 
     cold: 'The camp is freezing, so nobody new is arriving. Feed the fires — cut wood, burn bone, ' +
           'stop selling charcoal — and cover every home with a hearth circle.',
+
+    nopassage: 'Your houses are ready and empty — a citizen of this city is SENT, and you have no ' +
+          'crossings left to send one on. Cut pine and run a Shipyard: a berth is spent the moment ' +
+          'somebody steps off the boat.',
   },
 
   migrateHint(why) {
@@ -1077,6 +1083,38 @@ const UI = {
         ' heads most of what you pay is the fee. IT COUNTS HOUSES, NOT PEOPLE — ' +
         'the cheapest minute to enter a new quarter is the one it goes up in.';
     }
+
+    const showPassage = Econ.passageActive(s);
+    if (UI.els.passageChip) {
+      UI.els.passageChip.classList.toggle('hidden', !showPassage);
+      UI.els.passageChip.style.display = showPassage ? '' : 'none';
+    }
+    if (showPassage && UI.els.passage) {
+      const p = Econ.passageState(s);
+      UI.els.passage.textContent = p.left + (p.short > 0 ? ' · −' + p.short : '') +
+        (p.rate > 0 ? ' · +' + p.rate.toFixed(1) : '');
+      UI.els.passageChip.classList.toggle('bad', p.left < 1);
+      UI.els.passageChip.classList.toggle('warn', p.left >= 1 && p.warn);
+      const landed = Math.max(0, (s.cum.passage || 0) - ((s.eraBase && s.eraBase.passage) || 0));
+      UI.els.passageChip.title =
+        p.left + ' crossing' + (p.left === 1 ? '' : 's') + ' in the store · ' +
+        p.open + ' bed' + (p.open === 1 ? '' : 's') + ' standing open · the yards land ' +
+        p.rate.toFixed(1) + ' a minute.' +
+        (p.left < 1
+
+          ? ' — NOBODY IS COMING. Your houses are built, fed, watered and reached, ' +
+            'and there is no berth to seat anyone on. Every minute one stands empty ' +
+            'is a minute of rent, custom and labour you are paying ground rent for ' +
+            'and not collecting.'
+          : p.short > 0
+            ? ' — YOU HAVE OPENED ' + p.short + ' MORE BED' + (p.short === 1 ? '' : 'S') +
+              ' THAN YOU CAN FILL. Nothing is wrong yet; the store simply runs out ' +
+              'before the street does.'
+            : ' — every open bed in the city has a crossing waiting for it.') +
+        ' The age turns at ' + TUNE.PASSAGE.gateLanded + ' crossings landed; you have landed ' +
+        Math.round(landed) + '.';
+    }
+
     if (showGrid && UI.els.grid) {
       const g = Econ.gridForecast(s);
       UI.els.grid.textContent = Math.round(g.frac * 100) + '%' +
@@ -1868,7 +1906,8 @@ const UI = {
       buttons += '<button id="insp-import" class="btn-primary" ' + (s.money >= impCost ? '' : 'disabled') +
 
         ' title="' + UI.esc(goodLabel(s.era, imp.kind)) + ' lists at $' + TUNE.PRICES[imp.kind] + ' and exports at $' +
-        (TUNE.PRICES[imp.kind] * TUNE.EXPORT_MULT).toFixed(2) + ' — importing costs $' + imp.price +
+
+        (TUNE.PRICES[imp.kind] * exportMult(s)).toFixed(2) + ' — importing costs $' + imp.price +
         ' a ' + imp.unit + '. Ruinous on purpose: it is a famine valve, not a strategy.">' +
         '\u{1F6B6} Import ' + TUNE.IMPORT_GRAIN.units + ' ' + UI.esc(goodLabel(s.era, imp.kind).toLowerCase()) +
         ' — ' + Util.fmtMoney(impCost) + '</button>';
@@ -2565,7 +2604,7 @@ const UI = {
     const dumping = GOODS.filter(([k]) => (C.tally[k] || {}).exported > 0.02).map(([, l]) => l);
     if (dumping.length) {
       h += '<div class="panel-sub warn">Storage full: ' + dumping.join(', ') +
-        ' is spilling over and being sold abroad at ' + Math.round(TUNE.EXPORT_MULT * 100) +
+        ' is spilling over and being sold abroad at ' + Math.round(exportMult(s) * 100) +
         '% of list. Build more storage, or the outlet that sells it properly.</div>';
     }
 
@@ -2576,7 +2615,8 @@ const UI = {
       '<tr><td>Gross income</td><td class="good">+' + $(C.incomeRate) + '/min</td></tr>' +
 
       ((C.exportRate || 0) > 0.005
-        ? '<tr><td class="gold-dim">…of which sold abroad (overflow @ ' + Math.round(TUNE.EXPORT_MULT * 100) +
+
+        ? '<tr><td class="gold-dim">…of which sold abroad (overflow @ ' + Math.round(exportMult(s) * 100) +
           '%)</td><td class="gold-dim">+' + $(C.exportRate) + '/min</td></tr>' : '') +
       ((C.duesRate || 0) > 0.005
         ? '<tr><td class="gold-dim">…of which temple head money</td><td class="gold-dim">+' +
@@ -2949,7 +2989,7 @@ const UI = {
       const p0 = spill[0];
       add('At cap', p0.leak > p0.made * 0.25 ? 'bad' : 'warn',
         spill.map(x => x.label).join(', '),
-        p0.label + ' is full — the overflow leaves at ' + Math.round(TUNE.EXPORT_MULT * 100) +
+        p0.label + ' is full — the overflow leaves at ' + Math.round(exportMult(s) * 100) +
           '% of list. Add storage, or a buyer.');
     }
 

@@ -47,7 +47,11 @@ const TUNE = {
 
                  grapes: 0, wine: 0, silver: 0,
 
-                 salsamentum: 0, tegula: 0, silex: 0 },
+                 salsamentum: 0, tegula: 0, silex: 0,
+
+                 passage: 6,
+
+                 natron: 0, glass: 0, pergamena: 0, epistyle: 0 },
 
   FOUNDING_CREW: 10,
 
@@ -56,9 +60,11 @@ const TUNE = {
                  5: 'emmerfield', 6: 'leveefield',
 
                  7: 'figorchard', 8: 'milletfield', 9: 'breadfruitgrove',
-                 11: 'arvum', 14: 'milpa' },
+                 11: 'arvum',
 
-  ERA_START_MONEY: { 0: 1080, 8: 8850, 9: 11590, 10: 15190, 11: 19900 },
+                 12: 'kleros', 14: 'milpa' },
+
+  ERA_START_MONEY: { 0: 1080, 8: 8850, 9: 11590, 10: 15190, 11: 19900, 12: 26100 },
 
   MIGRATION: {
     perMinute: 8,
@@ -110,6 +116,8 @@ const TUNE = {
   GRAPES_CAP: 92, WINE_CAP: 58, SILVER_CAP: 46,
 
   SALSAMENTUM_CAP: 79, TEGULA_CAP: 159, SILEX_CAP: 106,
+
+  NATRON_CAP: 122, GLASS_CAP: 91, PERGAMENA_CAP: 61, EPISTYLE_CAP: 122,
   PRICES: { grain: 0.5, flour: 2, stone: 1, blocks: 4,
             clay: 0.6, pottery: 4, wool: 1.2, cloth: 7, beer: 3,
             dates: 1.8, fish: 1.5, salt: 1.5, reeds: 0.35, baskets: 8.9,
@@ -138,9 +146,12 @@ const TUNE = {
 
             grapes: 2.20, wine: 15.39, silver: 57.17,
 
-            salsamentum: 22.31, tegula: 28.83, silex: 32.59 },
+            salsamentum: 22.31, tegula: 28.83, silex: 32.59,
 
-  NO_EXPORT: { water: 1 },
+            natron: 1.72, glass: 32.88, pergamena: 53.61, epistyle: 37.16,
+            passage: 0 },
+
+  NO_EXPORT: { water: 1, passage: 1 },
 
   FOODS: [ { kind: 'flour', eff: 1.0 }, { kind: 'pemmican', eff: 1.0 },
            { kind: 'dates', eff: 1.0 }, { kind: 'forage', eff: 0.8 },
@@ -155,6 +166,8 @@ const TUNE = {
   GIFT_SUPPLY_STEP: 12,
 
   GIFT_EXPORT_STEP: 0.10,
+
+  GIFT_BEACON_STEP: 0.12,
   DEMOLISH_REFUND: 0.5,
   CLEAR_TREE: 15,
 
@@ -307,6 +320,8 @@ const TUNE = {
 
   PROFESSIO: { feeCut: 0.5, duesCut: 0.75 },
 
+  ATELEIA: { pull: 0.25, duesCut: 0.40 },
+
   TRIBUTE: {
     share: 0.35,
     base: 34.0,
@@ -443,6 +458,8 @@ const TUNE = {
 
     11: { kind: 'grain', price: 4, who: 'A Sicilian corn factor sold the city', unit: 'modius' },
 
+    12: { kind: 'grain', price: 4, who: 'A factor off an Alexandrian grain ship sold the city', unit: 'artaba' },
+
     0: { kind: 'flour', price: 8, who: 'A week grazing beyond the range brought back', unit: 'load' },
     1: { kind: 'pemmican', price: 8, who: 'A passing band traded the camp', unit: 'bundle' },
 
@@ -503,6 +520,10 @@ const TUNE = {
 
   WATER_CAP: 12,
 
+  PASSAGE_CAP: 12,
+
+  PASSAGE: { per: 1, warnBeds: 6, gateLanded: 240 },
+
   WATER_PER_RESIDENT: 0.09,
   WATER_PER_WORKER: 0.045,
 
@@ -523,7 +544,7 @@ const HOUSE_RUNG_REF = { 0: 'nestmound', 1: 'hidetent', 3: 'brushshelter', 4: 'h
                          5: 'villa', 6: 'brickhouse', 7: 'ashlarhouse',
                          8: 'courtyardcompound', 9: 'halepili', 10: 'oikos',
 
-                         11: 'casacolonica', 14: 'stonehouse' };
+                         11: 'casacolonica', 12: 'katoikia', 14: 'stonehouse' };
 function houseRungRefCost(era) {
   const rung = rungOf(era);
   const keys = Object.keys(HOUSE_RUNG_REF).map(Number).sort((a, b) => a - b);
@@ -599,7 +620,7 @@ function eraInfo(era) {
   return r === 0 ? ERA_PROLOGUE : (ERAS[r - 1] || ERA_PROLOGUE);
 }
 
-const WRITTEN_RUNGS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 14];
+const WRITTEN_RUNGS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14];
 
 const START_ERA = WRITTEN_RUNGS[0];
 function nextWrittenEra(era) {
@@ -772,6 +793,12 @@ const ERA_TERRA_LOCK = {
   11: {
     water: 'the Tiber is the drain, the road and the frontage of this city all at once, and the ' +
       'censors let no man fill it — the priests would not even let iron into the bridge over it',
+  },
+
+  12: {
+    water: 'the gulf is the whole reason this city stands where it stands — every citizen in it ' +
+      'arrived across water somebody else owned, and a founder who fills his own harbour has ' +
+      'founded nothing',
   },
 
   0: {
@@ -7328,6 +7355,511 @@ const BUILDINGS = {
       'cursus publicus.',
   },
 
+  hyle: {
+    name: 'The Hyle', tier: 'craft', era: 12, w: 2, h: 2, cost: 980, upkeep: 1.10,
+
+    icon: '\u{1F332}', color: '#4d6b42', workers: 2,
+    out: { bitumen: 4.86 },
+    desc: 'Tapped pine on the seaward slopes: 4.86 resin/min, and it needs no water and no road. ' +
+      'TWO HYLE KEEP ONE NEORION RUNNING, with a little to spare. It is the first half of the only ' +
+      'chain in this city that will never earn a coin.',
+  },
+  xylagogia: {
+    name: 'The Xylagogia', tier: 'craft', era: 12, w: 2, h: 2, cost: 2400, upkeep: 2.20,
+    icon: '\u{1F332}', color: '#5c7a4e', workers: 3, noBuild: true,
+    out: { bitumen: 9.72 },
+    desc: 'A greased timber-way down to the water, so the slopes above the cliff are worth working ' +
+      'at all: 9.72 resin/min off the same ground. One of these feeds two Neoria outright.',
+  },
+
+  neorion: {
+    name: 'The Neorion', tier: 'craft', era: 12, w: 2, h: 2, cost: 3890, upkeep: 4.36,
+    icon: '\u{26F5}', color: '#7a6a4f', workers: 4, industry: true, needsRoad: true,
+    procIn: 'bitumen', procRate: 8.49, procOut: 'passage', procRatio: 0.5,
+    desc: 'Ship-sheds on the strand: 8.49 resin into 4.245 CROSSINGS a minute. A crossing is what a ' +
+      'settler arrives on, and it is spent the moment they step off — this city does not breed its ' +
+      'citizens, it is sent them. Bank crossings BEFORE you build the houses that will need them. ' +
+      '+25% both ways beside a Hyle.',
+  },
+  naustathmos: {
+    name: 'The Naustathmos', tier: 'craft', era: 12, w: 2, h: 2, cost: 6420, upkeep: 6.10,
+    icon: '\u{26F5}', color: '#8a7a5c', workers: 5, industry: true, needsRoad: true, noBuild: true,
+    procIn: 'bitumen', procRate: 11.89, procOut: 'passage', procRatio: 0.5,
+    desc: 'A standing naval station — slipways, a mole and a wintering basin — turning 11.89 resin ' +
+      'into 5.945 crossings a minute. The kings kept their fleets in one of these and their colonies ' +
+      'alive with it.',
+  },
+
+  pissopolion: {
+    name: 'The Pissopolion', tier: 'commerce', era: 12, w: 2, h: 2, cost: 980, upkeep: 1.44,
+    icon: '\u{1FAA3}', color: '#6b5a3e', workers: 3, needsRoad: true,
+    sells: 'bitumen', sellRate: 3.04, sellPrice: 4.58, custRadius: 10, custMin: 10,
+    desc: 'The pitch stall: 3.04 resin/min at $4.58, to anyone with a hull to caulk. THE YARD DRAWS ' +
+      'FIRST and this sells what is left — so a city that runs three slopes to two ship-sheds is ' +
+      'paid for the difference. Sell too much and you are selling your own growth.',
+  },
+
+  kleros: {
+    name: 'The Kleros', tier: 'food', era: 12, w: 2, h: 2, cost: 760, upkeep: 1.31,
+    icon: '\u{1F33E}', color: '#c8a94f', workers: 2,
+    out: { grain: 5.92 },
+    desc: 'The allotment: 5.92 sitos/min, and it needs NO water, NO road and nothing from anybody. ' +
+      'THREE KLEROI FEED ONE HYDROMYLOS EXACTLY. A kleros is not land you took — it is land a king ' +
+      'you will never meet wrote your name against, which is what everyone here has in common.',
+  },
+
+  hydromylos: {
+    name: 'The Hydromylos', tier: 'food', era: 12, w: 2, h: 2, cost: 1910, upkeep: 2.18,
+    icon: '\u{2699}\u{FE0F}', color: '#a8b0a4', workers: 4, needsWater: true, industry: true,
+    grainMill: true,
+    procIn: 'grain', procRate: 17.77, procOut: 'flour', procRatio: 0.6,
+    desc: 'A wheel in the race and a train of gears: 17.77 sitos/min into 10.66 aleuron — the bread ' +
+      'of about 178 people. NOTHING WALKS IN A CIRCLE TO TURN IT, which is new. +25% both ways ' +
+      'beside a Kleros.',
+  },
+
+  artopolion: {
+    name: 'The Artopolion', tier: 'commerce', era: 12, w: 2, h: 2, cost: 1910, upkeep: 2.61,
+    icon: '\u{1F956}', color: '#cfa963', workers: 4, needsWater: true, needsRoad: true,
+    sells: 'flour', sellRate: 3.56, sellPrice: 7.63, custRadius: 10, custMin: 12,
+    desc: 'The bread market: 3.56 aleuron/min at $7.63. It wants twelve residents within ten tiles — ' +
+      'and in this age residents are a SUPPLY, not a certainty, so a shop built ahead of your ' +
+      'crossings stands there counting to eleven.',
+  },
+
+  paradeisos: {
+    name: 'The Paradeisos', tier: 'food', era: 12, w: 2, h: 2, cost: 760, upkeep: 1.31,
+    icon: '\u{1F966}', color: '#83a84f', workers: 2, dryLand: true,
+    out: { forage: 5.62 },
+    desc: 'A walled garden on the dry side of the city: 5.62/min, eaten at 80% of bread’s worth. NO ' +
+      'water, NO road, NOTHING from anywhere. The Great King’s parks became somebody’s vegetables, ' +
+      'and this is the plot that cannot be shut off.',
+  },
+
+  lachanopolion: {
+    name: 'The Lachanopolion', tier: 'commerce', era: 12, w: 2, h: 2, cost: 1050, upkeep: 1.44,
+    icon: '\u{1F9FA}', color: '#9fb45f', workers: 3, needsRoad: true,
+    sells: 'forage', sellRate: 3.56, sellPrice: 4.20, custRadius: 10, custMin: 10,
+    desc: 'The greengrocers’ row: 3.56 greens/min at $4.20. Half the price of bread and none of the ' +
+      'chain — no allotment to plough, no mill, no water. It is the first shop a new quarter gets ' +
+      'and the last one to close.',
+  },
+
+  mareotis: {
+    name: 'The Mareotis', tier: 'food', era: 12, w: 1, h: 3, cost: 1230, upkeep: 1.31,
+    icon: '\u{1F41F}', color: '#4f93a4', workers: 2, onWater: true,
+    out: { fish: 7.02 },
+    desc: 'Stake nets in the shallow water behind the city: 7.02 fish/min, eaten at 75% of bread’s ' +
+      'worth. Every tile of it stands IN the water, so the harbour decides how many you get — which ' +
+      'is why the PARADEISOS and not this is the leg that cannot fail.',
+  },
+
+  natronflats: {
+    name: 'The Natron Flats', tier: 'food', era: 12, w: 2, h: 4, cost: 1840, upkeep: 2.07,
+    icon: '\u{1F9C2}', color: '#e6e2d0', workers: 4, onSalt: true, industry: true,
+    out: { natron: 9.10 },
+    desc: 'Soda crust lifted off a dry lake bed: 9.10 natron/min. It is not salt and you cannot eat ' +
+      'it — it is the flux that lets sand melt, and the kings held every pan of it. ONE FLAT KEEPS ' +
+      'ONE AND A HALF GLASSHOUSES.',
+  },
+
+  hyalourgeion: {
+    name: 'The Hyalourgeion', tier: 'craft', era: 12, w: 2, h: 2, cost: 1990, upkeep: 2.44,
+    icon: '\u{1F52E}', color: '#7fa8a0', workers: 4, needsWater: true, industry: true,
+    procIn: 'natron', procRate: 6.08, procOut: 'glass', procRatio: 0.5,
+    desc: 'A tank furnace, a marver and a mould: 6.08 natron/min into 3.04 hyalos. THE SAND COSTS ' +
+      'NOTHING AND THE SODA COSTS EVERYTHING. +25% both ways beside a Natron Flat.',
+  },
+
+  hyalopolion: {
+    name: 'The Hyalopolion', tier: 'commerce', era: 12, w: 2, h: 2, cost: 1830, upkeep: 2.61,
+    icon: '\u{1F376}', color: '#8fbcb4', workers: 3, needsRoad: true,
+    sells: 'glass', sellRate: 1.52, sellPrice: 32.88, custRadius: 10, custMin: 13,
+    desc: 'Cast bowls, mosaic canes and gold-band alabastra, sold by the crate at $32.88. No water — ' +
+      'glass leaves by cart and by ship, and half of what Alexandria made was on somebody else’s ' +
+      'table within a year.',
+  },
+
+  aipolion: {
+    name: 'The Aipolion', tier: 'food', era: 12, w: 3, h: 3, cost: 1500, upkeep: 1.95,
+    icon: '\u{1F410}', color: '#b0a68c', workers: 3, dryLand: true,
+    out: { hide: 4.56 },
+    desc: 'The goat range above the city: 4.56 skins/min off ground too thin for anything else, +50% ' +
+      'on ground already worked out. No water, no road, no harbour. THE RICHEST CHAIN IN THE AGE ' +
+      'STARTS ON THE WORST LAND IN IT.',
+  },
+
+  diphtheron: {
+    name: 'The Diphtheron', tier: 'craft', era: 12, w: 2, h: 2, cost: 2300, upkeep: 2.61,
+    icon: '\u{1F4DC}', color: '#d8cdb0', workers: 4, needsWater: true, industry: true,
+    procIn: 'hide', procRate: 4.86, procOut: 'pergamena', procRatio: 0.5,
+    desc: 'Lime pits, a stretching frame and a half-moon knife: 4.86 skins/min into 2.43 pergamene ' +
+      'sheets. It wants water constantly and it smells like it. +25% both ways beside an Aipolion.',
+  },
+
+  chartopoleion: {
+    name: 'The Chartopoleion', tier: 'commerce', era: 12, w: 2, h: 2, cost: 2450, upkeep: 3.04,
+    icon: '\u{1F4D6}', color: '#c9b894', workers: 3, needsWater: true, needsRoad: true,
+    sells: 'pergamena', sellRate: 1.22, sellPrice: 53.61, custRadius: 10, custMin: 18,
+    desc: 'The booksellers’ street: 1.22 sheets/min at $53.61, the richest trade on the board. It ' +
+      'wants EIGHTEEN residents in reach — the one shop in the age that a city short of crossings ' +
+      'simply cannot switch on.',
+  },
+
+  latomia: {
+    name: 'The Latomia', tier: 'food', era: 12, w: 3, h: 3, cost: 3430, upkeep: 3.04,
+    icon: '\u{26CF}\u{FE0F}', color: '#8c8478', workers: 5, onRock: true, industry: true,
+    out: { stone: 7.60 },
+    desc: 'A stepped quarry worked in benches: 7.60 stone/min, scaled by how much rock is under it. ' +
+      'Every rock tile holds 900 and there is NO recovery. The gate wants 10,214 and the PHAROS ' +
+      'WANTS NINE TIMES THAT — about twenty quarries of ridge across the age, gone for good.',
+  },
+
+  lithoxoeion: {
+    name: 'The Lithoxoeion', tier: 'craft', era: 12, w: 2, h: 2, cost: 4080, upkeep: 3.64,
+    icon: '\u{1F3DB}\u{FE0F}', color: '#98928a', workers: 5, industry: true,
+    procIn: 'stone', procRate: 8.49, procOut: 'epistyle', procRatio: 0.5,
+    desc: 'Anathyrosis: the joint face dressed dead flat and the middle left rough, so a drum sits on ' +
+      'a drum without mortar. 8.49 stone/min into 4.245 finished courses. The Pharos eats 3.00 of ' +
+      'that a minute and the Dromos wants 1.22 — ONE YARD DOES NOT COVER BOTH.',
+  },
+
+  dromos: {
+    name: 'The Dromos', tier: 'commerce', era: 12, w: 2, h: 2, cost: 2220, upkeep: 2.61,
+    icon: '\u{1F6E4}\u{FE0F}', color: '#a8a29a', workers: 3, needsRoad: true,
+    sells: 'epistyle', sellRate: 1.22, sellPrice: 37.16, custRadius: 10, custMin: 13,
+    desc: 'Column drums, architrave blocks and steps, sold by the course at $37.16 to everyone laying ' +
+      'out a quarter along the great street. It competes with your own lighthouse for every stone ' +
+      'the yard dresses.',
+  },
+
+  katoikia: {
+    name: 'The Katoikia', tier: 'housing', era: 12, w: 1, h: 1, cost: 920, upkeep: 0.43,
+    icon: '\u{1F3E0}', color: '#d4c19c', cap: 9, needsWater: true, needsRoad: true,
+    desc: 'A settler’s allotment house: mudbrick on a stone footing, a yard, a vine. Holds 9 — one ' +
+      'more than the age below it on the same single tile. AN EMPTY ONE IS NOT A BUG: it is waiting ' +
+      'for a crossing, and the red ! says so.',
+  },
+
+  amphodon: {
+    name: 'The Amphodon', tier: 'housing', era: 12, w: 2, h: 2, cost: 3160, upkeep: 1.44,
+    icon: '\u{1F3D8}\u{FE0F}', color: '#cdb894', cap: 38, needsWater: true, needsRoad: true,
+    levels: ['Insula Blocks', 'The Amphodon', 'Colonnaded Amphodon', 'Double-Court Amphodon',
+             'Lettered Quarter', 'The Alpha Quarter'],
+    desc: 'A whole lettered block on the grid, four ranges round two courts. Holds 19 when it goes ' +
+      'up, rising to 133 — the densest housing on the ladder. EVERY BED IN IT IS A CROSSING YOU ' +
+      'HAVE TO HAVE ALREADY BOUGHT.',
+  },
+
+  hydreion: {
+    name: 'The Hydreion', tier: 'infra', era: 12, w: 1, h: 1, cost: 460, upkeep: 0.88,
+    icon: '\u{26F2}', color: '#77b4c8', nearWater: 2, waterRadius: 11,
+    desc: 'A draw-basin fed off the channel: waters 11 tiles for a third of a Dexamene. This is the ' +
+      'cheap water, not the clever one, and it has to touch the bank.',
+  },
+
+  dexamene: {
+    name: 'The Dexamene', tier: 'infra', era: 12, w: 1, h: 1, cost: 1530, upkeep: 1.39,
+    icon: '\u{1F4A7}', color: '#6aa0c4', waterRadius: 16,
+    desc: 'A plastered underground cistern with a settling chamber: waters 16 tiles and needs no ' +
+      'water anywhere near it. Rain and hand-carried, the way a city on a limestone shelf actually ' +
+      'drank. Not an aqueduct — that is somebody else’s age.',
+  },
+
+  thesauros: {
+    name: 'The Thesauros', tier: 'infra', era: 12, w: 1, h: 1, cost: 620, upkeep: 0.34,
+    icon: '\u{1F3FA}', color: '#b8895c', storeGrain: 149, storeFlour: 89,
+    desc: 'A sunk stone chamber with a sealed mouth. +1,490 sitos and +890 aleuron, NO workers and ' +
+      'no road — the buffer that carries a city from one harvest to the next. Buy it before you ' +
+      'need it.',
+  },
+
+  apotheke: {
+    name: 'The Apotheke', tier: 'infra', era: 12, w: 3, h: 2, cost: 1530, upkeep: 1.73,
+    icon: '\u{1F3EC}', color: '#c4ab84', workers: 3, needsRoad: true, nearWater: 1,
+    depot: true, storeCraft: 61,
+    desc: 'The harbour warehouse: +610 capacity for every traded good while staffed — resin, natron, ' +
+      'glass, skins, parchment, stone AND CROSSINGS — and a SUPPLY POINT, so the far side of the ' +
+      'gulf stops paying the carting premium. THIS IS WHERE YOU BANK BERTHS.',
+  },
+
+  katagogion: {
+    name: 'The Katagogion', tier: 'infra', era: 12, w: 2, h: 2, cost: 1010, upkeep: 0.86,
+    icon: '\u{1F6CF}\u{FE0F}', color: '#a89070', workers: 2, needsRoad: true, depot: true, storeGrain: 75,
+    desc: 'Beds, a yard and a grain shed for people who have just got off a ship. A SUPPLY POINT with ' +
+      '+750 sitos, put where the carts already stop — the cheapest way to push the free haul out ' +
+      'past the edge of the built city.',
+  },
+
+  plateia: {
+    name: 'The Plateia', tier: 'civic', era: 12, w: 2, h: 2, cost: 620, upkeep: 0.43,
+    icon: '\u{1F3DB}', color: '#cabf9c', capRadius: 22,
+    desc: 'The thirty-metre avenue the surveyors pegged out before anything was built on it. +1 ' +
+      'housing capacity for every home within 22 tiles. IT MAKES ROOM, NOT PEOPLE — the crossings ' +
+      'are still yours to build.',
+  },
+
+  kopron: {
+    name: 'The Kopron', tier: 'infra', era: 12, w: 2, h: 1, cost: 680, upkeep: 0.71,
+    icon: '\u{1F4A9}', color: '#8a7550', workers: 0,
+    soilRadius: 9,
+    desc: 'The dung court, carted out to the allotments on a rota the estate manager wrote down. ' +
+      'Ground within 9 tiles recovers 3x faster. Zenon’s archive is mostly letters about this.',
+  },
+
+  bibliotheke: {
+    name: 'The Bibliotheke', tier: 'civic', era: 12, w: 3, h: 2, cost: 3100, upkeep: 3.14,
+    icon: '\u{1F4DA}', color: '#b0a082', workers: 4, needsRoad: true,
+    scribeRadius: 24,
+    desc: 'Shelved halls, a catalogue and a standing order to copy every book off every ship that ' +
+      'puts in. Records within 24 tiles are kept properly. It buys nothing and grows nothing — it is ' +
+      'the reason anyone remembers this age at all.',
+  },
+
+  trapeza: {
+    name: 'The Trapeza', tier: 'civic', era: 12, w: 2, h: 2, cost: 2760, upkeep: 2.78,
+    icon: '\u{1FA99}', color: '#c8ac66', workers: 3, needsRoad: true,
+    dues: 0.348,
+    desc: 'The royal bank: a table, a strongroom and a monopoly on changing money. Collects from ' +
+      'every resident within 20 tiles — about $41/min at a hundred and twenty of them. IT TAXES THE ' +
+      'PEOPLE YOU HAVE, which is why the crossings pay for themselves twice.',
+  },
+
+  gymnasion: {
+    name: 'The Gymnasion', tier: 'civic', era: 12, w: 2, h: 2, cost: 680, upkeep: 0.71,
+    icon: '\u{1F3DB}\u{FE0F}', color: '#c3bda4', amenityRadius: 12,
+    desc: 'A running track, a wrestling ground, oil, shade and a teacher. Homes within 12 tiles are ' +
+      'worth more. In a city this far from home it is not a luxury — it is the thing that tells you ' +
+      'the city is Greek.',
+  },
+
+  agoranomion: {
+    name: 'The Agoranomion', tier: 'civic', era: 12, w: 2, h: 3, cost: 3830, upkeep: 3.92,
+    icon: '\u{2696}\u{FE0F}', color: '#b09c6e', workers: 5, needsRoad: true, needsWater: true,
+    weighRadius: 14,
+    desc: 'The market inspectors’ office, with the official measures cut into a stone table outside ' +
+      'it. Trade within 14 tiles is measured honestly and priced accordingly. Half the surviving ' +
+      'Hellenistic decrees are about who gets to hold this job.',
+  },
+
+  heptastadion: {
+    name: 'The Heptastadion', tier: 'infra', era: 12, w: 1, h: 1, cost: 920, upkeep: 0.43,
+    icon: '\u{1F309}', color: '#9a927e', onWater: true, bridge: true,
+    desc: 'Rubble and dressed facing, tipped into the water and walked on. Carries the road across ' +
+      'the harbour — lay a line of them and the far shore joins the city. The real one was seven ' +
+      'stades long and made Alexandria two harbours instead of one.',
+  },
+
+  heroon: {
+    name: 'The Heroon', tier: 'beauty', era: 12, w: 1, h: 1, cost: 190, upkeep: 0,
+    icon: '\u{1F5FF}', color: '#c0b498', cosmetic: true,
+    desc: 'The founder’s tomb at the crossing of the two great streets, with his cult and his name ' +
+      'day. No output and no upkeep. Every city in this age was somebody’s idea, and this is where ' +
+      'they put him afterwards.',
+  },
+
+  dorea: {
+    name: 'The Dorea', tier: 'food', era: 12, w: 2, h: 2, cost: 1870, upkeep: 2.62,
+    icon: '\u{1F33E}', color: '#d0b055', workers: 3, noBuild: true,
+    out: { grain: 11.84 },
+    desc: 'The allotment absorbed into a royal grant and worked by a manager who writes everything ' +
+      'down: 11.84 sitos/min off the same two tiles for one more pair of hands. Zenon ran one of ' +
+      'these for Apollonios and we still have his post.',
+  },
+  aletrion: {
+    name: 'The Aletrion', tier: 'food', era: 12, w: 2, h: 2, cost: 3150, upkeep: 3.05,
+    icon: '\u{2699}\u{FE0F}', color: '#b8bdb0', workers: 5, needsWater: true, industry: true,
+    grainMill: true, noBuild: true,
+    procIn: 'grain', procRate: 24.88, procOut: 'flour', procRatio: 0.6,
+    desc: 'Two wheels on one race with a common gear train and a bolting floor above: 24.88 sitos/min ' +
+      'into 14.93 aleuron. The water never stops, so neither does this.',
+  },
+  thermopolion: {
+    name: 'The Thermopolion', tier: 'commerce', era: 12, w: 2, h: 2, cost: 3820, upkeep: 3.91,
+    icon: '\u{1F372}', color: '#d8b06b', workers: 5, needsWater: true, needsRoad: true,
+    noBuild: true,
+    sells: 'flour', sellRate: 7.12, sellPrice: 7.63, custRadius: 10, custMin: 12,
+    desc: 'The counter with the sunk jars and a fire under them, selling it hot and cooked: 7.12 ' +
+      'aleuron/min at $7.63. Twice the trade off the same twelve neighbours.',
+  },
+  opora: {
+    name: 'The Opora', tier: 'food', era: 12, w: 2, h: 2, cost: 1870, upkeep: 2.62,
+    icon: '\u{1F966}', color: '#8fb455', workers: 3, dryLand: true, noBuild: true,
+    out: { forage: 11.24 },
+    desc: 'The garden replanted for the whole year — greens under the fruit, and something coming ' +
+      'off it in every month: 11.24/min. Still no water, still no road, still nothing from anybody.',
+  },
+  pantopolion: {
+    name: 'The Pantopolion', tier: 'commerce', era: 12, w: 2, h: 2, cost: 2100, upkeep: 2.16,
+    icon: '\u{1F9FA}', color: '#adc06a', workers: 4, needsRoad: true, noBuild: true,
+    sells: 'forage', sellRate: 7.12, sellPrice: 4.20, custRadius: 10, custMin: 10,
+    desc: 'The stall that gave up specialising: 7.12 greens/min at $4.20, plus everything else ' +
+      'nobody else could be bothered to carry. Ten neighbours is still all it asks.',
+  },
+  sagenai: {
+    name: 'The Sagenai', tier: 'food', era: 12, w: 1, h: 3, cost: 3020, upkeep: 2.62,
+    icon: '\u{1F41F}', color: '#5aa3b4', workers: 3, onWater: true, noBuild: true,
+    out: { fish: 14.04 },
+    desc: 'Two long seines worked from the shore on a rota, so the water is never rested and never ' +
+      'emptied: 14.04 fish/min. It still stands in the water and the water still decides.',
+  },
+  nitrai: {
+    name: 'The Nitrai', tier: 'food', era: 12, w: 2, h: 4, cost: 4500, upkeep: 4.14,
+    icon: '\u{1F9C2}', color: '#f0ecdc', workers: 5, onSalt: true, industry: true, noBuild: true,
+    out: { natron: 18.20 },
+    desc: 'The pans cut into steps and drained in sequence, so the crust comes off clean and the bed ' +
+      'refills behind it: 18.20 natron/min. The whole lake, held as one lease.',
+  },
+  physeterion: {
+    name: 'The Physeterion', tier: 'craft', era: 12, w: 2, h: 2, cost: 3280, upkeep: 3.41,
+    icon: '\u{1F52E}', color: '#8fbcb2', workers: 5, needsWater: true, industry: true,
+    noBuild: true,
+    procIn: 'natron', procRate: 8.51, procOut: 'glass', procRatio: 0.5,
+    desc: 'An iron pipe, a gather of metal and a lungful of air: 8.51 natron/min into 4.26 hyalos. ' +
+      'Blowing a vessel takes a minute where casting one took a week, and the whole trade changed.',
+  },
+  skeuotheke: {
+    name: 'The Skeuotheke', tier: 'commerce', era: 12, w: 2, h: 2, cost: 3660, upkeep: 3.91,
+    icon: '\u{1F376}', color: '#a0cbc2', workers: 4, needsRoad: true, noBuild: true,
+    sells: 'glass', sellRate: 3.04, sellPrice: 32.88, custRadius: 10, custMin: 13,
+    desc: 'A bonded store with the crates racked by pattern and a clerk who knows what is in each ' +
+      'one: 3.04 hyalos/min at $32.88. Twice the trade and not one drachma more a piece.',
+  },
+  epinomia: {
+    name: 'The Epinomia', tier: 'food', era: 12, w: 3, h: 3, cost: 3000, upkeep: 3.90,
+    icon: '\u{1F410}', color: '#bcb296', workers: 4, dryLand: true, noBuild: true,
+    out: { hide: 9.12 },
+    desc: 'A grant of pasture rights over the whole hill, in writing, with the summer range attached: ' +
+      '9.12 skins/min. The paper is the improvement — the goats were always going to go up there.',
+  },
+  xysterion: {
+    name: 'The Xysterion', tier: 'craft', era: 12, w: 2, h: 2, cost: 3790, upkeep: 3.65,
+    icon: '\u{1F4DC}', color: '#e2d9be', workers: 5, needsWater: true, industry: true,
+    noBuild: true,
+    procIn: 'hide', procRate: 6.80, procOut: 'pergamena', procRatio: 0.5,
+    desc: 'Pumice, chalk and a curved scraper taken to both sides until the sheet is the same colour ' +
+      'through: 6.80 skins/min into 3.40 sheets. A page you can write on twice.',
+  },
+  kalligrapheion: {
+    name: 'The Kalligrapheion', tier: 'commerce', era: 12, w: 2, h: 2, cost: 4900, upkeep: 4.56,
+    icon: '\u{1F4D6}', color: '#d6c5a2', workers: 4, needsWater: true, needsRoad: true,
+    noBuild: true,
+    sells: 'pergamena', sellRate: 2.44, sellPrice: 53.61, custRadius: 10, custMin: 18,
+    desc: 'A room of copyists working from one reader, so twenty books leave where one did: 2.44 ' +
+      'sheets/min at $53.61. It still needs eighteen people in reach to have anyone to sell to.',
+  },
+  metallon: {
+    name: 'The Metallon', tier: 'food', era: 12, w: 3, h: 3, cost: 8410, upkeep: 6.08,
+    icon: '\u{26CF}\u{FE0F}', color: '#7c766c', workers: 6, onRock: true, industry: true,
+    noBuild: true,
+    out: { stone: 15.20 },
+    desc: 'The quarry opened out with ramps, a crane and a gang on each bench: 15.20 stone/min. It ' +
+      'eats the rock twice as fast as the cut below it AND THE ROCK DOES NOT COME BACK.',
+  },
+  glypheion: {
+    name: 'The Glypheion', tier: 'craft', era: 12, w: 2, h: 2, cost: 6730, upkeep: 5.09,
+    icon: '\u{1F3DB}\u{FE0F}', color: '#aaa49c', workers: 6, industry: true, noBuild: true,
+    procIn: 'stone', procRate: 11.89, procOut: 'epistyle', procRatio: 0.5,
+    desc: 'Templates, a setting-out floor and a master who checks every joint against a drawing: ' +
+      '11.89 stone/min into 5.945 courses. ONE OF THESE COVERS THE PHAROS AND THE STREET, which the ' +
+      'yard below it does not.',
+  },
+  tetrapylon: {
+    name: 'The Tetrapylon', tier: 'commerce', era: 12, w: 2, h: 2, cost: 4440, upkeep: 3.91,
+    icon: '\u{1F6E4}\u{FE0F}', color: '#b8b2aa', workers: 4, needsRoad: true, noBuild: true,
+    sells: 'epistyle', sellRate: 2.44, sellPrice: 37.16, custRadius: 10, custMin: 13,
+    desc: 'The four-way arch where the two great streets cross, and the place every contract in the ' +
+      'city is let: 2.44 courses/min at $37.16. Everyone building anything walks past it.',
+  },
+  kadoi: {
+    name: 'The Kadoi', tier: 'commerce', era: 12, w: 2, h: 2, cost: 1960, upkeep: 2.16,
+    icon: '\u{1FAA3}', color: '#7d6a48', workers: 4, needsRoad: true, noBuild: true,
+    sells: 'bitumen', sellRate: 6.08, sellPrice: 4.58, custRadius: 10, custMin: 10,
+    desc: 'Casks, a gauge and a standing order from every shipwright on the coast: 6.08 resin/min at ' +
+      '$4.58. THE YARD STILL DRAWS FIRST — this only ever sells the surplus, and it will sell all ' +
+      'of it if you let it.',
+  },
+  krounion: {
+    name: 'The Krounion', tier: 'infra', era: 12, w: 1, h: 1, cost: 970, upkeep: 1.16,
+    icon: '\u{26F2}', color: '#8ac4d6', nearWater: 2, waterRadius: 18, noBuild: true,
+    desc: 'The basin rebuilt in stone with lion-head spouts and a standing overflow: waters 18 tiles. ' +
+      'Still the cheap water and still on the bank — there is simply a great deal more of it.',
+  },
+  phrear: {
+    name: 'The Phrear', tier: 'infra', era: 12, w: 1, h: 1, cost: 3230, upkeep: 1.83,
+    icon: '\u{1F4A7}', color: '#5f96bc', waterRadius: 25, noBuild: true,
+    desc: 'A shaft sunk to the water table with a stair round it and the cistern vaulted over the ' +
+      'top. Waters 25 tiles off rain and groundwater, and it still needs no water near it.',
+  },
+  stamnoi: {
+    name: 'The Stamnoi', tier: 'infra', era: 12, w: 1, h: 1, cost: 1300, upkeep: 0.54,
+    icon: '\u{1F3FA}', color: '#c69465', storeGrain: 298, storeFlour: 178, noBuild: true,
+    desc: 'The chamber lined, sealed and racked out properly: +2,980 sitos and +1,780 aleuron, and ' +
+      'still no workers and no road.',
+  },
+  tameion: {
+    name: 'The Tameion', tier: 'infra', era: 12, w: 3, h: 2, cost: 3220, upkeep: 2.69,
+    icon: '\u{1F3EC}', color: '#d0b98e', workers: 4, needsRoad: true, nearWater: 1,
+    depot: true, storeCraft: 122, noBuild: true,
+    desc: 'The bonded warehouse with a customs office at the gate: +1,220 capacity for every traded ' +
+      'good while staffed — INCLUDING CROSSINGS — and a SUPPLY POINT. Twice the bank, on the same ' +
+      'six tiles.',
+  },
+  pandokeion: {
+    name: 'The Pandokeion', tier: 'infra', era: 12, w: 2, h: 2, cost: 2120, upkeep: 1.72,
+    icon: '\u{1F6CF}\u{FE0F}', color: '#b89c78', workers: 3, needsRoad: true, depot: true,
+    storeGrain: 158, noBuild: true,
+    desc: 'The inn proper — a courtyard, stabling, a cook and a granary. A SUPPLY POINT with +1,580 ' +
+      'sitos. Everyone who arrives in this city sleeps somewhere on their first night.',
+  },
+  stadion: {
+    name: 'The Stadion', tier: 'civic', era: 12, w: 2, h: 2, cost: 1300, upkeep: 0.66,
+    icon: '\u{1F3DB}', color: '#d6cca8', capRadius: 32, noBuild: true,
+    desc: 'Six hundred feet of track with banked seating cut along one side, and the whole city in ' +
+      'it four times a year. +1 housing capacity for every home within 32 tiles.',
+  },
+  chomation: {
+    name: 'The Chomation', tier: 'infra', era: 12, w: 2, h: 1, cost: 1420, upkeep: 1.12,
+    icon: '\u{1F4A9}', color: '#7c6748', soilRadius: 17, noBuild: true,
+    desc: 'Pits, cover, a rota and a cart on it: ground within 17 tiles recovers 3x faster. The ' +
+      'estate letters that survive are half about grain and half about this.',
+  },
+  serapeion: {
+    name: 'The Serapeion', tier: 'civic', era: 12, w: 3, h: 2, cost: 4650, upkeep: 4.11,
+    icon: '\u{1F4DA}', color: '#bfae8e', workers: 5, needsRoad: true,
+    scribeRadius: 35, noBuild: true,
+    desc: 'The daughter library on the hill, in the god’s own precinct, with the overflow of every ' +
+      'shelf below it. Records within 35 tiles are kept properly. It outlived the first one by three ' +
+      'hundred years.',
+  },
+  basilikon: {
+    name: 'The Basilikon', tier: 'civic', era: 12, w: 2, h: 2, cost: 4140, upkeep: 3.64,
+    icon: '\u{1FA99}', color: '#d6bc76', workers: 4, needsRoad: true,
+    dues: 0.696, noBuild: true,
+    desc: 'The royal account, with the banker made an official and the monopoly written into law. ' +
+      'Doubles the take — about $83/min at a hundred and twenty residents. Every drachma in the city ' +
+      'is changed here whether you like it or not.',
+  },
+  ephebeion: {
+    name: 'The Ephebeion', tier: 'civic', era: 12, w: 2, h: 2, cost: 1420, upkeep: 1.12,
+    icon: '\u{1F3DB}\u{FE0F}', color: '#d0cbb2', amenityRadius: 18, noBuild: true,
+    desc: 'The hall where the year’s intake is enrolled, taught, listed on stone and handed a shield. ' +
+      'Homes within 18 tiles are worth more, and the list on the wall is who counts.',
+  },
+  sekoma: {
+    name: 'The Sekoma', tier: 'civic', era: 12, w: 2, h: 3, cost: 8050, upkeep: 5.89,
+    icon: '\u{2696}\u{FE0F}', color: '#c0ac7e', workers: 6, needsRoad: true, needsWater: true,
+    weighRadius: 21, noBuild: true,
+    desc: 'The official measures cut into a marble slab in the middle of the market, with the ' +
+      'inspectors’ office behind it. Trade within 21 tiles is measured against the stone itself.',
+  },
+  gephyra: {
+    name: 'The Gephyra', tier: 'infra', era: 12, w: 1, h: 1, cost: 1930, upkeep: 0.66,
+    icon: '\u{1F309}', color: '#aaa28a', onWater: true, bridge: true, noBuild: true,
+    desc: 'The mole faced in dressed stone with arched openings left in it, so the water moves and ' +
+      'the harbour does not silt. Carries the road, and carries it through a storm.',
+  },
+
   coal: {
     name: 'Coal Plant', tier: 'infra', era: 30, w: 2, h: 2, cost: 800, upkeep: 1.0,
     icon: '\u{1F3ED}', color: '#8d8d99', workers: 4, needsWater: true, industry: true,
@@ -7369,6 +7901,9 @@ const HOUSE_LEVELS = {
 
   11: ['Casula', 'Casa Colonica', 'Tiled Casa', 'Courtyard Casa', 'Fundus',
        'Greater Fundus'],
+
+  12: ['Skene', 'The Katoikia', 'Tiled Katoikia', 'Courtyard Katoikia', 'The Oikia',
+       'The Great Oikia'],
 
   0: ['Scrape', 'Nest Mound', 'Guarded Mound', 'Nest Ring', 'Colony Mound', 'Ancestral Mound'],
   1: ['Windbreak', 'Hide Tent', 'Banked Tent', 'Sunken Hut', 'Winter Hut', "Elder's Hut"],
@@ -7458,6 +7993,27 @@ const MONUMENT_GIFT = {
     log: 'Their gift: a written answer to what the world outside will pay — every surplus you ' +
       'ever have is worth more for it.',
     apply(s) { s.giftExport = (s.giftExport | 0) + 1; },
+  },
+
+  12: {
+    key: 'beacon',
+    icon: '\u{1F5FC}',
+    title: 'What the Sea Is Worth Knowing',
+    lead: 'The mirror is set, the fire is lit, and the light stands up off the water for thirty miles.',
+    body: 'Sostratos of Knidos cut his own name into the stone and plastered the king’s over it, ' +
+      'on the theory that the plaster would fall off first. It took twelve years and it stood for ' +
+      'sixteen hundred. What it was actually for is duller and larger than the wonder: the coast ' +
+      'here is flat, featureless and unlit for a hundred miles either way, and a captain who ' +
+      'cannot find the harbour does not sail. A city that is only reachable in daylight in good ' +
+      'weather is a city half the year.',
+    grant: '<b>In this age and every age after it, ' +
+      Math.round(TUNE.GIFT_BEACON_STEP * 100) + '% more people set out for your city.</b>',
+    toast: '\u{1F5FC} The light is up. From now on, in this age and every age after it, ' +
+      Math.round(TUNE.GIFT_BEACON_STEP * 100) + '% more people set out for your city — because ' +
+      'they can find it in the dark.',
+    log: 'Their gift: a fire on a tower that can be seen from over the horizon — and every year ' +
+      'after this one, more of them come.',
+    apply(s) { s.giftBeacon = (s.giftBeacon | 0) + 1; },
   },
 
   0: {
@@ -7641,6 +8197,19 @@ const ERA_POLICY = {
     off: 'The mess is closed. Watch the ⚖️ chip — a table that was laid may not be now.',
   },
 
+  12: {
+    key: 'policyAteleia', icon: '\u{1F4DC}', name: 'The Ateleia',
+    tip: 'The founder’s charter exempts every settler from the head-money for as long as it ' +
+      'stands, and a city that taxes nobody is a city people set out for: ' +
+      Math.round(TUNE.ATELEIA.pull * 100) + '% more of them do. The Trapeza then collects only ' +
+      Math.round(TUNE.ATELEIA.duesCut * 100) + '% of the tributum. ★ IT MOVES THE PULL, NOT THE ' +
+      'SUPPLY — with no crossings in store it buys you nothing at all. A foundation short of ' +
+      'people wants this ON; a full one is paying for ships it has no berths for.',
+    on: 'The exemption is proclaimed on stone at the gate. More of them set out — and the ' +
+      'treasury goes quiet.',
+    off: 'The exemption lapses. The head-money is collected in full, and the harbour is a little ' +
+      'emptier for it.',
+  },
   11: {
     key: 'policyProfessio', icon: '\u{1F3DB}\u{FE0F}', name: 'The Professio',
     tip: 'Every householder must declare himself, his family and his property to the censor. ' +
@@ -7818,6 +8387,13 @@ const ERA_ROAD = {
              'and the civic buildings; terraces, groves, beds, pans, springs, mulch pits, the quarry ' +
              'and THE CANOE LANDING never do. $10 a tile, nothing to keep.' },
 
+  12: { flavour: 'The Plateiai', color: 0x5c5348, hw: 0.38,
+        desc: 'The grid, pegged out by a surveyor before a single house went up: two great streets ' +
+              'thirty metres wide, packed limestone chip over a rubble bed, and everything else ' +
+              'squared off them. Only SOME buildings need one — the houses, every shop, the ' +
+              'warehouses, the Katagogion and the four civic buildings; the Kleros, the ' +
+              'Paradeisos, the Aipolion, the Mareotis, the natron flats, the quarry, the water and ' +
+              'the dung court never do. $10 a tile, nothing to keep.' },
   11: { flavour: 'Via Silice Strata', color: 0x3d4247, hw: 0.38,
         desc: 'Polygonal Alban basalt laid on four courses of bedding, cambered, with raised kerbs ' +
               'and stepping stones at the crossings. Only SOME buildings need one — the houses, ' +
@@ -7884,6 +8460,8 @@ const MONUMENTS = [
   { id: 'parthenon',   name: 'Parthenon',       era: 10, cost: 25520,     icon: '\u{1F3DB}️', desc: 'Pentelic marble, refined to the millimetre.' },
 
   { id: 'capitolium',  name: 'The Capitolium',  era: 11, cost: 33400,     icon: '\u{1F3DB}️', desc: 'Jupiter Best and Greatest, over the whole city, from its first year.' },
+
+  { id: 'pharos',      name: 'The Pharos',      era: 12, cost: 43710,     icon: '\u{1F5FC}', desc: 'A fire on a tower, seen from over the horizon, so a ship can find this coast at night.' },
   { id: 'colosseum',   name: 'Colosseum',       era: 13, cost: 1500000,   icon: '\u{1F3DF}️', desc: 'Concrete vaults seating fifty thousand.' },
   { id: 'cathedral',   name: 'Cathedral',       era: 22, cost: 4600000,   icon: '⛪', desc: 'A lodge of masons, working for a century.' },
   { id: 'duomo',       name: 'Grand Duomo',     era: 28, cost: 14000000,  icon: '\u{1F54C}', desc: 'A dome raised without centring.' },
@@ -8027,6 +8605,7 @@ const RP_WEIGHT = {
   cowrietreasury: 1.0, standardhouse: 1.2, divinercourt: 0.6, oraclearchive: 0.8,
   courtyardcompound: 0.3, clancompound: 0.3, altarterrace: 0.1,
 
+  hyle: 1.0, xylagogia: 1.4, neorion: 1.6, naustathmos: 1.8,
   arvum: 1.0, iugera: 1.4, hortus: 1.0, olitores: 1.4,
   vivarium: 1.0, nassae: 1.4, salinae: 1.0, campiostienses: 1.4,
   ovile: 1.0, saltus: 1.4, cretifodina: 1.0, puteolibeds: 1.4,
@@ -8074,7 +8653,9 @@ const QUARRIED = ['quarry', 'deepquarry', 'granitequarry', 'desertquarry',
 
   'stonequarry', 'rubbleface',
 
-  'silicaria', 'lapisalbanus'];
+  'silicaria', 'lapisalbanus',
+
+  'latomia', 'metallon'];
 for (const t of QUARRIED) if (BUILDINGS[t]) BUILDINGS[t].quarried = true;
 
 const MONUMENT_BUILD = {
@@ -8096,6 +8677,8 @@ const MONUMENT_BUILD = {
   parthenon: { money: 22970, stone: 5480, oil: 400 },
 
   capitolium: { money: 30060, stone: 7170, silex: 360 },
+
+  pharos:     { money: 39340, stone: 9385, epistyle: 360 },
   ziggurat:  { money: 3600, clay: 900, beer: 300 },
   pyramid:   { money: 12000, clay: 2200, stone: 900 },
   templePyr: { money: 40000, stone: 3000, blocks: 1200 },
@@ -8115,7 +8698,9 @@ const MONUMENT_RATE = { money: 24, clay: 6, beer: 2, stone: 6, blocks: 3, potter
 
                         sennit: 1,
 
-                        silex: 3 };
+                        silex: 3,
+
+                        epistyle: 3 };
 
 function monumentBuild(type, era) {
   return MONUMENT_BUILD[type] || { money: Math.round((BUILDINGS[type] || {}).cost * 0.9) || 1000 };
@@ -8574,6 +9159,8 @@ const UPGRADES = {
   deigma:         { to: 'metronomoi',        cost: 3450, era: 10, label: 'The Metronomoi' },
   metroon:        { to: 'anagrapheis',       cost: 1380, era: 10, label: 'The Anagrapheis' },
 
+  hyle:               { to: 'xylagogia',        cost: 1960, era: 12, label: 'The Xylagogia' },
+  neorion:            { to: 'naustathmos',      cost: 3890, era: 12, label: 'The Naustathmos' },
   arvum:              { to: 'iugera',           cost: 1180, era: 11, label: 'The Iugera' },
   molaasinaria:       { to: 'turningfloor',     cost: 1480, era: 11, label: 'The Turning Floor' },
   macellum:           { to: 'nundinae',         cost: 2220, era: 11, label: 'The Nundinae' },
@@ -8604,6 +9191,35 @@ const UPGRADES = {
   moneta:             { to: 'argentaria',       cost: 4460, era: 11, label: 'The Argentaria' },
   ponssublicius:      { to: 'pilaesaxeae',      cost: 1070, era: 11, label: 'The Pilae Saxeae' },
   stabulum:           { to: 'hospitium',        cost: 1170, era: 11, label: 'The Hospitium' },
+
+  kleros:             { to: 'dorea',            cost: 1520, era: 12, label: 'The Dorea' },
+  hydromylos:         { to: 'aletrion',         cost: 1910, era: 12, label: 'The Aletrion' },
+  artopolion:         { to: 'thermopolion',     cost: 2870, era: 12, label: 'The Thermopolion' },
+  paradeisos:         { to: 'opora',            cost: 1520, era: 12, label: 'The Opora' },
+  lachanopolion:      { to: 'pantopolion',      cost: 1580, era: 12, label: 'The Pantopolion' },
+  mareotis:           { to: 'sagenai',          cost: 2460, era: 12, label: 'The Sagenai' },
+  natronflats:        { to: 'nitrai',           cost: 3680, era: 12, label: 'The Nitrai' },
+  hyalourgeion:       { to: 'physeterion',      cost: 1990, era: 12, label: 'The Physeterion' },
+  hyalopolion:        { to: 'skeuotheke',       cost: 2750, era: 12, label: 'The Skeuotheke' },
+  aipolion:           { to: 'epinomia',         cost: 3000, era: 12, label: 'The Epinomia' },
+  diphtheron:         { to: 'xysterion',        cost: 2300, era: 12, label: 'The Xysterion' },
+  chartopoleion:      { to: 'kalligrapheion',   cost: 3680, era: 12, label: 'The Kalligrapheion' },
+  latomia:            { to: 'metallon',         cost: 6860, era: 12, label: 'The Metallon' },
+  lithoxoeion:        { to: 'glypheion',        cost: 4080, era: 12, label: 'The Glypheion' },
+  dromos:             { to: 'tetrapylon',       cost: 3330, era: 12, label: 'The Tetrapylon' },
+  pissopolion:        { to: 'kadoi',            cost: 1470, era: 12, label: 'The Kadoi' },
+  hydreion:           { to: 'krounion',         cost: 690,  era: 12, label: 'The Krounion' },
+  dexamene:           { to: 'phrear',           cost: 2300, era: 12, label: 'The Phrear' },
+  thesauros:          { to: 'stamnoi',          cost: 930,  era: 12, label: 'The Stamnoi' },
+  apotheke:           { to: 'tameion',          cost: 2300, era: 12, label: 'The Tameion' },
+  katagogion:         { to: 'pandokeion',       cost: 1520, era: 12, label: 'The Pandokeion' },
+  plateia:            { to: 'stadion',          cost: 930,  era: 12, label: 'The Stadion' },
+  kopron:             { to: 'chomation',        cost: 1020, era: 12, label: 'The Chomation' },
+  bibliotheke:        { to: 'serapeion',        cost: 4650, era: 12, label: 'The Serapeion' },
+  trapeza:            { to: 'basilikon',        cost: 4140, era: 12, label: 'The Basilikon' },
+  gymnasion:          { to: 'ephebeion',        cost: 1020, era: 12, label: 'The Ephebeion' },
+  agoranomion:        { to: 'sekoma',           cost: 5750, era: 12, label: 'The Sekoma' },
+  heptastadion:       { to: 'gephyra',          cost: 1380, era: 12, label: 'The Gephyra' },
 };
 
 const UPGRADE_TARGETS = (function () {
@@ -8874,6 +9490,7 @@ function auditDataTables() {
 const ERA_FOOD_LABEL = { 10: 'Bread, figs, pulses and fish this age',
 
                          11: 'Farina, greens and fish this age',
+                         12: 'Aleuron, greens and fish this age',
   7: 'Meal issued this age',
                          0: 'Forage laid down this age',
                          1: 'Food put by this age', 2: 'Rations milled this age',
@@ -8916,6 +9533,20 @@ const ERA_VOICE = {
 
     saltAnswers: 'a STERQUILINIUM in range (×3 recovery — Cato tells you how big to build it), ' +
       'or an OVILE, which takes its +50% on exactly the ground the ploughland ruined',
+  },
+
+  12: {
+    settlers: ['Sostratos', 'Berenike', 'Kleitos', 'Arsinoe', 'Demetrios', 'Lysandra'],
+    place: 'foundation',
+    mill: 'Hydromylos',
+    tally: 'The Bibliotheke',
+    tallyLine: 'The Bibliotheke is open and the shelves are catalogued — every ship that puts in ' +
+      'is copied before it leaves, and the clerks can find any record in the city in an afternoon.',
+    ration: 'The founding issue is finished — the last of the sitos the fleet landed with is ' +
+      'measured out.',
+    saltName: 'ground going sour under the plough',
+    saltAnswers: 'a KOPRON in range (×3 recovery), or an AIPOLION, which takes its +50% on ' +
+      'exactly the ground the allotment ruined',
   },
   0: {
 
@@ -9120,6 +9751,24 @@ const ERA_STAPLE = {
     goodNames: { grain: 'Far', flour: 'Farina', forage: 'Greens', fish: 'Fish',
                  salt: 'Sal', salsamentum: 'Salsamentum', wool: 'Lana', cloth: 'Cloth',
                  clay: 'Creta', tegula: 'Tegulae', stone: 'Silex', silex: 'Dressed Silex' },
+  },
+
+  12: {
+    raw: 'grain', cooked: 'flour',
+    rawIcon: '\u{1F33E}', cookedIcon: '\u{1F35E}',
+    rawName: 'Sitos', cookedName: 'Aleuron',
+    cookedVerb: 'milled',
+    rawFrom: 'the allotments',
+    rawNote: 'and it is GROWN here, not landed — a Kleros needs no water, no road and nothing ' +
+      'from anybody, which is the whole reason the founding crew can work one on tick one',
+    shortNote: 'The city eats what it grows. WHAT IT CANNOT GROW IS PEOPLE — every citizen ' +
+      'arrives on a crossing the yards built. Watch the \u{26F5} chip.',
+    hungerFix: 'plough another KLEROS, or plant a PARADEISOS — the walled garden needs no water, ' +
+      'no road and nothing off a quay, and it feeds at 80% of bread',
+    goodNames: { grain: 'Sitos', flour: 'Aleuron', forage: 'Greens', fish: 'Fish',
+                 hide: 'Skins', pergamena: 'Pergamene', natron: 'Natron', glass: 'Hyalos',
+                 stone: 'Stone', epistyle: 'Courses', bitumen: 'Pine Resin',
+                 passage: 'Crossings' },
   },
 
   _default: {

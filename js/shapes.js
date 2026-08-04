@@ -413,6 +413,8 @@ const Shapes = {
     8:  0xc4a878,
 
     10: 0xe0dcd0,
+
+    12: 0xd0c3a0,
     11: 0x9a8f76,
 
     13: 0xc9b9a2,
@@ -2512,6 +2514,8 @@ const Shapes = {
     10: { robe: 'plaster', torso: 'ware',     head: 'timber',   bulk: 1.06 },
 
     11: { robe: 'plaster', torso: 'mudPale',  head: 'timber',   bulk: 1.10 },
+
+    12: { robe: 'ware',    torso: 'plaster', head: 'timber',   bulk: 1.00 },
     14: { robe: 'ware',    torso: 'mudPale',  head: 'timber',   bulk: 1 },
   },
 
@@ -2549,7 +2553,7 @@ const Shapes = {
   },
 
   LEDGER_SKINS: { 1: 'boneTally', 4: 'clayTablet', 7: 'clayTablet', 8: 'boneTally',
-                  10: 'clayTablet', 11: 'clayTablet' },
+                  10: 'clayTablet', 11: 'clayTablet', 12: 'clayTablet' },
 
   ledgerSkin(era) {
     const keys = Object.keys(Shapes.LEDGER_SKINS).map(Number).sort((a, b) => a - b);

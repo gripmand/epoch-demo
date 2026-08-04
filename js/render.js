@@ -106,6 +106,17 @@ const Rend = {
 
       grain: 0.13, macro: 0.15,
     },
+
+    12: {
+      base:     { color: 0xd2c49e, tex: 'silt' },
+      fertile:  { color: 0x6f8a3c, tex: 'field' },
+      salt:     { color: 0xe0d2c4, tex: 'salt' },
+      saltRidge: 0xf0e6da,
+      rock:     { color: 0xa89f88, tex: 'rock' },
+      cliff:    0x8a8270,
+      bed:      0x2f7f92,
+      grain: 0.11, macro: 0.14,
+    },
     10: {
       base:     { color: 0xa8a68c, tex: 'silt' },
       fertile:  { color: 0x6b7a3e, tex: 'field' },
