@@ -64,7 +64,10 @@ const TUNE = {
 
                  12: 'kleros', 14: 'milpa' },
 
-  ERA_START_MONEY: { 0: 1080, 8: 8850, 9: 11590, 10: 15190, 11: 19900, 12: 26100 },
+  ERA_START_MONEY: {
+    0: 1080, 1: 3000, 2: 3000, 3: 3000, 4: 3000, 5: 3000, 6: 3000, 7: 3000,
+    8: 8850, 9: 11590, 10: 15190, 11: 19900, 12: 26100, 14: 3000,
+  },
 
   MIGRATION: {
     perMinute: 8,
@@ -869,8 +872,10 @@ function landGift(s) {
 }
 
 function startMoneyFor(era) {
-  const v = TUNE.ERA_START_MONEY[rungOf(era)];
-  return v !== undefined ? v : TUNE.START_MONEY;
+  const n = rungOf(era);
+  const v = TUNE.ERA_START_MONEY[n];
+  if (v !== undefined) return v;
+  return Math.round(TUNE.START_MONEY * Math.pow(TUNE.PRESTIGE_PURSE_MULT, n - 4));
 }
 
 function terraGift(s) {
