@@ -45,6 +45,8 @@ const Game = {
 
       giftTable: 0,
 
+      giftExport: 0,
+
       stock: Game.startStock(granted, era),
 
       cum: { flour: 0, food: 0, stone: 0, earned: 0, tributePaid: 0, landfalls: 0 },
@@ -92,6 +94,10 @@ const Game = {
       policyMoveCamps: false,
       policyLash: false,
       policyPublicTable: false,
+
+      policyProfessio: false,
+
+      census: { at: 0, taken: 1 },
       season: null,
 
       policyDoubleShift: false,
@@ -141,6 +147,8 @@ const Game = {
       Game.foundingSettlement(s, C);
       Grid.rebuild(s);
     }
+
+    Econ.closeRegister(s);
     if (window.Rend && Rend.invalidateTerrain) Rend.invalidateTerrain();
     return s;
   },
@@ -307,6 +315,7 @@ const Game = {
       giftTerra: s.giftTerra | 0,
       giftSupply: s.giftSupply | 0,
       giftTable: s.giftTable | 0,
+      giftExport: s.giftExport | 0,
 
       tribute: s.tribute ? { bank: +s.tribute.bank || 0, count: s.tribute.count | 0,
                              missed: s.tribute.missed | 0,
@@ -326,6 +335,9 @@ const Game = {
       policyMoveCamps: !!s.policyMoveCamps,
       policyLash: !!s.policyLash,
       policyPublicTable: !!s.policyPublicTable,
+      policyProfessio: !!s.policyProfessio,
+
+      census: { at: (s.census && s.census.at) | 0, taken: (s.census && s.census.taken) ? 1 : 0 },
 
       chill: +s.chill || 0,
 
@@ -652,6 +664,7 @@ const Game = {
       giftTerra: d.giftTerra | 0,
       giftSupply: d.giftSupply | 0,
       giftTable: d.giftTable | 0,
+      giftExport: d.giftExport | 0,
 
       tribute: (d.tribute && typeof d.tribute === 'object')
         ? { bank: Math.max(0, +d.tribute.bank || 0), count: Math.max(0, d.tribute.count | 0),
@@ -676,6 +689,11 @@ const Game = {
       policyMoveCamps: !!d.policyMoveCamps,
       policyLash: !!d.policyLash,
       policyPublicTable: !!d.policyPublicTable,
+      policyProfessio: !!d.policyProfessio,
+
+      census: d.census
+        ? { at: (+d.census.at) | 0, taken: d.census.taken ? 1 : 0 }
+        : { at: 0, taken: 1 },
       chill: Util.clamp(+d.chill || 0, 0, 1),
 
       silt: Util.clamp(+d.silt || 0, 0, 1),

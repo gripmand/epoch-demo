@@ -101,6 +101,14 @@ body[data-era-theme="oceanic"]   { --chip-bg: rgba(8, 40, 48, 0.90); --chip-bord
    because rung 7's sea is the dark thing on its map, and here the SEA is bright
    and the paving is what is dark. */
 body[data-era-theme="attic"]     { --chip-bg: rgba(20, 26, 32, 0.90); --chip-border: rgba(189, 185, 162, 0.40); --accent: #ddd8c4; }
+/* rung 11 — the Roman Republic. Tufa and black basalt, and it has to sit apart
+   from `attic` directly above it (rgba(20,26,32) — a BLUE-grey body) and from
+   `classical` below (a neutral near-white accent). This body is warm-grey
+   rather than blue — silex is basalt, not limestone — and the accent is the
+   dry campagna the city sits on rather than the stone it is built of. The
+   difference a player actually sees at the era turn is the ACCENT going from
+   pale limestone (#ddd8c4) to a warmer, dustier tan. */
+body[data-era-theme="republic"]  { --chip-bg: rgba(26, 28, 30, 0.90); --chip-border: rgba(191, 174, 134, 0.42); --accent: #d8c49a; }
 body[data-era-theme="egypt"]     { --chip-bg: rgba(38, 28, 12, 0.90); --chip-border: rgba(212, 175, 55, 0.40); --accent: #e8c96a; }
 body[data-era-theme="jungle"]    { --chip-bg: rgba(14, 30, 18, 0.90); --chip-border: rgba(110, 190, 130, 0.35); --accent: #8fd9a0; }
 body[data-era-theme="classical"] { --chip-bg: rgba(28, 30, 36, 0.90); --chip-border: rgba(220, 220, 230, 0.35); --accent: #e8e6e0; }

@@ -194,6 +194,49 @@ function eraFounding(era) {
 
 const ERA_SITE = {
 
+  11: {
+    roadYes: '<b>the Casa Colonica and the Atrium Domus, the Macellum, the Forum Holitorium, the Forum ' +
+      'Piscarium, the Taberna Vestiaria, the Mercatus Tegularum, the Crepidines, the Porticus Aemilia, ' +
+      'the Stabulum, the Tabularium, the Aerarium, the Moneta and the Capitolium</b>',
+
+    roadNo: 'Arva, the Hortus, the Ovile, the Vivarium, the Salinae, the Cretifodina, the Silicaria, ' +
+      'the Mola Asinaria, the Salsamentaria, the Fullonica, the Officina Tegularia, the Officina ' +
+      'Silicis, the Lacus and the Piscina Limaria, the Doliarium, the Saepta, the Sterquilinium, the ' +
+      'Basilica, the Pons Sublicius and the Rostra — and note especially <b>the ARVUM and the HORTUS, ' +
+      'which need no road, no water and nothing from anybody, and which between them are the whole ' +
+      'dinner of a founding city</b>',
+    water: 'Homes, the mill, the salting house, the fullery, the tile works and the shops must sit ' +
+      'inside a <b>Lacus’s</b> ten tiles or a <b>Piscina Limaria’s</b> fifteen. ★ THE PISCINA NEEDS NO ' +
+      'WATER NEAR IT AT ALL — a settling tank is filled by hand and by winter rain, and it is what ' +
+      'lets a founding city put its water where its people are instead of where the river is. The ' +
+      'Lacus is the cheap one and must touch the bank. Press <b>O</b> to see the rings. ★ And there ' +
+      'is no aqueduct in this age and will not be one: water here is a DISC, not a quantity.',
+    extra: [
+      '<b>Your city is governed by the last census it took.</b> A building finished since the censors ' +
+      'closed the roll works perfectly and is invisible: no shop sells to the people in it, the ' +
+      'Aerarium collects nothing from them, the era gate does not count them — and they still eat. ' +
+      'Nothing turns red, because nothing is wrong. The 🏛️ chip prints who pays you and who eats, and ' +
+      'the gap between them is the whole age. Order the lustrum at the Hall.',
+      '<b>The register counts HOUSES, not heads — so count them while they are empty.</b> A lustrum ' +
+      'costs $100 flat plus $10 for every uncounted person, and a house that went up a minute ago has ' +
+      'nobody in it yet. Enter a new quarter the day you build it and you pay close to the flat fee; ' +
+      'let it fill first and you pay for all of them. Two ways to play it and they cost about the ' +
+      'same in fees — count often and pay the $100 more times, or batch and pay the heads. ★ THE FEE ' +
+      'IS NOT THE EXPENSIVE PART EITHER WAY: six lustra across the age is about $1,700 against a ' +
+      '$983,339 exit. What costs you is the share of your own city that is eating and not buying, ' +
+      'every minute you leave it uncounted. A TABULARIUM takes a quarter off each head; two is the ' +
+      'ceiling.',
+      '<b>One paving works cannot cover the temple and the trade.</b> The OFFICINA SILICIS dresses ' +
+      '3.70 silex a minute; the Capitolium draws 3.00 of it and the CREPIDINES wants 1.06 to sell. ' +
+      'That is the age’s one real production squeeze and it is deliberate — a second works, a rank, or ' +
+      'a decision about which of the two you would rather have waiting.',
+      '<b>The salt is not in the city and it never was.</b> The SALINAE wants a 2×4 of salt flat, and ' +
+      'measured on three seeds the nearest one is 34 to 39 tiles out — about nine parcels and $12,500 ' +
+      'of ground. That is a mid-age expansion, not an opening: nothing in the age deadlocks on it, the ' +
+      'monument’s third leg is SILEX and not salt, and the reason the road out to the flats has a name ' +
+      'is precisely that the salt was fifteen miles down the river.',
+    ],
+  },
   10: {
     roadYes: '<b>the Oikos and the Synoikia, the Agora, both merchant stoas, the Kapeleion, the Kylix ' +
       'Row, the Emporion, the Stoa Warehouse, the Bouleuterion, the Deigma and the Parthenon</b>',
@@ -815,6 +858,44 @@ const ERA_GUIDES = {
     mistake: 'Trying to be self-sufficient. This era rewards dependency on trade.',
   },
 
+  11: {
+    headline: 'Every stock is full, nothing is red, and a third of your city is invisible.',
+    mechanic: 'TAKE THE CENSUS. Your city is governed by the LAST CENSUS IT TOOK, not by what it is ' +
+      'now. A building finished since the censors closed the roll is built, staffed, producing, ' +
+      'selling, housing and EATING at full rate — and the state cannot see it. No shop sells to the ' +
+      'people in it, the AERARIUM collects no tributum from them, they count for nothing at the era ' +
+      'gate, and NOTHING ANYWHERE ON THE MAP TURNS RED. What you get instead is a city with more ' +
+      'mouths than citizens, and the 🏛️ chip prints both numbers. A lustrum is ordered at the Hall ' +
+      'and costs $100 flat plus $10 a head. ★ IT COUNTS HOUSES, NOT PEOPLE, so the cheapest moment ' +
+      'to enter a new quarter is the minute it goes up, while it is still empty — and the expensive ' +
+      'one is after it has filled. A TABULARIUM takes a quarter off each head; two is the ceiling.',
+    chain: [
+      'Arvum ×3 → Mola Asinaria → The Macellum  ·  THE STAPLE, and it is GROWN here. Three ploughlands feed one mill exactly',
+      'Hortus → Forum Holitorium  ·  the leg that cannot fail: no water, no road, nothing from anybody',
+      'The Vivarium  ·  fish off the Tiber, and the only food that wants the river',
+      'The Salinae → Salsamentaria → Forum Piscarium  ·  salt is 34-39 tiles out on every seed — a MID-AGE expansion, and the road to it is why the Salaria is called the Salaria',
+      'Ovile ×1 → The Fullonica → Taberna Vestiaria  ·  $49.76/min, the richest chain on the board, and it never touches the river',
+      'Cretifodina → Officina Tegularia → Mercatus Tegularum  ·  $38/min in roof tile, and it wants no road to the clay',
+      'Silicaria → Officina Silicis → Crepidines  ·  ★ THE EXIT: 6,583 silex, and the Capitolium wants 3,600 DRESSED on top of it. One works cannot cover both',
+      'Piscina Limaria · Casa Colonica + Atrium Domus · the Tabularium, the Aerarium, the Moneta  ·  water, homes, and the three buildings the register turns into money',
+    ],
+    firstSteps: [
+      'An ARVUM first ($590 of your $19,900), anywhere at all. It is the ONE grain field on the ladder with no water predicate and no road — dry-farmed far, the way Latium actually grew it — so your founding party can work it the moment it is down, and nothing can hold them waiting.',
+      'A PISCINA LIMARIA ($1,190) next. It waters fifteen tiles and it needs NO WATER ANYWHERE NEAR IT — a settling tank is filled by hand and by rain. Everything below wants to be inside its ring. (The LACUS at $360 is the cheap version, but it must touch the river.)',
+      'Two more ARVA ($1,180) and a MOLA ASINARIA ($1,480) inside the tank’s fifteen tiles. THREE PLOUGHLANDS FEED ONE MILL EXACTLY — 14.23 far in, 8.54 farina out, which is the bread of about 142 people.',
+      'A HORTUS ($590) on dry ground. It needs no water, no road and nothing off anybody’s quay, and it feeds at 80% of bread. THIS IS THE LEG THAT CANNOT FAIL — Cato wrote a book about it, and it is why a Roman smallholding could not be starved out.',
+      'A LANE out of the Hall ($10 a tile) and THREE PARCELS beyond the founding grant ($380 each at the second ring). The grant is twelve tiles a side with a Hall in the middle of it, and once the water, the mill and the garden are down there is not enough frontage left for a market that touches a road. Buying out is the answer and it is cheap here.',
+      'Three CASA COLONICA ($2,130) on the lane, and THE MACELLUM ($1,480) on it too. The market wants ELEVEN CITIZENS WITHIN TEN TILES.',
+      '★★ AND NOW IT WILL NOT SELL. The Macellum reads TEN customers — your founding party, and nobody else. Three houses are standing on the map, roofed, watered and joined to the lane, and THE STATE HAS NOT BEEN TOLD THEY EXIST. Nothing is red. Nothing is broken. The shop simply has ten of the eleven people it needs.',
+      '★ SO TAKE THE CENSUS. Open the Hall and order the lustrum. It costs $100 flat plus $10 a head, and RIGHT NOW THE HOUSES ARE STILL EMPTY — about $110 all in. The Macellum sells on the next tick, and everybody who moves in afterwards is counted from the day they arrive. ★★ THE REGISTER COUNTS HOUSES, NOT HEADS: enter a quarter the day you build it, while it is empty and nearly free, not the day it fills.',
+      'THE AERARIUM ($2,140) on the lane, and a third ARVUM ($590). The treasury collects the tributum from every COUNTED resident within twenty tiles — about $6/min at twenty-four of them, and it scales with every household you enter afterwards. ★ MEASURED on three seeds: fourteen items for about $12,350 of your $19,900, and the city holds $32,000-$35,000 at minute 160 with twenty-four housed and no hunger.',
+      '★ TWO THINGS ARE NOT IN THE FOUNDING PARCELS AND THE MAP SAYS SO ON EVERY SEED: the SALT (34-39 tiles out, about nine parcels and $12,500 of ground) and an outcrop big enough for the SILICARIA (12-20 tiles, three to five parcels). The quarry is your EXIT and is worth walking to early; the salt is an export chain and a monument leg and can wait. Nothing in this age deadlocks on either.',
+    ],
+    mistake: 'Building for an hour without ordering a lustrum. Nothing warns you — every store is full, ' +
+      'every building says ok, and the only symptom is that your shops and your treasury have quietly ' +
+      'stopped growing while your food bill has not. Watch the two numbers on the 🏛️ chip: the first ' +
+      'is who pays you and the second is who eats.',
+  },
   10: {
     headline: 'Your granary is full and half your city is hungry.',
     mechanic: 'SET THE TABLE. Every age until now let one food feed everybody — a city with nothing but ' +

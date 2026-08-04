@@ -38,6 +38,8 @@ const UI = {
     UI.els.unrest = document.getElementById('hud-unrest');
     UI.els.tableChip = document.getElementById('chip-table');
     UI.els.table = document.getElementById('hud-table');
+    UI.els.censusChip = document.getElementById('chip-census');
+    UI.els.census = document.getElementById('hud-census');
 
     UI.buildPalette();
 
@@ -500,6 +502,8 @@ const UI = {
     if (era <= 9) return 'egypt';
 
     if (era === 10) return 'attic';
+
+    if (era === 11) return 'republic';
     if (era <= 13) return 'classical';
     if (era <= 14) return 'jungle';
     if (era <= 27) return 'medieval';
@@ -1032,6 +1036,46 @@ const UI = {
     if (UI.els.gridChip) {
       UI.els.gridChip.classList.toggle('hidden', !showGrid);
       UI.els.gridChip.style.display = showGrid ? '' : 'none';
+    }
+
+    const showCensus = Econ.censusActive(s);
+    if (UI.els.censusChip) {
+      UI.els.censusChip.classList.toggle('hidden', !showCensus);
+      UI.els.censusChip.style.display = showCensus ? '' : 'none';
+    }
+    if (showCensus && UI.els.census) {
+      const c = Econ.censusState(s);
+      const mm = Math.floor(c.ageSecs / 60), ss = Math.round(c.ageSecs % 60);
+      const age = mm + 'm' + (ss < 10 ? '0' : '') + ss + 's';
+      UI.els.census.textContent = c.counted + (c.uncounted > 0 ? ' · +' + c.uncounted : '') +
+        ' · ' + age;
+      UI.els.censusChip.classList.toggle('bad', false);
+      UI.els.censusChip.classList.toggle('warn', c.warn);
+      const gateShort = c.frac < TUNE.CENSUS.gateFrac;
+      UI.els.censusChip.title =
+        c.counted + ' citizen' + (c.counted === 1 ? '' : 's') + ' on the register · ' +
+        c.mouths + ' mouth' + (c.mouths === 1 ? '' : 's') + ' in the city · the roll is ' +
+        age + ' old · a lustrum costs ' + Util.fmtMoney(c.cost) + '.' +
+        (c.uncounted > 0
+
+          ? ' — ' + c.uncounted + ' HEAD' + (c.uncounted === 1 ? '' : 'S') +
+            ' ARE EATING AND NOT BUYING. They are housed, fed, staffed and working; ' +
+            'the state simply cannot see them, so no shop sells to them, the Aerarium ' +
+            'collects nothing from them and the era gate does not count them.'
+          : ' — every mouth in the city is on the register.') +
+        (gateShort
+          ? ' The age turns at ' + Math.round(TUNE.CENSUS.gateFrac * 100) +
+            '% counted; you are at ' + Math.round(c.frac * 100) + '%.'
+          : '') +
+        ' Order it at the Hall. ' + (c.offices
+          ? c.offices + ' record office' + (c.offices === 1 ? '' : 's') + ' at work, so a head costs $' +
+            c.perHead.toFixed(2) + ' instead of $' + TUNE.CENSUS.per.toFixed(2) + '.'
+          : 'A TABULARIUM takes 25% off the per-head cost; two is the ceiling.') +
+
+        ' A head costs $' + c.perHead.toFixed(2) + ' and the fee is $' + TUNE.CENSUS.base +
+        ' whatever happens, so under ' + Math.round(TUNE.CENSUS.base / c.perHead) +
+        ' heads most of what you pay is the fee. IT COUNTS HOUSES, NOT PEOPLE — ' +
+        'the cheapest minute to enter a new quarter is the one it goes up in.';
     }
     if (showGrid && UI.els.grid) {
       const g = Econ.gridForecast(s);
@@ -1839,6 +1883,27 @@ const UI = {
           (fRunning ? '\u{1F37A} Festival running — ' + s.festival.left + ' guests still on the road'
                     : '\u{1F37A} Festival of Ninkasi — ' + fc.beer + ' beer + ' + fc.cloth + ' cloth') + '</button>';
       }
+
+      if (Econ.censusActive(s)) {
+        const cs = Econ.censusState(s);
+        const current = cs.uncounted <= 0;
+        const canCensus = !current && cs.afford;
+        buttons += '<button id="insp-census" class="btn-primary" ' + (canCensus ? '' : 'disabled') +
+          ' title="The censors close the roll: every household in the city is entered, and from ' +
+          'that moment your shops sell to all of them, the Aerarium taxes all of them and the era ' +
+          'gate counts all of them. Costs $' + TUNE.CENSUS.base + ' plus $' + cs.perHead.toFixed(2) +
+          ' a head for the ' + cs.uncounted + ' not yet on it' +
+          (cs.offices ? ' (' + cs.offices + ' record office' + (cs.offices === 1 ? '' : 's') +
+            ' already taking 25% off each)' : '') +
+          '. ★ IT COUNTS HOUSES, NOT PEOPLE, so the cheapest minute to enter a new quarter is the ' +
+          'one it goes up in, while it is still empty. Under ' +
+          Math.round(TUNE.CENSUS.base / cs.perHead) + ' heads most of what you pay is the flat ' +
+          'fee. Waiting costs you nothing but the trade you are not doing.">' +
+          (current
+            ? '\u{1F3DB}\u{FE0F} The register is current — ' + cs.counted + ' counted'
+            : '\u{1F3DB}\u{FE0F} Take the census — ' + cs.uncounted + ' uncounted, ' +
+              Util.fmtMoney(cs.cost)) + '</button>';
+      }
       const pol = (id, on, name, tip) =>
         '<button id="' + id + '" class="btn-plain" title="' + tip + '">' +
         (on ? '☑' : '☐') + ' ' + name + '</button>';
@@ -2159,6 +2224,20 @@ const UI = {
       UI.toast('\u{1F37A} THE FESTIVAL OF NINKASI! Beer and cloth pour out, hunger falls at once, and word ' +
         'spreads down the river — settlers arrive at ' + TUNE.FESTIVAL.migMult + '× until ' +
         TUNE.FESTIVAL.settlers + ' newcomers have come.', 12000);
+      UI.showInspector(b);
+      UI.updateHUD(G.s);
+    };
+
+    const cen = document.getElementById('insp-census');
+    if (cen) cen.onclick = () => {
+      const before = Econ.censusState(G.s);
+      const r = Econ.takeCensus(G.s);
+      if (r !== true) { if (typeof r === 'string') UI.toast('\u{1F3DB}\u{FE0F} No lustrum: ' + r + '.'); return; }
+      UI.toast('\u{1F3DB}\u{FE0F} THE CENSORS HAVE CLOSED THE ROLL. ' + before.mouths +
+        ' citizens are on the register — ' + before.uncounted + ' of them for the first time. ' +
+        'Every shop in the city sells to them from this tick, the Aerarium taxes them, and the ' +
+        'era gate counts them.', 11000);
+      Grid.rebuild(G.s);
       UI.showInspector(b);
       UI.updateHUD(G.s);
     };

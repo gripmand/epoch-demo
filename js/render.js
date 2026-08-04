@@ -95,6 +95,17 @@ const Rend = {
       grain: 0.14, macro: 0.17,
     },
 
+    11: {
+      base:     { color: 0xbfae86, tex: 'silt' },
+      fertile:  { color: 0x6f8438, tex: 'field' },
+      salt:     { color: 0xded2bc, tex: 'salt' },
+      saltRidge: 0xece2cc,
+      rock:     { color: 0x9a8f76, tex: 'rock' },
+      cliff:    0x6f6656,
+      bed:      0x6d7a4a,
+
+      grain: 0.13, macro: 0.15,
+    },
     10: {
       base:     { color: 0xa8a68c, tex: 'silt' },
       fertile:  { color: 0x6b7a3e, tex: 'field' },
@@ -1131,6 +1142,9 @@ const Rend = {
     7:  { tree: ['olive', 'cypress'], scrub: ['bush'], scrubDensity: 0.09, marsh: [],
           rock: ['boulder'], crag: ['crag'] },
     10:  { tree: ['olive', 'cypress'], scrub: ['bush'], scrubDensity: 0.12, marsh: [],
+          rock: ['boulder'], crag: ['crag'] },
+
+    11:  { tree: ['umbrella', 'olive', 'cypress'], scrub: ['bush'], scrubDensity: 0.15, marsh: [],
           rock: ['boulder'], crag: ['crag'] },
     13:  { tree: ['umbrella', 'cypress', 'olive'], scrub: ['bush'], scrubDensity: 0.11, marsh: [],
           rock: ['boulder'], crag: ['crag'] },

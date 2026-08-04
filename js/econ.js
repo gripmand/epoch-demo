@@ -379,13 +379,13 @@ const Econ = {
 
           C.monBoost = (C.monBoost || 0) + TUNE.MONUMENT_BOOST;
         } else b.rate = 0;
-      } else if (b.type === 'templeGranary' && !b.mothballed) {
+      } else if (d.dues && !b.mothballed) {
 
         if (b.block) b.status = b.block;
         else if (b.staff === 0) b.status = 'no_staff';
         else {
           b.status = b.staff < d.workers ? 'understaffed' : 'ok';
-          const dues = TUNE.DUES.per * Grid.residentsWithin(s, b, TUNE.DUES.radius) *
+          const dues = Econ.duesPer(s, d) * Grid.residentsWithin(s, b, TUNE.DUES.radius) *
             (b.staff / d.workers) * Econ.M;
           income += dues;
           C.tickDues += dues;
@@ -1494,7 +1494,7 @@ const Econ = {
 
     const base = s.eraBase || {};
 
-    return Game.housedResidents(s) >= r.pop && s.money >= r.money &&
+    return Econ.countedResidents(s) >= r.pop && s.money >= r.money &&
            (Econ.cumFood(s) - Econ.baseFood(base)) >= r.food &&
            (s.cum.stone - (base.stone || 0)) >= r.stone &&
            Econ.eraExtraGate(s) &&
@@ -1504,6 +1504,8 @@ const Econ = {
   ERA_EXTRA_GATE: {
 
     10: (s) => Econ.opsonTable(s).laid >= 0.95,
+
+    11: (s) => Econ.censusState(s).frac >= TUNE.CENSUS.gateFrac,
     2: (s, base) => (s.cum.tributePaid || 0) - (base.tributePaid || 0) >= TUNE.TRIBUTE.gate,
 
     6: (s) => (G.cache.gridFrac || 0) >= TUNE.GRID.gateFrac,
@@ -1736,6 +1738,8 @@ const Econ = {
       Econ.log(s, '\u{26A0}\u{FE0F}', res.unplaced.length + ' relic' +
         (res.unplaced.length === 1 ? '' : 's') + ' found no ground near the new hall and wait in the dynasty.');
     }
+
+    Econ.closeRegister(s);
 
     Grid.rebuild(s);
     UI.refreshPalette();
@@ -2197,6 +2201,8 @@ const Econ = {
   },
 
   headWhy(s, b) {
+
+    if (!b) return null;
     const f = Econ.cascadeForecast(s);
     const d = DEF(b.type);
     const need = Econ.headNeed(b);
@@ -2470,6 +2476,94 @@ const Econ = {
       ', and this city cannot eat its way out of that with bread — a Greek table is grain, ' +
       'figs, pulses and fish, and no one of them feeds everybody. Sow a BEAN & LENTIL PLOT ' +
       'or a FIG ORCHARD: neither needs water, a road or anything off a quay.', 12000);
+  },
+
+  censusActive(s) { return rungOf(s.era) === 11; },
+
+  counted(s, b) {
+    if (!Econ.censusActive(s)) return true;
+    return !!b && (b.placed | 0) < ((s.census && s.census.at) | 0);
+  },
+
+  countedResidents(s) {
+    if (!Econ.censusActive(s)) return Game.housedResidents(s);
+    let n = 0;
+    for (const b of s.buildings) {
+      if (!DEF(b.type) || !DEF(b.type).cap || !b.residents) continue;
+      if (Econ.counted(s, b)) n += b.residents;
+    }
+    return n;
+  },
+
+  censusOffices(s) {
+    if (!Econ.censusActive(s)) return 0;
+    let n = 0;
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d || !d.censusOffice || b.mothballed) continue;
+      if (b.block || (d.workers && !b.staff)) continue;
+      n++;
+    }
+    return Math.min(TUNE.CENSUS.officeMax, n);
+  },
+
+  censusPerHead(s) {
+    const K = TUNE.CENSUS;
+    return K.per * (1 - K.officeCut * Econ.censusOffices(s));
+  },
+
+  censusCost(s) {
+    const K = TUNE.CENSUS;
+    const un = Math.max(0, Game.housedResidents(s) - Econ.countedResidents(s));
+    const gross = K.base + Econ.censusPerHead(s) * un;
+    return Math.round(gross * (s && s.policyProfessio ? TUNE.PROFESSIO.feeCut : 1));
+  },
+
+  duesPer(s, d) {
+    const base = (d && d.dues) || TUNE.DUES.per;
+    if (!Econ.censusActive(s) || !s.policyProfessio) return base;
+    return base * TUNE.PROFESSIO.duesCut;
+  },
+
+  censusState(s) {
+    const out = { on: false, counted: 0, uncounted: 0, mouths: 0, frac: 1,
+                  ageSecs: 0, cost: 0, afford: true, warn: false, ever: true,
+                  offices: 0, perHead: TUNE.CENSUS.per };
+    if (!Econ.censusActive(s)) return out;
+    out.on = true;
+
+    out.offices = Econ.censusOffices(s);
+    out.perHead = Econ.censusPerHead(s) * (s.policyProfessio ? TUNE.PROFESSIO.feeCut : 1);
+    const mouths = Game.housedResidents(s);
+    const counted = Econ.countedResidents(s);
+    out.mouths = mouths;
+    out.counted = counted;
+    out.uncounted = Math.max(0, mouths - counted);
+
+    out.frac = mouths > 0 ? counted / mouths : 1;
+    out.ageSecs = Math.max(0, (s.tick || 0) - ((s.census && s.census.at) || 0));
+    out.cost = Econ.censusCost(s);
+    out.afford = s.money >= out.cost;
+    out.warn = out.uncounted > 0 && (1 - out.frac) >= TUNE.CENSUS.warnFrac;
+    out.ever = !!(s.census && s.census.taken);
+    return out;
+  },
+
+  takeCensus(s) {
+    if (!Econ.censusActive(s)) return 'no census is kept in this age';
+    const st = Econ.censusState(s);
+    if (!st.afford) return 'the treasury cannot pay for it — it costs $' + st.cost;
+    if (st.uncounted <= 0 && st.frac >= 1) return 'the register is already current';
+    s.money -= st.cost;
+    Econ.closeRegister(s);
+    Econ.log(s, '\u{1F3DB}\u{FE0F}', 'The censors closed the lustrum — ' + st.mouths +
+      ' citizens and ' + st.uncounted + ' uncounted heads entered on the register, for $' +
+      st.cost + '.');
+    return true;
+  },
+
+  closeRegister(s) {
+    s.census = { at: s.placeCounter | 0, taken: 1 };
   },
 
   levyActive(s) { return rungOf(s.era) === 2; },
@@ -3332,7 +3426,9 @@ const Econ = {
                 'brick', 'cotton', 'cottoncloth', 'carnelian', 'beads', 'shell', 'bangles',
                 'coir', 'sennit', 'bast', 'tapa', 'nacre', 'lure', 'adze', 'feathers', 'cloak',
 
-                'grapes', 'wine', 'silver'],
+                'grapes', 'wine', 'silver',
+
+                'salsamentum', 'tegula', 'silex'],
 
   capOf(s, kind) {
 
@@ -3393,7 +3489,7 @@ const Econ = {
         Econ.note(kind, amt, 0, 0, overflow);
       } else {
 
-        G.cache.tickExport += overflow * TUNE.PRICES[kind] * TUNE.EXPORT_MULT;
+        G.cache.tickExport += overflow * TUNE.PRICES[kind] * exportMult(s);
         Econ.note(kind, amt, 0, overflow);
       }
     } else {
@@ -3471,6 +3567,8 @@ const Econ = {
     if (d.fixed) return RP.hallPerChapter * (s.hallLevel || 1);
 
     if (d.monument && !b.complete) return null;
+
+    if (!Econ.counted(s, b)) return null;
     const ok = !b.status || b.status === 'ok' || b.status === 'understaffed';
     if (!ok) return null;
     return d.monument ? monumentRP(defEra(d)) : buildingRP(defEra(d), d) * rankOutMult(b);
@@ -3614,7 +3712,8 @@ const Econ = {
     const stored = Math.min(TUNE.IMPORT_GRAIN.units, space);
     s.stock[imp.kind] += stored;
     const overflow = TUNE.IMPORT_GRAIN.units - stored;
-    if (overflow > 0) s.money += overflow * TUNE.PRICES[imp.kind] * TUNE.EXPORT_MULT;
+
+    if (overflow > 0) s.money += overflow * TUNE.PRICES[imp.kind] * exportMult(s);
 
     Econ.log(s, '\u{1F6B6}', imp.who + ' ' + TUNE.IMPORT_GRAIN.units + ' ' +
       goodLabel(s.era, imp.kind).toLowerCase() +

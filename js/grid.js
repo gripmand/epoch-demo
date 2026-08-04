@@ -75,6 +75,10 @@ const Grid = {
           trunkW: 0, trunkW2: 0, branch: 0, secondW: 0, wander: 0.30,
           fertileTo: 2, dryFrom: 5, edgeJitter: 2.0,
           beyond: 'GRASS', saltAt: 0.99, rockAt: 0.58 },
+
+    11: { trunkW: 5.4, trunkW2: 4.4, branch: 2, secondW: 3.2, wander: 0.42,
+          fertileTo: 3, dryFrom: 6, edgeJitter: 3.0,
+          beyond: 'SALT', saltAt: 0.72, rockAt: 0.56, peakR: 6 },
   },
 
   terrainProfile(era) {
@@ -1384,6 +1388,8 @@ const Grid = {
     }
     for (const h of s.buildings) {
       if (!DEF(h.type).cap || !h.residents) continue;
+
+      if (!Econ.counted(s, h)) continue;
       const hd = Grid.dimsOf(h);
 
       const gap = Util.rectDist(b.x, b.y, d.w, d.h, h.x, h.y, hd.w, hd.h);
@@ -1399,6 +1405,8 @@ const Grid = {
     for (const h of s.buildings) {
 
       if (!DEF(h.type).cap || !h.residents) continue;
+
+      if (!Econ.counted(s, h)) continue;
       const hd = DEF(h.type);
 
       if (Util.rectDist(b.x, b.y, d.w, d.h, h.x, h.y, hd.w, hd.h) <= radius) n += h.residents;

@@ -45,7 +45,9 @@ const TUNE = {
                  coir: 0, sennit: 0, bast: 0, tapa: 0, nacre: 0,
                  lure: 0, adze: 0, feathers: 0, cloak: 0,
 
-                 grapes: 0, wine: 0, silver: 0 },
+                 grapes: 0, wine: 0, silver: 0,
+
+                 salsamentum: 0, tegula: 0, silex: 0 },
 
   FOUNDING_CREW: 10,
 
@@ -53,9 +55,10 @@ const TUNE = {
     1: 'deadwoodcutter', 2: 'terraceplot', 3: 'snailbeds', 4: 'farm',
                  5: 'emmerfield', 6: 'leveefield',
 
-                 7: 'figorchard', 8: 'milletfield', 9: 'breadfruitgrove', 14: 'milpa' },
+                 7: 'figorchard', 8: 'milletfield', 9: 'breadfruitgrove',
+                 11: 'arvum', 14: 'milpa' },
 
-  ERA_START_MONEY: { 0: 1080, 8: 8850, 9: 11590, 10: 15190 },
+  ERA_START_MONEY: { 0: 1080, 8: 8850, 9: 11590, 10: 15190, 11: 19900 },
 
   MIGRATION: {
     perMinute: 8,
@@ -105,6 +108,8 @@ const TUNE = {
   LURE_CAP: 60, ADZE_CAP: 50, FEATHERS_CAP: 80, CLOAK_CAP: 40,
 
   GRAPES_CAP: 92, WINE_CAP: 58, SILVER_CAP: 46,
+
+  SALSAMENTUM_CAP: 79, TEGULA_CAP: 159, SILEX_CAP: 106,
   PRICES: { grain: 0.5, flour: 2, stone: 1, blocks: 4,
             clay: 0.6, pottery: 4, wool: 1.2, cloth: 7, beer: 3,
             dates: 1.8, fish: 1.5, salt: 1.5, reeds: 0.35, baskets: 8.9,
@@ -131,7 +136,9 @@ const TUNE = {
             coir: 0.68, sennit: 17.16, bast: 1.93, tapa: 13.50, nacre: 1.16,
             lure: 7.71, adze: 25.07, feathers: 2.31, cloak: 50.13,
 
-            grapes: 2.20, wine: 15.39, silver: 57.17 },
+            grapes: 2.20, wine: 15.39, silver: 57.17,
+
+            salsamentum: 22.31, tegula: 28.83, silex: 32.59 },
 
   NO_EXPORT: { water: 1 },
 
@@ -146,6 +153,8 @@ const TUNE = {
   GIFT_TERRA_STEP: 0.20,
 
   GIFT_SUPPLY_STEP: 12,
+
+  GIFT_EXPORT_STEP: 0.10,
   DEMOLISH_REFUND: 0.5,
   CLEAR_TREE: 15,
 
@@ -283,6 +292,21 @@ const TUNE = {
     rearmSecs: 600,
   },
 
+  CENSUS: {
+
+    base: 100,
+    per: 10,
+
+    warnFrac: 0.15,
+
+    gateFrac: 0.90,
+
+    officeCut: 0.25,
+    officeMax: 2,
+  },
+
+  PROFESSIO: { feeCut: 0.5, duesCut: 0.75 },
+
   TRIBUTE: {
     share: 0.35,
     base: 34.0,
@@ -417,6 +441,8 @@ const TUNE = {
 
     10: { kind: 'grain', price: 2, who: 'A Pontic grain ship sold the city', unit: 'measure' },
 
+    11: { kind: 'grain', price: 4, who: 'A Sicilian corn factor sold the city', unit: 'modius' },
+
     0: { kind: 'flour', price: 8, who: 'A week grazing beyond the range brought back', unit: 'load' },
     1: { kind: 'pemmican', price: 8, who: 'A passing band traded the camp', unit: 'bundle' },
 
@@ -495,7 +521,9 @@ const HOUSE_RUNG_COST_MULT = [0.6, 1.0, 1.8, 3.0];
 
 const HOUSE_RUNG_REF = { 0: 'nestmound', 1: 'hidetent', 3: 'brushshelter', 4: 'house',
                          5: 'villa', 6: 'brickhouse', 7: 'ashlarhouse',
-                         8: 'courtyardcompound', 9: 'halepili', 10: 'oikos', 14: 'stonehouse' };
+                         8: 'courtyardcompound', 9: 'halepili', 10: 'oikos',
+
+                         11: 'casacolonica', 14: 'stonehouse' };
 function houseRungRefCost(era) {
   const rung = rungOf(era);
   const keys = Object.keys(HOUSE_RUNG_REF).map(Number).sort((a, b) => a - b);
@@ -533,7 +561,8 @@ const ERAS = [
   { n: 9,  name: 'Polynesian',         blurb: 'Ownership and kinship cross open water.' },
 
   { n: 10, name: 'Ancient Greece',     blurb: 'Bread is half a table. Set the rest of it.' },
-  { n: 11, name: 'Roman Republic',     blurb: 'Land is registered, not bought. The survey rules.' },
+
+  { n: 11, name: 'Roman Republic',     blurb: 'The city is governed by the last census it took. The uncounted still eat.' },
   { n: 12, name: 'Hellenistic',        blurb: 'A city at the far end of somebody else’s rope.' },
   { n: 13, name: 'Roman Age',          blurb: 'Water flows downhill through an empire of law.' },
   { n: 14, name: 'Maya',               blurb: 'No rivers. You live on what you caught in the wet season.' },
@@ -570,7 +599,7 @@ function eraInfo(era) {
   return r === 0 ? ERA_PROLOGUE : (ERAS[r - 1] || ERA_PROLOGUE);
 }
 
-const WRITTEN_RUNGS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 14];
+const WRITTEN_RUNGS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 14];
 
 const START_ERA = WRITTEN_RUNGS[0];
 function nextWrittenEra(era) {
@@ -740,6 +769,11 @@ const ERA_TERRA_LOCK = {
       'cornfields would never have needed a fleet',
   },
 
+  11: {
+    water: 'the Tiber is the drain, the road and the frontage of this city all at once, and the ' +
+      'censors let no man fill it — the priests would not even let iron into the bridge over it',
+  },
+
   0: {
     rock: 'the bone beds are what the floods left, one at a time, over millions of years — ' +
       'nothing in this age can make more of them, and that is the only thing this age is trying to teach you',
@@ -866,7 +900,14 @@ const ROAD_REQUIRED = ['townhall', 'house', 'villa', 'stonehouse', 'market', 'ba
   'bonestall', 'awlcombrow',
   'timbergranary', 'platformgranary', 'clanstore', 'sealedvault',
   'cauldroncourt', 'lineagetemple', 'cowrietreasury', 'standardhouse',
-  'divinercourt', 'oraclearchive', 'rammedyard', 'courseyard'];
+  'divinercourt', 'oraclearchive', 'rammedyard', 'courseyard',
+
+  'casacolonica', 'atriumdomus',
+  'macellum', 'forumholitorium', 'forumpiscarium', 'tabernavestiaria',
+  'mercatustegularum', 'crepidines',
+  'nundinae', 'cuppedinis', 'velabrum', 'togaria', 'portustiberinus', 'milliaria',
+  'porticusaemilia', 'horreagalbana', 'stabulum', 'hospitium',
+  'tabularium', 'libraria', 'aerarium', 'quaestorium', 'moneta', 'argentaria'];
 
 const BUILDINGS = {
   townhall: {
@@ -6790,6 +6831,503 @@ const BUILDINGS = {
       'counts as a SUPPLY POINT, so the far shore stops paying the carting premium.',
   },
 
+  arvum: {
+    name: 'Arvum', tier: 'food', era: 11, w: 2, h: 2, cost: 590, upkeep: 1.00,
+    icon: '\u{1F33E}', color: '#c2a54e', workers: 2,
+    out: { grain: 4.74 },
+    desc: 'The ploughland: 4.74 far/min off dry Latian tufa, and it needs NO water, NO road and ' +
+      'nothing from anybody. THREE ARVA FEED ONE MOLA EXACTLY. It is what the founding crew works ' +
+      'first, and it is the only field on the ladder that asks for nothing.',
+  },
+
+  molaasinaria: {
+    name: 'Mola Asinaria', tier: 'food', era: 11, w: 2, h: 2, cost: 1480, upkeep: 1.66,
+    icon: '\u{2699}\u{FE0F}', color: '#b9a483', workers: 4, needsWater: true, industry: true,
+    grainMill: true,
+    procIn: 'grain', procRate: 14.23, procOut: 'flour', procRatio: 0.6,
+    desc: 'Two stones and a donkey on a pole: 14.23 far/min into 8.54 farina — the bread of about ' +
+      '142 people. One mill feeds the whole city the exit gate asks for, with a little over. ' +
+      '+25% both ways beside an Arvum.',
+  },
+
+  macellum: {
+    name: 'The Macellum', tier: 'commerce', era: 11, w: 2, h: 2, cost: 1480, upkeep: 1.99,
+    icon: '\u{1F956}', color: '#c9a45e', workers: 4, needsWater: true, needsRoad: true,
+    sells: 'flour', sellRate: 2.85, sellPrice: 7.27, custRadius: 10, custMin: 11,
+    desc: 'The provision market: 2.85 farina/min at $7.27. IT SELLS TO CITIZENS, AND A CITIZEN IS ' +
+      'SOMEBODY THE LAST CENSUS COUNTED — the uncounted eat here and buy nothing. Watch the 🏛️ ' +
+      'chip; the gap is the shortfall.',
+  },
+
+  hortus: {
+    name: 'Hortus', tier: 'food', era: 11, w: 2, h: 2, cost: 590, upkeep: 1.00,
+    icon: '\u{1F966}', color: '#7ea24e', workers: 2, dryLand: true,
+    out: { forage: 4.50 },
+    desc: 'Cabbage, leeks, beans and garlic behind the house — 4.50/min, eaten at 80% of bread’s ' +
+      'worth. NO water, NO road, NOTHING from anywhere. Cato wrote a book about this plot; it is ' +
+      'the reason a Roman smallholding could not be starved out.',
+  },
+
+  forumholitorium: {
+    name: 'Forum Holitorium', tier: 'commerce', era: 11, w: 2, h: 2, cost: 820, upkeep: 1.10,
+    icon: '\u{1F9FA}', color: '#9bb05c', workers: 3, needsRoad: true,
+    sells: 'forage', sellRate: 2.85, sellPrice: 4.00, custRadius: 10, custMin: 9,
+    desc: 'The vegetable market under the temples of Janus and Spes: 2.85 greens/min at $4.00. Half ' +
+      'the price of bread and none of the chain — no field to plough, no mill to turn, no water. ' +
+      'It reads the register like every other shop.',
+  },
+
+  vivarium: {
+    name: 'The Vivarium', tier: 'food', era: 11, w: 1, h: 3, cost: 950, upkeep: 1.00,
+    icon: '\u{1F41F}', color: '#5f8fa8', workers: 2, onWater: true,
+    out: { fish: 5.62 },
+    desc: 'Stakes, wicker and a stilled corner of the Tiber: 5.62 fish/min, eaten at 75% of bread’s ' +
+      'worth. Every tile of it stands IN the water — the river decides how many you get, which is ' +
+      'why the HORTUS and not this is the leg that cannot fail.',
+  },
+
+  salinae: {
+    name: 'The Salinae', tier: 'food', era: 11, w: 2, h: 4, cost: 1430, upkeep: 1.58,
+    icon: '\u{1F9C2}', color: '#e0dcc8', workers: 4, onSalt: true, industry: true,
+    out: { salt: 7.92 },
+    desc: 'Pans cut into the flats and let flood: 7.92 salt/min. Ancus Marcius took these before he ' +
+      'took anything else, and the road out of them is called the SALARIA. One pan keeps one and a ' +
+      'half salting houses, and the Capitolium wants 3,600 besides.',
+  },
+
+  salsamentaria: {
+    name: 'Salsamentaria', tier: 'craft', era: 11, w: 2, h: 2, cost: 1540, upkeep: 1.86,
+    icon: '\u{1FAD9}', color: '#a8845e', workers: 4, needsWater: true, industry: true,
+    procIn: 'salt', procRate: 5.29, procOut: 'salsamentum', procRatio: 0.5,
+    desc: 'Vats, brine and a stone floor: 5.29 salt/min into 2.65 salted fish. The catch comes off ' +
+      'the river in baskets and costs nothing; THE SALT IS WHAT YOU HAVE TO BUY AND CART, and that ' +
+      'is the whole economics of a Roman fish sauce.',
+  },
+
+  forumpiscarium: {
+    name: 'Forum Piscarium', tier: 'commerce', era: 11, w: 2, h: 2, cost: 1420, upkeep: 1.99,
+    icon: '\u{1F980}', color: '#7f9bb0', workers: 3, needsWater: true, needsRoad: true,
+    sells: 'salsamentum', sellRate: 1.46, sellPrice: 22.31, custRadius: 10, custMin: 12,
+    desc: 'The fish market on the river side of the Forum: 1.46 salted fish/min at $22.31. The ' +
+      'cheapest export in the age and the one a poor quarter actually buys — if the censors have ' +
+      'entered that quarter on the register.',
+  },
+
+  ovile: {
+    name: 'The Ovile', tier: 'food', era: 11, w: 3, h: 3, cost: 1160, upkeep: 1.49,
+    icon: '\u{1F411}', color: '#b6b39a', workers: 3, dryLand: true,
+    out: { wool: 3.97 },
+    desc: 'The fold and the summer range above it: 3.97 fleece/min off ground too thin for anything ' +
+      'else, +50% on ground already worked out. No water, no road, no river. The richest chain in ' +
+      'the age starts on the worst land in it.',
+  },
+
+  fullonica: {
+    name: 'The Fullonica', tier: 'craft', era: 11, w: 2, h: 2, cost: 1780, upkeep: 1.99,
+    icon: '\u{1F9F6}', color: '#c8c0aa', workers: 4, needsWater: true, industry: true,
+    procIn: 'wool', procRate: 4.23, procOut: 'cloth', procRatio: 0.5,
+    desc: 'Treading tubs, fuller’s earth and a press: 4.23 fleece/min into 2.12 finished cloth. It ' +
+      'wants water and it wants it constantly. +25% both ways beside an Ovile.',
+  },
+
+  tabernavestiaria: {
+    name: 'Taberna Vestiaria', tier: 'commerce', era: 11, w: 2, h: 2, cost: 1900, upkeep: 2.32,
+    icon: '\u{1F9E5}', color: '#cbb6a0', workers: 3, needsWater: true, needsRoad: true,
+    sells: 'cloth', sellRate: 1.06, sellPrice: 47.01, custRadius: 10, custMin: 16,
+    desc: 'The clothiers’ row: 1.06 cloth/min at $47.01, the richest trade on the board. It wants ' +
+      '16 counted residents in reach — the one shop in the age a stale register can switch off ' +
+      'outright.',
+  },
+
+  cretifodina: {
+    name: 'Cretifodina', tier: 'food', era: 11, w: 2, h: 2, cost: 660, upkeep: 1.00,
+    icon: '\u{1FAA8}', color: '#a8825e', workers: 2, nearWater: 2,
+    out: { clay: 4.23 },
+    desc: 'The clay cut: 4.23/min, and the yellow Tiber bank is the reason Rome roofed itself in ' +
+      'tile while everyone else was still thatching. Near water for the washing, not in it.',
+  },
+
+  officinategularia: {
+    name: 'Officina Tegularia', tier: 'craft', era: 11, w: 2, h: 2, cost: 1540, upkeep: 1.86,
+    icon: '\u{1F9F1}', color: '#b06a4e', workers: 4, needsWater: true, industry: true,
+    procIn: 'clay', procRate: 5.29, procOut: 'tegula', procRatio: 0.5,
+    desc: 'Flat pan-tile and curved cover-tile, stamped with the yard’s own name: 5.29 clay/min ' +
+      'into 2.65 tegulae. Two tile yards keep four markets. Every roof in the city is downstream ' +
+      'of this building.',
+  },
+
+  mercatustegularum: {
+    name: 'Mercatus Tegularum', tier: 'commerce', era: 11, w: 2, h: 2, cost: 1420, upkeep: 1.99,
+    icon: '\u{1F3E0}', color: '#b8794e', workers: 3, needsRoad: true,
+    sells: 'tegula', sellRate: 1.32, sellPrice: 28.83, custRadius: 10, custMin: 12,
+    desc: 'The tile yard on the road out: 1.32 tegulae/min at $28.83. No water — tile leaves by ' +
+      'cart. It is the least glamorous money in the age and the most reliable.',
+  },
+
+  silicaria: {
+    name: 'Silicaria', tier: 'food', era: 11, w: 3, h: 3, cost: 2660, upkeep: 2.32,
+    icon: '\u{26CF}\u{FE0F}', color: '#6e6e70', workers: 5, onRock: true, industry: true,
+    quarried: true,
+    out: { stone: 6.61 },
+    desc: 'Alban lava cut into blocks: 6.61 silex/min, scaled by how much rock is under it. Every ' +
+      'rock tile holds 900 and there is NO recovery — a worked-out flow is grass forever. The gate ' +
+      'wants 6,583, which is more than one quarry holds.',
+  },
+
+  officinasilicis: {
+    name: 'Officina Silicis', tier: 'craft', era: 11, w: 2, h: 2, cost: 3160, upkeep: 2.78,
+    icon: '\u{1F5FF}', color: '#7a787c', workers: 5, industry: true,
+    procIn: 'stone', procRate: 7.39, procOut: 'silex', procRatio: 0.5,
+    desc: 'Wedges, a levelled floor and a gauge: 7.39 stone/min into 3.70 dressed polygons. The ' +
+      'Capitolium eats 3.00 of that a minute and the yard sells 1.06 — ONE WORKS DOES NOT COVER ' +
+      'BOTH. Needs no water.',
+  },
+
+  crepidines: {
+    name: 'Crepidines', tier: 'commerce', era: 11, w: 2, h: 2, cost: 1720, upkeep: 1.99,
+    icon: '\u{1F6E3}\u{FE0F}', color: '#8a8890', workers: 3, needsRoad: true,
+    sells: 'silex', sellRate: 1.06, sellPrice: 32.59, custRadius: 10, custMin: 12,
+    desc: 'Kerbstone and paving sold by the cartload at $32.59 — to the censors, who let the ' +
+      'contracts, and to anybody else laying a street. It competes with your own monument for ' +
+      'every polygon the yard dresses.',
+  },
+
+  casacolonica: {
+    name: 'Casa Colonica', tier: 'housing', era: 11, w: 1, h: 1, cost: 710, upkeep: 0.33,
+    icon: '\u{1F3E0}', color: '#d0bb95', cap: 8, needsWater: true, needsRoad: true,
+    desc: 'Tufa footings, mudbrick, a tiled roof and a yard. Holds 8 — one more than the age below ' +
+      'it, on the same single tile. The growth in this rung is UPWARD, in the Atrium Domus.',
+  },
+
+  atriumdomus: {
+    name: 'Atrium Domus', tier: 'housing', era: 11, w: 2, h: 2, cost: 2450, upkeep: 1.10,
+    icon: '\u{1F3D8}\u{FE0F}', color: '#c6ae8c', cap: 34, needsWater: true, needsRoad: true,
+    levels: ['Tabernae', 'Atrium Domus', 'Domus with a Peristyle', 'Double-Court Domus',
+             'Domus of the Fasti', 'Domus Publica'],
+    desc: 'One roof over a courtyard, and shops let into the street front. Holds 17 when it goes ' +
+      'up, rising to 119 — the densest housing on the ladder. THIS is where the age puts its ' +
+      'people, and every one of them is a mouth the moment the roof is on.',
+  },
+
+  lacus: {
+    name: 'Lacus', tier: 'infra', era: 11, w: 1, h: 1, cost: 360, upkeep: 0.67,
+    icon: '\u{26F2}', color: '#7fb0c4', nearWater: 2, waterRadius: 10,
+    desc: 'A street basin running day and night off a spring: waters 10 tiles for a third of a ' +
+      'settling tank. This is the cheap water, not the clever one.',
+  },
+
+  piscinalimaria: {
+    name: 'Piscina Limaria', tier: 'infra', era: 11, w: 1, h: 1, cost: 1190, upkeep: 1.06,
+    icon: '\u{1F4A7}', color: '#6f9fc0', waterRadius: 15,
+    desc: 'A settling tank: water stands until the silt drops out of it, then goes on. Waters 15 ' +
+      'tiles and needs no water anywhere near it. Not an aqueduct — this city carries its own.',
+  },
+
+  doliarium: {
+    name: 'The Doliarium', tier: 'infra', era: 11, w: 1, h: 1, cost: 480, upkeep: 0.26,
+    icon: '\u{1F3FA}', color: '#b08258', storeGrain: 119, storeFlour: 71,
+    desc: 'Great jars sunk to the shoulder in a paved floor. +1,190 far and +710 farina, NO workers ' +
+      'and no road — the buffer that carries you from harvest to harvest. Buy it before you need it.',
+  },
+
+  porticusaemilia: {
+    name: 'Porticus Aemilia', tier: 'infra', era: 11, w: 3, h: 2, cost: 1190, upkeep: 1.32,
+    icon: '\u{1F3EC}', color: '#c0a882', workers: 3, needsRoad: true, nearWater: 1,
+    depot: true, storeCraft: 53,
+    desc: 'The river warehouse: +530 capacity for every traded good while staffed — salt, salt ' +
+      'fish, tile, cloth, stone and paving — and a SUPPLY POINT, so the far bank stops paying the ' +
+      'carting premium.',
+  },
+
+  saepta: {
+    name: 'The Saepta', tier: 'civic', era: 11, w: 2, h: 2, cost: 480, upkeep: 0.33,
+    icon: '\u{1F3DB}', color: '#c4b894', capRadius: 20,
+    desc: 'Hurdles, swept gravel and room for the centuries to stand. +1 housing capacity for every ' +
+      'home within 20 tiles. One is enough; a second adds nothing to a home already covered.',
+  },
+
+  sterquilinium: {
+    name: 'Sterquilinium', tier: 'infra', era: 11, w: 2, h: 1, cost: 530, upkeep: 0.54,
+    icon: '\u{1F4A9}', color: '#8e7a52', soilRadius: 8,
+    desc: 'The dung-heap, sited downwind and turned twice a year — Cato tells you exactly how big ' +
+      'to make it. Ground within 8 tiles recovers 3x faster. Unglamorous, and it is why the same ' +
+      'field is still there in a hundred years.',
+  },
+
+  tabularium: {
+    name: 'The Tabularium', tier: 'civic', era: 11, w: 3, h: 2, cost: 2400, upkeep: 2.40,
+    icon: '\u{1F4DC}', color: '#a89878', workers: 4, needsRoad: true,
+    censusOffice: true, scribeRadius: 22,
+    desc: 'The record office in the saddle of the Capitol, with the bronze laws on the wall and the ' +
+      'tabulae in the vaults. A staffed office takes 25% off the per-head cost of a census; two is ' +
+      'the ceiling. IT DOES NOT COUNT ANYBODY — you still have to order it.',
+  },
+
+  aerarium: {
+    name: 'The Aerarium', tier: 'civic', era: 11, w: 2, h: 2, cost: 2140, upkeep: 2.12,
+    icon: '\u{1FA99}', color: '#c9b06a', workers: 3, needsRoad: true,
+    dues: 0.265,
+    desc: 'The treasury under the temple of Saturn, with the quaestors and the tally. Collects the ' +
+      'tributum from every COUNTED resident within 20 tiles — about $26.50/min at a hundred ' +
+      'citizens. THE UNCOUNTED PAY NOTHING, and they still eat.',
+  },
+
+  basilica: {
+    name: 'Basilica Porcia', tier: 'civic', era: 11, w: 2, h: 2, cost: 530, upkeep: 0.54,
+    icon: '\u{1F3DB}\u{FE0F}', color: '#bfb59c', amenityRadius: 10,
+    desc: 'A roofed hall beside the Forum: shade, benches, and somewhere to argue out of the rain. ' +
+      'Homes within 10 tiles are worth more. Cato built the first one while he was censor, which ' +
+      'is the office this whole age is about.',
+  },
+
+  moneta: {
+    name: 'The Moneta', tier: 'civic', era: 11, w: 2, h: 3, cost: 2970, upkeep: 2.99,
+    icon: '\u{1FA99}', color: '#b8a45e', workers: 5, needsRoad: true, needsWater: true,
+    weighRadius: 12,
+    desc: 'The mint in the temple of Juno Moneta, where the standard weights are kept and the coin ' +
+      'is struck. Trade within 12 tiles is measured honestly and priced accordingly — and the word ' +
+      'MONEY is this building’s name.',
+  },
+
+  ponssublicius: {
+    name: 'Pons Sublicius', tier: 'infra', era: 11, w: 1, h: 1, cost: 710, upkeep: 0.33,
+    icon: '\u{1F309}', color: '#a89474', onWater: true, bridge: true,
+    desc: 'Timber piles and not one nail of iron, so the priests could take it apart in a morning. ' +
+      'Carries the road across the water — lay a line of them and the far bank joins the city.',
+  },
+
+  stabulum: {
+    name: 'The Stabulum', tier: 'infra', era: 11, w: 2, h: 2, cost: 780, upkeep: 0.66,
+    icon: '\u{1F40E}', color: '#9a8460', workers: 2, needsRoad: true, depot: true, storeGrain: 60,
+    desc: 'Mules, a yard and a shed at the milestone. A SUPPLY POINT with +600 far of storage, ' +
+      'placed where the carts already stop — the cheapest way to push the free haul out past the ' +
+      'edge of the built city.',
+  },
+
+  rostra: {
+    name: 'The Rostra', tier: 'beauty', era: 11, w: 1, h: 1, cost: 150, upkeep: 0,
+    icon: '\u{1F6A2}', color: '#b5aa8e', cosmetic: true,
+    desc: 'The speakers’ platform, faced with the beaks cut off the ships taken at Antium. No ' +
+      'output and no upkeep — it marks the place where the Republic argued, which is the whole job.',
+  },
+
+  iugera: {
+    name: 'The Iugera', tier: 'food', era: 11, w: 2, h: 2, cost: 1450, upkeep: 2.00,
+    icon: '\u{1F33E}', color: '#c9ae55', workers: 3, noBuild: true,
+    out: { grain: 9.48 },
+    desc: 'The strip squared off, ditched and rotated: 9.48 far/min off the same two tiles, for one ' +
+      'more pair of hands. Still no water and still no road.',
+  },
+  turningfloor: {
+    name: 'The Turning Floor', tier: 'food', era: 11, w: 2, h: 2, cost: 2440, upkeep: 2.32,
+    icon: '\u{2699}\u{FE0F}', color: '#c4b08e', workers: 5, needsWater: true, industry: true,
+    grainMill: true, noBuild: true,
+    procIn: 'grain', procRate: 19.92, procOut: 'flour', procRatio: 0.6,
+    desc: 'Three stones on one paved floor with the donkeys walking in relay: 19.92 far/min into ' +
+      '11.95 farina. It never stops, which is the only way a mill gets faster.',
+  },
+  nundinae: {
+    name: 'The Nundinae', tier: 'commerce', era: 11, w: 2, h: 2, cost: 2960, upkeep: 2.98,
+    icon: '\u{1F956}', color: '#d2ad63', workers: 5, needsWater: true, needsRoad: true,
+    noBuild: true,
+    sells: 'flour', sellRate: 5.70, sellPrice: 7.27, custRadius: 10, custMin: 11,
+    desc: 'The eight-day market, when the country comes in: 5.70 farina/min at $7.27. Twice the ' +
+      'stalls and the same register — it can only sell to people the censors have counted.',
+  },
+  olitores: {
+    name: 'The Olitores', tier: 'food', era: 11, w: 2, h: 2, cost: 1450, upkeep: 2.00,
+    icon: '\u{1F966}', color: '#8bb055', workers: 3, dryLand: true, noBuild: true,
+    out: { forage: 9.00 },
+    desc: 'The market-gardeners take the plot over properly — beds, a well-sweep, three crops a ' +
+      'year: 9.00 greens/min. It still needs nothing from anybody.',
+  },
+  cuppedinis: {
+    name: 'The Cuppedinis', tier: 'commerce', era: 11, w: 2, h: 2, cost: 1640, upkeep: 2.20,
+    icon: '\u{1F9FA}', color: '#a9be68', workers: 4, needsRoad: true, noBuild: true,
+    sells: 'forage', sellRate: 5.70, sellPrice: 4.00, custRadius: 10, custMin: 9,
+    desc: 'The delicacies market: 5.70 greens/min at $4.00. Cheap food sold at volume is what feeds ' +
+      'a quarter the export shops will not look at.',
+  },
+  nassae: {
+    name: 'The Nassae', tier: 'food', era: 11, w: 1, h: 3, cost: 2330, upkeep: 2.00,
+    icon: '\u{1F41F}', color: '#6f9fb8', workers: 3, onWater: true, noBuild: true,
+    out: { fish: 11.24 },
+    desc: 'Wicker traps set in a line across the current and lifted twice a day: 11.24 fish/min. ' +
+      'The river does the work; you only have to empty them.',
+  },
+  campiostienses: {
+    name: 'The Campi Ostienses', tier: 'food', era: 11, w: 2, h: 4, cost: 3500, upkeep: 3.16,
+    icon: '\u{1F9C2}', color: '#eae6d4', workers: 5, onSalt: true, industry: true, noBuild: true,
+    out: { salt: 15.84 },
+    desc: 'The whole flat under one channel and one gate: 15.84 salt/min. This is the works that ' +
+      'paid for the Via Salaria, and the wage word SALARIUM is what it paid in.',
+  },
+  garumvats: {
+    name: 'The Garum Vats', tier: 'craft', era: 11, w: 2, h: 2, cost: 2540, upkeep: 2.60,
+    icon: '\u{1FAD9}', color: '#b08e5e', workers: 5, needsWater: true, industry: true,
+    noBuild: true,
+    procIn: 'salt', procRate: 7.41, procOut: 'salsamentum', procRatio: 0.5,
+    desc: 'Open vats left in the sun for three months: 7.41 salt/min into 3.70. It smells like a ' +
+      'crime and it sells like nothing else in the age.',
+  },
+  velabrum: {
+    name: 'The Velabrum', tier: 'commerce', era: 11, w: 2, h: 2, cost: 2840, upkeep: 2.98,
+    icon: '\u{1F980}', color: '#8fa8bc', workers: 4, needsWater: true, needsRoad: true,
+    noBuild: true,
+    sells: 'salsamentum', sellRate: 2.92, sellPrice: 22.31, custRadius: 10, custMin: 12,
+    desc: 'The whole market quarter between the Forum and the river: 2.92 salted fish/min at ' +
+      '$22.31. Twice the trade, and twice the exposure to a register nobody has closed.',
+  },
+  saltus: {
+    name: 'The Saltus', tier: 'food', era: 11, w: 3, h: 3, cost: 2320, upkeep: 2.98,
+    icon: '\u{1F411}', color: '#c2bfa4', workers: 4, dryLand: true, noBuild: true,
+    out: { wool: 7.94 },
+    desc: 'The flock goes up to the high pasture in summer and comes down in autumn: 7.94 ' +
+      'fleece/min. The road it walks is older than the Republic.',
+  },
+  sulphurhouse: {
+    name: 'The Sulphur House', tier: 'craft', era: 11, w: 2, h: 2, cost: 2940, upkeep: 2.79,
+    icon: '\u{1F9F6}', color: '#d4cdb2', workers: 5, needsWater: true, industry: true,
+    noBuild: true,
+    procIn: 'wool', procRate: 5.92, procOut: 'cloth', procRatio: 0.5,
+    desc: 'Cloth hung over burning sulphur to bleach, then napped and pressed: 5.92 fleece/min into ' +
+      '2.96 cloth. Whiter wool is dearer wool, and white is what a toga has to be.',
+  },
+  togaria: {
+    name: 'The Togaria', tier: 'commerce', era: 11, w: 2, h: 2, cost: 3800, upkeep: 3.48,
+    icon: '\u{1F9E5}', color: '#d5c2ac', workers: 4, needsWater: true, needsRoad: true,
+    noBuild: true,
+    sells: 'cloth', sellRate: 2.12, sellPrice: 47.01, custRadius: 10, custMin: 16,
+    desc: 'Where the toga virilis is bought, and it is bought once and remembered: 2.12 cloth/min ' +
+      'at $47.01. The richest counter on the board wants 16 counted citizens in reach.',
+  },
+  puteolibeds: {
+    name: 'The Puteoli Beds', tier: 'food', era: 11, w: 2, h: 2, cost: 1620, upkeep: 2.00,
+    icon: '\u{1FAA8}', color: '#b8926a', workers: 3, nearWater: 2, noBuild: true,
+    out: { clay: 8.46 },
+    desc: 'Volcanic clay off the bay of Naples, washed and levigated on site: 8.46/min. It fires ' +
+      'harder and it fires redder, and every tile yard in Italy wants it.',
+  },
+  imbrexworks: {
+    name: 'The Imbrex Works', tier: 'craft', era: 11, w: 2, h: 2, cost: 2540, upkeep: 2.60,
+    icon: '\u{1F9F1}', color: '#bd7452', workers: 5, needsWater: true, industry: true,
+    noBuild: true,
+    procIn: 'clay', procRate: 7.41, procOut: 'tegula', procRatio: 0.5,
+    desc: 'Two kilns and a drying shed under one roof: 7.41 clay/min into 3.70 tegulae. The stamp ' +
+      'on the tile is the yard’s name, the consul’s year and a receipt that outlives both.',
+  },
+  portustiberinus: {
+    name: 'The Portus Tiberinus', tier: 'commerce', era: 11, w: 2, h: 2, cost: 2840, upkeep: 2.98,
+    icon: '\u{1F3E0}', color: '#c58a5c', workers: 4, needsRoad: true, noBuild: true,
+    sells: 'tegula', sellRate: 2.64, sellPrice: 28.83, custRadius: 10, custMin: 12,
+    desc: 'The old river landing turned over to the tile trade: 2.64 tegulae/min at $28.83. Barges ' +
+      'in, carts out, and a roof over half the city inside a generation.',
+  },
+  lapisalbanus: {
+    name: 'The Lapis Albanus', tier: 'food', era: 11, w: 3, h: 3, cost: 6520, upkeep: 4.64,
+    icon: '\u{26CF}\u{FE0F}', color: '#5e5e62', workers: 6, onRock: true, industry: true,
+    quarried: true, noBuild: true,
+    out: { stone: 13.22 },
+    desc: 'The Alban flow opened properly, with a ramp and a crane: 13.22 silex/min. It eats the ' +
+      'rock twice as fast as the cut below it and the rock does not come back.',
+  },
+  nucleusbeds: {
+    name: 'The Nucleus Beds', tier: 'craft', era: 11, w: 2, h: 2, cost: 5210, upkeep: 3.89,
+    icon: '\u{1F5FF}', color: '#6c6a6e', workers: 6, industry: true, noBuild: true,
+    procIn: 'stone', procRate: 10.35, procOut: 'silex', procRatio: 0.5,
+    desc: 'Statumen, rudus, nucleus and then the polygons laid on top: 10.35 stone/min into 5.18 ' +
+      'dressed silex. One of these covers the monument AND the yard, which the works below it does ' +
+      'not.',
+  },
+  milliaria: {
+    name: 'The Milliaria', tier: 'commerce', era: 11, w: 2, h: 2, cost: 3440, upkeep: 2.98,
+    icon: '\u{1F6E3}\u{FE0F}', color: '#9a98a0', workers: 4, needsRoad: true, noBuild: true,
+    sells: 'silex', sellRate: 2.12, sellPrice: 32.59, custRadius: 10, custMin: 12,
+    desc: 'Milestones cut, numbered and sold with the paving that goes between them: 2.12 silex/min ' +
+      'at $32.59. Every one carries the name of the man who let the contract.',
+  },
+  fonspublicus: {
+    name: 'The Fons Publicus', tier: 'infra', era: 11, w: 1, h: 1, cost: 760, upkeep: 0.88,
+    icon: '\u{26F2}', color: '#8fc0d2', nearWater: 2, waterRadius: 16, noBuild: true,
+    desc: 'The basin rebuilt in stone with four spouts and a standing overflow: waters 16 tiles. ' +
+      'Still the cheap water — it is just a great deal more of it.',
+  },
+  favissae: {
+    name: 'The Favissae', tier: 'infra', era: 11, w: 1, h: 1, cost: 2500, upkeep: 1.63,
+    icon: '\u{1F4A7}', color: '#5f8fb4', waterRadius: 23, noBuild: true,
+    desc: 'The vaults cut into the Capitoline rock below the temple, plastered and roofed. Waters ' +
+      '23 tiles off winter rain alone, and it still needs no water anywhere near it.',
+  },
+  cellapenaria: {
+    name: 'The Cella Penaria', tier: 'infra', era: 11, w: 1, h: 1, cost: 1010, upkeep: 0.41,
+    icon: '\u{1F3FA}', color: '#bd8f60', storeGrain: 238, storeFlour: 142, noBuild: true,
+    desc: 'The store-room proper: rows of dolia, a tiled floor and a door with a lock on it. ' +
+      '+2,380 far and +1,420 farina, and still no workers and no road.',
+  },
+  horreagalbana: {
+    name: 'The Horrea Galbana', tier: 'infra', era: 11, w: 3, h: 2, cost: 2500, upkeep: 2.05,
+    icon: '\u{1F3EC}', color: '#cbb58c', workers: 4, needsRoad: true, nearWater: 1,
+    depot: true, storeCraft: 106, noBuild: true,
+    desc: 'Three courtyards of vaulted cells behind the wharf: +1,060 capacity for every traded ' +
+      'good while staffed, and a SUPPLY POINT. The largest warehouse in the ancient world, and it ' +
+      'was a private speculation.',
+  },
+  campusmartius: {
+    name: 'The Campus Martius', tier: 'civic', era: 11, w: 2, h: 2, cost: 1010, upkeep: 0.51,
+    icon: '\u{1F3DB}', color: '#cec3a2', capRadius: 29, noBuild: true,
+    desc: 'The whole field outside the wall — drill ground, voting ground, and the place the ' +
+      'censors take the count. +1 housing capacity for every home within 29 tiles.',
+  },
+  fimetum: {
+    name: 'The Fimetum', tier: 'infra', era: 11, w: 2, h: 1, cost: 1110, upkeep: 0.85,
+    icon: '\u{1F4A9}', color: '#7f6c48', soilRadius: 15, noBuild: true,
+    desc: 'Pits, cover and a rota, run the way the agronomists wrote it down: ground within 15 ' +
+      'tiles recovers 3x faster. Columella devotes a chapter to this; so should you.',
+  },
+  libraria: {
+    name: 'The Libraria', tier: 'civic', era: 11, w: 3, h: 2, cost: 3600, upkeep: 3.14,
+    icon: '\u{1F4DC}', color: '#b8a888', workers: 5, needsRoad: true,
+    censusOffice: true, scribeRadius: 32, noBuild: true,
+    desc: 'The clerks’ hall: copies of every declaration, filed by tribe and by century, with a ' +
+      'staff that can find one. Still 25% off the per-head cost, and it reaches 32 tiles — but two ' +
+      'offices is the ceiling however good they are.',
+  },
+  quaestorium: {
+    name: 'The Quaestorium', tier: 'civic', era: 11, w: 2, h: 2, cost: 3210, upkeep: 2.78,
+    icon: '\u{1FA99}', color: '#d5bd76', workers: 4, needsRoad: true,
+    dues: 0.53, noBuild: true,
+    desc: 'The quaestors’ own offices beside the treasury, with the tribunes’ benches outside. ' +
+      'Doubles the tributum — $53.00/min at a hundred counted citizens. It still cannot see a ' +
+      'household nobody has entered.',
+  },
+  porticusmetelli: {
+    name: 'The Porticus Metelli', tier: 'civic', era: 11, w: 2, h: 2, cost: 1110, upkeep: 0.85,
+    icon: '\u{1F3DB}\u{FE0F}', color: '#cdc4ab', amenityRadius: 15, noBuild: true,
+    desc: 'The first marble colonnade in Rome, put up out of a triumph in 146 BCE and full of ' +
+      'looted Greek bronzes. Homes within 15 tiles are worth more, and everybody knows who paid.',
+  },
+  argentaria: {
+    name: 'The Argentaria', tier: 'civic', era: 11, w: 2, h: 3, cost: 6240, upkeep: 4.49,
+    icon: '\u{1FA99}', color: '#c8b06a', workers: 6, needsRoad: true, needsWater: true,
+    weighRadius: 18, noBuild: true,
+    desc: 'The bankers’ tables along the north side of the Forum, with the assay, the scales and ' +
+      'the ledgers. Trade within 18 tiles is weighed, changed and recorded honestly.',
+  },
+  pilaesaxeae: {
+    name: 'The Pilae Saxeae', tier: 'infra', era: 11, w: 1, h: 1, cost: 1490, upkeep: 0.51,
+    icon: '\u{1F309}', color: '#b09c7c', onWater: true, bridge: true, noBuild: true,
+    desc: 'Stone piers under the same timber deck, cut-waters upstream and a paved approach. ' +
+      'Carries the road, and it carries it through a flood.',
+  },
+  hospitium: {
+    name: 'The Hospitium', tier: 'infra', era: 11, w: 2, h: 2, cost: 1640, upkeep: 1.32,
+    icon: '\u{1F40E}', color: '#a89068', workers: 3, needsRoad: true, depot: true,
+    storeGrain: 126, noBuild: true,
+    desc: 'Beds, stabling and a granary at the milestone. A SUPPLY POINT with +1,260 far — the ' +
+      'road station that made the Roman road worth having, a century before anyone called it a ' +
+      'cursus publicus.',
+  },
+
   coal: {
     name: 'Coal Plant', tier: 'infra', era: 30, w: 2, h: 2, cost: 800, upkeep: 1.0,
     icon: '\u{1F3ED}', color: '#8d8d99', workers: 4, needsWater: true, industry: true,
@@ -6828,6 +7366,9 @@ const HOUSE_LEVELS = {
 
   10: ['Kalyba', 'Oikos', 'Pastas House', 'Prostas House', 'Peristyle House',
        'Peristyle Court'],
+
+  11: ['Casula', 'Casa Colonica', 'Tiled Casa', 'Courtyard Casa', 'Fundus',
+       'Greater Fundus'],
 
   0: ['Scrape', 'Nest Mound', 'Guarded Mound', 'Nest Ring', 'Colony Mound', 'Ancestral Mound'],
   1: ['Windbreak', 'Hide Tent', 'Banked Tent', 'Sunken Hut', 'Winter Hut', "Elder's Hut"],
@@ -6898,6 +7439,25 @@ const MONUMENT_GIFT = {
       'table, in this age and every age after it.',
     log: 'Their gift: an honest account of what a city eats — bread goes further now, forever.',
     apply(s) { s.giftTable = (s.giftTable | 0) + 1; },
+  },
+
+  11: {
+    key: 'export',
+    icon: '\u{1F3DB}\u{FE0F}',
+    title: 'What the Outside World Is Worth',
+    lead: 'The temple is dedicated, the year is named for it, and the tabulae go down into the vaults.',
+    body: 'The Republic did not invent counting people. What it invented was doing it on a ' +
+      'schedule, writing it down, and keeping the copy — and once a state knows what it has, it ' +
+      'can find out what everyone else will pay for it. The contracts were let at the Capitol, ' +
+      'against the register, to men who had read it. The temple burned twice and was rebuilt ' +
+      'twice; the list is what actually survived.',
+    grant: '<b>In this age and every age after it, everything that overflows your stores and ' +
+      'is sold abroad fetches ' + Math.round(TUNE.GIFT_EXPORT_STEP * 100) + ' points more.</b>',
+    toast: '\u{1F3DB}\u{FE0F} The register is yours. Every surplus you ever dump abroad fetches ' +
+      Math.round(TUNE.GIFT_EXPORT_STEP * 100) + ' points more, in this age and every age after it.',
+    log: 'Their gift: a written answer to what the world outside will pay — every surplus you ' +
+      'ever have is worth more for it.',
+    apply(s) { s.giftExport = (s.giftExport | 0) + 1; },
   },
 
   0: {
@@ -7081,6 +7641,18 @@ const ERA_POLICY = {
     off: 'The mess is closed. Watch the ⚖️ chip — a table that was laid may not be now.',
   },
 
+  11: {
+    key: 'policyProfessio', icon: '\u{1F3DB}\u{FE0F}', name: 'The Professio',
+    tip: 'Every householder must declare himself, his family and his property to the censor. ' +
+      'A census costs ' + Math.round(TUNE.PROFESSIO.feeCut * 100) + '% of list — counting is ' +
+      'cheap, so you can afford to do it often. But the CAPITE CENSI are entered on the roll and ' +
+      'assessed at nothing, so the Aerarium collects only ' +
+      Math.round(TUNE.PROFESSIO.duesCut * 100) + '% of the tributum. Cheap to count, dearer to ' +
+      'have counted. A growing city wants this ON; a settled one wants it OFF.',
+    on: 'The declaration is required. Lustra are half price, and the treasury takes a quarter less.',
+    off: 'The declaration lapses. The tributum is collected in full — and so is the census fee.',
+  },
+
   0: {
     key: 'policyHuddle', icon: '\u{1F995}', name: 'The Huddle',
     tip: 'The colony packs nest to nest: predators take ' +
@@ -7246,6 +7818,12 @@ const ERA_ROAD = {
              'and the civic buildings; terraces, groves, beds, pans, springs, mulch pits, the quarry ' +
              'and THE CANOE LANDING never do. $10 a tile, nothing to keep.' },
 
+  11: { flavour: 'Via Silice Strata', color: 0x3d4247, hw: 0.38,
+        desc: 'Polygonal Alban basalt laid on four courses of bedding, cambered, with raised kerbs ' +
+              'and stepping stones at the crossings. Only SOME buildings need one — the houses, ' +
+              'every shop, the warehouses, the mule stations and the four civic buildings; the ' +
+              'Arvum, the Hortus, the Ovile, the Vivarium, the salt pans, the clay cut, the ' +
+              'quarry, the water and the dung-heap never do. $10 a tile, nothing to keep.' },
   10: { flavour: 'Flagged Lane', color: 0x59646e, hw: 0.30,
         desc: 'Blue-grey Piraeus limestone laid in slabs, with a gutter cut down one side. Only SOME ' +
               'buildings need one — the Oikos and the Synoikia, the Agora and the three export shops, ' +
@@ -7304,6 +7882,8 @@ const MONUMENTS = [
   { id: 'temploMayor', name: 'Templo Mayor',    era: 26, cost: 150000,    icon: '⛩️', desc: 'Twin shrines above the sacred precinct.' },
 
   { id: 'parthenon',   name: 'Parthenon',       era: 10, cost: 25520,     icon: '\u{1F3DB}️', desc: 'Pentelic marble, refined to the millimetre.' },
+
+  { id: 'capitolium',  name: 'The Capitolium',  era: 11, cost: 33400,     icon: '\u{1F3DB}️', desc: 'Jupiter Best and Greatest, over the whole city, from its first year.' },
   { id: 'colosseum',   name: 'Colosseum',       era: 13, cost: 1500000,   icon: '\u{1F3DF}️', desc: 'Concrete vaults seating fifty thousand.' },
   { id: 'cathedral',   name: 'Cathedral',       era: 22, cost: 4600000,   icon: '⛪', desc: 'A lodge of masons, working for a century.' },
   { id: 'duomo',       name: 'Grand Duomo',     era: 28, cost: 14000000,  icon: '\u{1F54C}', desc: 'A dome raised without centring.' },
@@ -7446,8 +8026,29 @@ const RP_WEIGHT = {
   clanground: 0.2, drumground: 0.3, cauldroncourt: 0.6, lineagetemple: 0.8,
   cowrietreasury: 1.0, standardhouse: 1.2, divinercourt: 0.6, oraclearchive: 0.8,
   courtyardcompound: 0.3, clancompound: 0.3, altarterrace: 0.1,
+
+  arvum: 1.0, iugera: 1.4, hortus: 1.0, olitores: 1.4,
+  vivarium: 1.0, nassae: 1.4, salinae: 1.0, campiostienses: 1.4,
+  ovile: 1.0, saltus: 1.4, cretifodina: 1.0, puteolibeds: 1.4,
+  silicaria: 1.2, lapisalbanus: 1.6,
+  molaasinaria: 1.6, turningfloor: 1.8, salsamentaria: 1.6, garumvats: 1.8,
+  fullonica: 1.6, sulphurhouse: 1.8, officinategularia: 1.6, imbrexworks: 1.8,
+  officinasilicis: 1.6, nucleusbeds: 1.8,
+  macellum: 2.4, nundinae: 2.8, forumholitorium: 2.2, cuppedinis: 2.6,
+  forumpiscarium: 2.4, velabrum: 2.8, tabernavestiaria: 3.0, togaria: 3.4,
+  mercatustegularum: 2.6, portustiberinus: 3.0, crepidines: 2.6, milliaria: 3.0,
+  casacolonica: 0.3, atriumdomus: 0.3,
+  lacus: 0.1, fonspublicus: 0.15, piscinalimaria: 0.15, favissae: 0.2,
+  doliarium: 0.1, cellapenaria: 0.15,
+  porticusaemilia: 0.8, horreagalbana: 1.0, stabulum: 0.4, hospitium: 0.5,
+  saepta: 0.2, campusmartius: 0.3, sterquilinium: 0.2, fimetum: 0.3,
+  tabularium: 0.8, libraria: 1.0, aerarium: 1.0, quaestorium: 1.2,
+  basilica: 0.2, porticusmetelli: 0.3, moneta: 1.0, argentaria: 1.2,
+  rostra: 0.1,
 };
 for (const k in RP_WEIGHT) if (BUILDINGS[k]) BUILDINGS[k].rp = RP_WEIGHT[k];
+
+if (BUILDINGS.templeGranary) BUILDINGS.templeGranary.dues = TUNE.DUES.per;
 
 for (const t of ROAD_REQUIRED) if (BUILDINGS[t]) BUILDINGS[t].needsRoad = true;
 for (const k in BUILDINGS) if (BUILDINGS[k].monument) BUILDINGS[k].needsRoad = true;
@@ -7471,7 +8072,9 @@ const QUARRIED = ['quarry', 'deepquarry', 'granitequarry', 'desertquarry',
 
   'marblequarry',
 
-  'stonequarry', 'rubbleface'];
+  'stonequarry', 'rubbleface',
+
+  'silicaria', 'lapisalbanus'];
 for (const t of QUARRIED) if (BUILDINGS[t]) BUILDINGS[t].quarried = true;
 
 const MONUMENT_BUILD = {
@@ -7491,6 +8094,8 @@ const MONUMENT_BUILD = {
   greatahu:  { money: 17550, stone: 4187, sennit: 514 },
 
   parthenon: { money: 22970, stone: 5480, oil: 400 },
+
+  capitolium: { money: 30060, stone: 7170, silex: 360 },
   ziggurat:  { money: 3600, clay: 900, beer: 300 },
   pyramid:   { money: 12000, clay: 2200, stone: 900 },
   templePyr: { money: 40000, stone: 3000, blocks: 1200 },
@@ -7508,7 +8113,9 @@ const MONUMENT_RATE = { money: 24, clay: 6, beer: 2, stone: 6, blocks: 3, potter
 
                         ritualbronze: 0.8,
 
-                        sennit: 1 };
+                        sennit: 1,
+
+                        silex: 3 };
 
 function monumentBuild(type, era) {
   return MONUMENT_BUILD[type] || { money: Math.round((BUILDINGS[type] || {}).cost * 0.9) || 1000 };
@@ -7560,6 +8167,11 @@ function stapleCap(s) {
   return TUNE.OPSON.staple +
     TUNE.OPSON.giftStep * ((st && st.giftTable) | 0) +
     (st && st.policyPublicTable ? TUNE.OPSON.lawStaple : 0);
+}
+
+function exportMult(s) {
+  const st = s || (typeof G !== 'undefined' && G ? G.s : null);
+  return Math.min(0.90, TUNE.EXPORT_MULT + TUNE.GIFT_EXPORT_STEP * ((st && st.giftExport) | 0));
 }
 function rankOf(b) { return Util.clamp(Math.round(b && b.rank || 1), 1, rankMax()); }
 
@@ -7961,6 +8573,37 @@ const UPGRADES = {
   palaestra:      { to: 'xystos',            cost: 620,  era: 10, label: 'The Xystos' },
   deigma:         { to: 'metronomoi',        cost: 3450, era: 10, label: 'The Metronomoi' },
   metroon:        { to: 'anagrapheis',       cost: 1380, era: 10, label: 'The Anagrapheis' },
+
+  arvum:              { to: 'iugera',           cost: 1180, era: 11, label: 'The Iugera' },
+  molaasinaria:       { to: 'turningfloor',     cost: 1480, era: 11, label: 'The Turning Floor' },
+  macellum:           { to: 'nundinae',         cost: 2220, era: 11, label: 'The Nundinae' },
+  hortus:             { to: 'olitores',         cost: 1180, era: 11, label: 'The Olitores' },
+  forumholitorium:    { to: 'cuppedinis',       cost: 1230, era: 11, label: 'The Cuppedinis' },
+  vivarium:           { to: 'nassae',           cost: 1900, era: 11, label: 'The Nassae' },
+  salinae:            { to: 'campiostienses',   cost: 2860, era: 11, label: 'The Campi Ostienses' },
+  salsamentaria:      { to: 'garumvats',        cost: 1540, era: 11, label: 'The Garum Vats' },
+  forumpiscarium:     { to: 'velabrum',         cost: 2130, era: 11, label: 'The Velabrum' },
+  ovile:              { to: 'saltus',           cost: 2320, era: 11, label: 'The Saltus' },
+  fullonica:          { to: 'sulphurhouse',     cost: 1780, era: 11, label: 'The Sulphur House' },
+  tabernavestiaria:   { to: 'togaria',          cost: 2850, era: 11, label: 'The Togaria' },
+  cretifodina:        { to: 'puteolibeds',      cost: 1320, era: 11, label: 'The Puteoli Beds' },
+  officinategularia:  { to: 'imbrexworks',      cost: 1540, era: 11, label: 'The Imbrex Works' },
+  mercatustegularum:  { to: 'portustiberinus',  cost: 2130, era: 11, label: 'The Portus Tiberinus' },
+  silicaria:          { to: 'lapisalbanus',     cost: 5320, era: 11, label: 'The Lapis Albanus' },
+  officinasilicis:    { to: 'nucleusbeds',      cost: 3160, era: 11, label: 'The Nucleus Beds' },
+  crepidines:         { to: 'milliaria',        cost: 2580, era: 11, label: 'The Milliaria' },
+  lacus:              { to: 'fonspublicus',     cost: 540,  era: 11, label: 'The Fons Publicus' },
+  piscinalimaria:     { to: 'favissae',         cost: 1790, era: 11, label: 'The Favissae' },
+  doliarium:          { to: 'cellapenaria',     cost: 720,  era: 11, label: 'The Cella Penaria' },
+  porticusaemilia:    { to: 'horreagalbana',    cost: 1790, era: 11, label: 'The Horrea Galbana' },
+  saepta:             { to: 'campusmartius',    cost: 720,  era: 11, label: 'The Campus Martius' },
+  sterquilinium:      { to: 'fimetum',          cost: 800,  era: 11, label: 'The Fimetum' },
+  tabularium:         { to: 'libraria',         cost: 3600, era: 11, label: 'The Libraria' },
+  aerarium:           { to: 'quaestorium',      cost: 3210, era: 11, label: 'The Quaestorium' },
+  basilica:           { to: 'porticusmetelli',  cost: 800,  era: 11, label: 'The Porticus Metelli' },
+  moneta:             { to: 'argentaria',       cost: 4460, era: 11, label: 'The Argentaria' },
+  ponssublicius:      { to: 'pilaesaxeae',      cost: 1070, era: 11, label: 'The Pilae Saxeae' },
+  stabulum:           { to: 'hospitium',        cost: 1170, era: 11, label: 'The Hospitium' },
 };
 
 const UPGRADE_TARGETS = (function () {
@@ -8229,6 +8872,8 @@ function auditDataTables() {
 }
 
 const ERA_FOOD_LABEL = { 10: 'Bread, figs, pulses and fish this age',
+
+                         11: 'Farina, greens and fish this age',
   7: 'Meal issued this age',
                          0: 'Forage laid down this age',
                          1: 'Food put by this age', 2: 'Rations milled this age',
@@ -8257,6 +8902,20 @@ const ERA_VOICE = {
     saltAnswers: 'a PERIBOLOS WALL in range (×3 recovery), or OLIVE GROVES and ' +
       'FIG TERRACES, which want the ground the fields ruined — and note that this city does ' +
       'not grow its own bread anyway',
+  },
+
+  11: {
+    settlers: ['Marcus', 'Fulvia', 'Quintus', 'Tertia', 'Publius', 'Vibia'],
+    place: 'city',
+    mill: 'Mola Asinaria',
+    tally: 'The Tabularium',
+    tallyLine: 'The Tabularium is open and the tabulae are in the vaults — the censors can find ' +
+      'any household in the city in an afternoon, and a census costs you a quarter less a head.',
+    ration: 'The settlers’ issue is finished — the last of the founding far is measured out.',
+    saltName: 'ground going sour under the plough',
+
+    saltAnswers: 'a STERQUILINIUM in range (×3 recovery — Cato tells you how big to build it), ' +
+      'or an OVILE, which takes its +50% on exactly the ground the ploughland ruined',
   },
   0: {
 
@@ -8444,6 +9103,23 @@ const ERA_STAPLE = {
     goodNames: { grain: 'Wheat', flour: 'Bread', dates: 'Figs', forage: 'Pulses',
                  fish: 'Fish', stone: 'Marble', blocks: 'Dressed Marble', oil: 'Olive Oil',
                  olives: 'Olives' },
+  },
+
+  11: {
+    raw: 'grain', cooked: 'flour',
+    rawIcon: '\u{1F33E}', cookedIcon: '\u{1F35E}',
+    rawName: 'Far', cookedName: 'Farina',
+    cookedVerb: 'milled',
+    rawFrom: 'the ploughlands',
+    rawNote: 'and it is GROWN here, not landed — an Arvum needs no water, no road and nothing ' +
+      'from anybody, which is the whole reason the founding crew can work one on tick one',
+    shortNote: 'The city eats what it grows and BUYS what it eats. A shop sells only to citizens ' +
+      'the last census counted — see the 🏛️ chip for the gap.',
+    hungerFix: 'plough another ARVUM, or sow a HORTUS — the kitchen garden needs no water, no ' +
+      'road and nothing off a quay, and it feeds at 80% of bread',
+    goodNames: { grain: 'Far', flour: 'Farina', forage: 'Greens', fish: 'Fish',
+                 salt: 'Sal', salsamentum: 'Salsamentum', wool: 'Lana', cloth: 'Cloth',
+                 clay: 'Creta', tegula: 'Tegulae', stone: 'Silex', silex: 'Dressed Silex' },
   },
 
   _default: {
