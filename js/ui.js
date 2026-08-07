@@ -2004,6 +2004,14 @@ const UI = {
         (isMothed ? ' (mothballed: 20% caretaker rate)' : '') + '</span></div>';
     }
 
+    if (Econ.curatable(s, b)) {
+      const fab = Econ.fabricOf(b);
+      const held = Econ.isCurated(s, b);
+      const cls = held ? 'good' : fab < TUNE.ARREARS.warnAt ? 'bad' : fab < 0.999 ? 'warn' : '';
+      rows += '<div class="insp-row"><span>Fabric</span><span class="' + cls + '">' +
+        Math.round(fab * 100) + '%' + (held ? ' · held back' : '') + '</span></div>';
+    }
+
     let buttons = '';
 
     if (d.cap) {
@@ -2242,6 +2250,23 @@ const UI = {
         : '<button id="insp-mothball" class="btn-plain">\u{1F56F}️ Mothball — 20% upkeep, no workers, no output</button>';
     }
 
+    if (Econ.curatable(s, b)) {
+      const held = Econ.isCurated(s, b);
+      const slots = Econ.protectSlots(s);
+      const used = Math.min(slots, (s.curated || []).length);
+      const tip = 'A held building is taken OFF the deficit roll entirely: it keeps running, keeps ' +
+        'its bill, and sheds no fabric. The bill does not shrink — the same dollars are apportioned ' +
+        'across everything left, so what you hold makes the rest fall FASTER. ' +
+        TUNE.ARREARS.protectFree + ' slots free, +' + TUNE.ARREARS.protectPerCurator +
+        ' for every staffed repair gang.';
+      buttons += held
+        ? '<button id="insp-curate" class="btn-gold" title="' + tip + '">\u{1F6E1}\u{FE0F} Held back — release it (' +
+          used + ' of ' + slots + ' slots used)</button>'
+        : '<button id="insp-curate" class="btn-plain" title="' + tip + '"' +
+          (used >= slots ? ' disabled' : '') + '>\u{1F6E1}\u{FE0F} Hold this back from the deficit — ' +
+          used + ' of ' + slots + ' slots used</button>';
+    }
+
     if (d.monument && !b.complete) {
       const p = Econ.monumentProgress(G.s, b);
       const pct = p ? Math.round(p.frac * 100) : 0;
@@ -2377,6 +2402,19 @@ const UI = {
         ? '\u{1F56F}️ ' + (b.name || d.name) + ' mothballed. Its workers are back in the pool, it makes ' +
           'nothing, and it costs 20% of its upkeep. One click brings it back — nothing is lost.'
         : '\u{1F4A1} ' + (b.name || d.name) + ' reactivated — it will staff and run on the next tick.', 9000);
+      UI.showInspector(b);
+      UI.updateHUD(G.s);
+    };
+    const cur = document.getElementById('insp-curate');
+    if (cur) cur.onclick = () => {
+      const r = Econ.curateToggle(G.s, b);
+
+      if (typeof r === 'string') { UI.toast('\u{1F6E1}\u{FE0F} Not held back — ' + r + '.', 7000); return; }
+      UI.toast(r
+        ? '\u{1F6E1}\u{FE0F} ' + (b.name || d.name) + ' is held back. It keeps running and keeps its bill, and it ' +
+          'sheds no fabric while the treasury is floored — but the same deficit now falls on everything ' +
+          'else, so the rest go faster.'
+        : '\u{1F6E1}\u{FE0F} ' + (b.name || d.name) + ' released — back on the roll, and its slot is free.', 10000);
       UI.showInspector(b);
       UI.updateHUD(G.s);
     };

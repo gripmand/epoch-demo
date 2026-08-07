@@ -376,7 +376,8 @@ const Game = {
       policyProfessio: !!s.policyProfessio,
 
       ruinStock: s.ruinStock || {},
-      curated: (s.curated || []).slice(0, 64),
+
+      curated: (s.curated || []).slice(0, 256),
 
       census: { at: (s.census && s.census.at) | 0, taken: (s.census && s.census.taken) ? 1 : 0 },
 
@@ -752,7 +753,7 @@ const Game = {
       policyProfessio: !!d.policyProfessio,
 
       ruinStock: d.ruinStock || {},
-      curated: Array.isArray(d.curated) ? d.curated.slice(0, 64) : [],
+      curated: Array.isArray(d.curated) ? d.curated.slice(0, 256) : [],
 
       census: d.census
         ? { at: (+d.census.at) | 0, taken: d.census.taken ? 1 : 0 }

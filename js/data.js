@@ -622,7 +622,7 @@ const TUNE = {
 
 const HOUSE_RUNG_COST_MULT = [0.6, 1.0, 1.8, 3.0];
 
-const HOUSE_RUNG_REF = { 0: 'nestmound', 1: 'hidetent', 3: 'brushshelter', 4: 'house',
+const HOUSE_RUNG_REF = { 0: 'nestmound', 1: 'hidetent', 2: 'shelter', 3: 'brushshelter', 4: 'house',
                          5: 'villa', 6: 'brickhouse', 7: 'ashlarhouse',
                          8: 'courtyardcompound', 9: 'halepili', 10: 'oikos',
 
@@ -1047,14 +1047,6 @@ const BUILDINGS = {
     name: 'Town Hall', tier: 'civic', w: 3, h: 3, cost: 0, upkeep: 0,
     icon: '\u{1F3DB}️', color: '#c9a86a', fixed: true,
     desc: 'Your permanent flagship. Pays an in-game trickle AND accrues real rent every second. One upgrade unlocks per era — rent compounds all the way to the Transdimensional age.',
-  },
-
-  landmark: {
-    name: 'The Landmark', tier: 'civic', era: 0, w: 3, h: 3, cost: 0, upkeep: 0,
-    icon: '\u{1F332}', color: '#6f8a4a', fixed: true, selfRun: true,
-    desc: 'A sixty-metre araucaria on a rise, standing alone above the fern. The whole camp is ' +
-      'organised around it and nothing on this floodplain is out of sight of it. It pays a trickle ' +
-      'into the record every second.',
   },
 
   waterhole: {
@@ -9875,7 +9867,9 @@ const QUARRIED = ['quarry', 'deepquarry', 'granitequarry', 'desertquarry',
 
   'lapicidina', 'lautumiae', 'plumbaria', 'cuniculus',
 
-  'saxifodina', 'caesura'];
+  'saxifodina', 'caesura',
+
+  'basaltface', 'laurion', 'hymettosface', 'maroneiaworkings'];
 for (const t of QUARRIED) if (BUILDINGS[t]) BUILDINGS[t].quarried = true;
 
 const MONUMENT_BUILD = {
@@ -10707,6 +10701,11 @@ function auditDataTables() {
         say(k + ' emits "' + g + '", which quarried buildings take out of the finite ROCK ledger, ' +
             'but is not in QUARRIED — it would mint that good out of nothing');
     }
+
+    for (const k in BUILDINGS)
+      if (BUILDINGS[k].quarried && QUARRIED.indexOf(k) < 0)
+        say(k + ' sets quarried in its own def literal but is not on the QUARRIED roster — ' +
+            'the roster is the single source and twelve comments in this file say so');
   }
 
   for (const key in BUILDINGS) {

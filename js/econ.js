@@ -2820,8 +2820,35 @@ const Econ = {
 
   protectedSet(s) {
     const n = Econ.protectSlots(s);
-    const list = (s.curated || []).slice(0, n);
-    return new Set(list);
+    if (!s.curated || !s.curated.length) return new Set();
+
+    const live = new Set();
+    for (const b of s.buildings) live.add(b.id);
+    if (s.curated.some(id => !live.has(id)))
+      s.curated = s.curated.filter(id => live.has(id));
+    return new Set(s.curated.slice(0, n));
+  },
+
+  curatable(s, b) {
+    if (!Econ.arrearsActive(s)) return false;
+    const d = b && DEF(b.type);
+
+    return !!d && !d.fabricProof && !d.fixed && b.type !== 'road' && b.done !== false;
+  },
+  isCurated(s, b) { return Econ.protectedSet(s).has(b.id); },
+
+  curateToggle(s, b) {
+    if (!Econ.curatable(s, b)) return 'it is never on the roll';
+    if (!Array.isArray(s.curated)) s.curated = [];
+    const i = s.curated.indexOf(b.id);
+    if (i >= 0) { s.curated.splice(i, 1); return false; }
+    const n = Econ.protectSlots(s);
+
+    if (s.curated.length >= n)
+      return n > 0 ? 'all ' + n + ' protected slots are spoken for'
+                   : 'you have no protected slots in this age';
+    s.curated.push(b.id);
+    return true;
   },
 
   chargeable(s) {
