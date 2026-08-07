@@ -42,6 +42,8 @@ const UI = {
     UI.els.census = document.getElementById('hud-census');
     UI.els.passageChip = document.getElementById('chip-passage');
     UI.els.passage = document.getElementById('hud-passage');
+    UI.els.annonaChip = document.getElementById('chip-annona');
+    UI.els.annona = document.getElementById('hud-annona');
 
     UI.buildPalette();
 
@@ -519,6 +521,9 @@ const UI = {
     ok: 'Settlers are arriving.',
     nohouse: 'Nobody can move in — you have no housing yet.',
     full: 'Every house is full. Build more housing to keep growing.',
+
+    nofood: 'Every house is full — and this city is growing NO food. More housing would only add ' +
+          'mouths to a larder nothing is refilling.',
     blocked: 'Your housing has no road access or no water, so nobody will move in.',
 
     cold: 'The camp is freezing, so nobody new is arriving. Feed the fires — cut wood, burn bone, ' +
@@ -533,6 +538,11 @@ const UI = {
     if (why === 'hungry') {
       return 'The ' + eraVoice(G.s.era).place + ' is hungry, so nobody new is arriving. People will hold on for up to ' +
         TUNE.STARVE_MINUTES + ' minutes — ' + eraStaple(G.s.era).hungerFix + ' before then.';
+    }
+
+    if (why === 'nofood') {
+      return UI.MIGRATE_HINT.nofood + ' Before you add another bed: ' +
+        eraStaple(G.s.era).hungerFix + '.';
     }
     return UI.MIGRATE_HINT[why] || UI.MIGRATE_HINT.ok;
   },
@@ -1115,6 +1125,50 @@ const UI = {
         Math.round(landed) + '.';
     }
 
+    const showAnnona = Econ.annonaActive(s);
+    if (UI.els.annonaChip) {
+      UI.els.annonaChip.classList.toggle('hidden', !showAnnona);
+      UI.els.annonaChip.style.display = showAnnona ? '' : 'none';
+    }
+    if (showAnnona && UI.els.annona) {
+      const a = Econ.annonaState(s);
+      UI.els.annona.textContent = '×' + a.premium.toFixed(1) +
+        (a.bill > 0 ? ' · $' + Math.round(a.bill * TUNE.TEMPO) : '') +
+        (a.short > 0.001 ? ' · −' + a.short.toFixed(1) : '');
+      UI.els.annonaChip.classList.toggle('bad', a.bad);
+      UI.els.annonaChip.classList.toggle('warn', !a.bad && a.warn);
+
+      const cover = (a.bill > 0 && isFinite(a.secs))
+        ? ' The treasury carries this bill for ' +
+          (a.secs >= 90 ? Math.round(a.secs / 60) + ' minutes' : Math.round(a.secs) + ' seconds') + '.'
+        : '';
+      UI.els.annonaChip.title =
+        'Buying ' + a.need.toFixed(1) + ' rations a minute against works that land ' +
+        a.cap.toFixed(1) + ' — ×' + a.premium.toFixed(2) + ', $' +
+        Math.round(a.bill * TUNE.TEMPO) + ' a minute.' + cover +
+        (a.bad
+
+          ? ' — THE SHIPS ARE SHORT ' + a.short.toFixed(1) + ' A MINUTE AND IT IS NOT A ' +
+            'HARVEST PROBLEM. There is bread to be had and this city cannot pay for it. ' +
+            'Sell something, or grow it yourself.'
+          : a.warn
+            ? ' — YOU HAVE OUTGROWN YOUR LANDINGS. Nothing is failing yet; the whole ' +
+              'shipment is simply repricing, and it reprices again with every house. ' +
+              'A STATIO ANNONAE lands 1.5 more a minute; a CENTURIATED FIELD means you ' +
+              'do not have to buy it at all.'
+            : ' — your landings keep up, so the grain costs the fair price.') +
+
+        (G.cache.fleetLift
+          ? ' THE STANDING FLEET IS PAYING: those landings include +' +
+            Math.round(TUNE.FLEET.lift * 100) + '%, bought with ' +
+            (a.got * TUNE.FLEET.perLanded * TUNE.TEMPO).toFixed(2) + ' sailcloth a minute.'
+          : s.policyFleet
+            ? ' The Standing Fleet is ON BUT NOT PAYING — no sailcloth on the shelf, so the ' +
+              'landings above are the bare works. Weave more, or stop selling it.'
+            : '') +
+        ' Bought bread does NOT count toward the age gate: that leg is what you GREW.';
+    }
+
     if (showGrid && UI.els.grid) {
       const g = Econ.gridForecast(s);
       UI.els.grid.textContent = Math.round(g.frac * 100) + '%' +
@@ -1166,24 +1220,25 @@ const UI = {
 
       const nests = s.buildings.filter(b => DEF(b.type) && DEF(b.type).cap && !b.mothballed);
       const c = nests.length ? Econ.nestCull(s, nests[0], f.head) : null;
+
       UI.els.herdChip.title = f.grace > 0
         ? 'Nothing is hunting yet — ' + Math.ceil(f.grace) + ' seconds of grace left. ' +
-          'Nest in the OPEN before it starts: every tree within ' + TUNE.PRED.coverRadius +
-          ' tiles of a nest is cover for something.'
-        : 'The range holds ' + f.head + ' head and can hold about ' + ceil +
-          ' on this ground; you have ' + f.beds + ' bowls.' +
+          'Camp in the OPEN before it starts: every tree within ' + TUNE.PRED.coverRadius +
+          ' tiles of a shelter is cover for something.'
+        : 'The camp holds ' + f.head + ' and this ground can carry about ' + ceil +
+          '; you have ' + f.beds + ' places to sleep.' +
           (c ? '\ncover    ×' + c.coverMult.toFixed(2) + '   ' + Math.round(c.cover * 100) +
                '% of the ground within ' + TUNE.PRED.coverRadius + ' tiles is treed' +
-               '\ndilution ×' + c.diluteMult.toFixed(2) + '   small herds are watched harder — ' +
-               f.head + ' head' +
+               '\ndilution ×' + c.diluteMult.toFixed(2) + '   a small camp is watched harder — ' +
+               f.head + ' people' +
                '\nsentinel ×' + c.sentinelMult.toFixed(2) + '   ' +
-               (c.sentinelMult < 1 ? 'a Sentinel Knoll covers these nests' : 'no Sentinel Knoll covers these nests') +
+               (c.sentinelMult < 1 ? 'a Sentinel Knoll covers these shelters' : 'no Sentinel Knoll covers these shelters') +
                '\noffering ×' + c.offerMult.toFixed(2) + '   ' +
                (c.offerMult < 1 ? 'a Carrion Ground is supplied' : 'no Carrion Ground supplied') +
-               (c.huddleMult < 1 ? '\nhuddle   ×' + c.huddleMult.toFixed(2) + '   the colony is packed in' : '')
+               (c.huddleMult < 1 ? '\nhuddle   ×' + c.huddleMult.toFixed(2) + '   the camp is packed in' : '')
              : '') +
-          '\nPredators take ' + (f.take * TUNE.TEMPO).toFixed(1) + ' head a minute. ' +
-          'Another nest does not help; open ground and a Sentinel Knoll do.';
+          '\nPredators take ' + (f.take * TUNE.TEMPO).toFixed(1) + ' a minute. ' +
+          'Another shelter does not help; open ground and a Sentinel Knoll do.';
     }
 
     const era = eraInfo(s.era);
@@ -1507,7 +1562,8 @@ const UI = {
             const t = G.cache.tally[part.kind];
             perMin = Math.max(0, (t ? t.made - t.used : 0));
           }
-          perMin = Math.min(perMin, (MONUMENT_RATE[part.kind] || 6) * TUNE.TEMPO);
+
+          perMin = Math.min(perMin, Econ.monumentRate(s, part.kind) * TUNE.TEMPO);
           const eta = perMin > 0.01 ? remaining / perMin : Infinity;
           if (!worst || eta > worst.eta) worst = { kind: part.kind, eta };
         }
@@ -1961,11 +2017,14 @@ const UI = {
               (f.secs !== Infinity ? ' <span class="gold-dim">(' + Math.round(f.secs) + 's left)</span>' : '') +
               '</span></div>';
           } else {
-            const live = (G.cache.beerBonus || 0) > 0;
+
+            const live = ep.liveFlag ? !!G.cache[ep.liveFlag] : (G.cache.beerBonus || 0) > 0;
             buttons += '<div class="insp-row"><span>' + UI.esc(ep.name) + '</span><span class="' +
               (live ? 'good' : 'gold-dim') + '">' +
-              (live ? 'paying +' + Math.round(G.cache.beerBonus * 100) + '% now'
-                    : ep.key === 'policyCorvee' ? 'idle — waits for the flood' : 'idle — nothing to ration')
+              (live
+                ? (ep.liveFlag ? 'paying now' : 'paying +' + Math.round(G.cache.beerBonus * 100) + '% now')
+                : ep.idle ? ep.idle
+                  : ep.key === 'policyCorvee' ? 'idle — waits for the flood' : 'idle — nothing to ration')
               + '</span></div>';
           }
         }
@@ -2735,6 +2794,13 @@ const UI = {
           '</span></div>';
       }
 
+      const xLabel = Econ.eraExtraLabel(s);
+      const xOK = xLabel ? Econ.eraExtraGate(s) : true;
+
+      if (xLabel) html += '<div class="insp-row"><span>' + UI.esc(xLabel) +
+        '</span><span class="' + (xOK ? 'good' : 'warn') + '">' +
+        (xOK ? 'met ✓' : 'not yet') + '</span></div>';
+
       const fr = [
         ['population', pop / r.pop], ['money', Math.max(0, s.money) / r.money],
 
@@ -2742,6 +2808,8 @@ const UI = {
       ];
       if (r.stone) fr.push(['stone', stoneNow / r.stone]);
       if (mon) fr.push([mon.def.name, monFrac]);
+
+      if (xLabel) fr.push([xLabel.toLowerCase(), xOK ? 1 : 0]);
       fr.sort((a, b) => a[1] - b[1]);
       if (fr[0][1] < 1) {
         html += '<div class="panel-sub warn">The gate that binds right now: <b>' + UI.esc(String(fr[0][0])) +

@@ -2498,6 +2498,8 @@ const Shapes = {
   },
 
   CITIZEN_DRESS: {
+
+    0:  { robe: 'leafDry',  torso: 'hideDark', head: 'hidePale', bulk: 0.96 },
     1:  { robe: 'fur',     torso: 'hideDark', head: 'hidePale', hood: 'fur', bulk: 1.22 },
 
     3:  { robe: 'hidePale', torso: 'hideDark', head: 'hidePale', bulk: 1.06 },
@@ -2515,6 +2517,7 @@ const Shapes = {
 
     11: { robe: 'plaster', torso: 'mudPale',  head: 'timber',   bulk: 1.10 },
 
+    13: { robe: 'mudPale', torso: 'plaster', head: 'timber',   bulk: 1.04 },
     12: { robe: 'ware',    torso: 'plaster', head: 'timber',   bulk: 1.00 },
     14: { robe: 'ware',    torso: 'mudPale',  head: 'timber',   bulk: 1 },
   },
@@ -2526,8 +2529,59 @@ const Shapes = {
     return Shapes.CITIZEN_DRESS[4];
   },
 
+  beastGeo(D) {
+    const k = D.bulk || 1;
+    const g = new THREE.Group();
+    const flank = Shapes.m(D.flank), belly = Shapes.m(D.belly);
+
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.040 * k, 0.048 * k, 0.135, 7), flank);
+    body.rotation.x = Math.PI / 2;
+    body.position.set(0, 0.078, -0.012);
+    g.add(body);
+
+    const hip = new THREE.Mesh(new THREE.SphereGeometry(0.052 * k, 7, 5), flank);
+    hip.position.set(0, 0.082, -0.070);
+    g.add(hip);
+    const shoulder = new THREE.Mesh(new THREE.SphereGeometry(0.040 * k, 7, 5), flank);
+    shoulder.position.set(0, 0.076, 0.050);
+    g.add(shoulder);
+
+    const tail = new THREE.Mesh(new THREE.ConeGeometry(0.036 * k, 0.150, 6), flank);
+    tail.rotation.x = -Math.PI / 2;
+    tail.position.set(0, 0.082, -0.150);
+    g.add(tail);
+
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.019 * k, 0.030 * k, 0.070, 6), flank);
+    neck.rotation.x = Math.PI * 0.36;
+    neck.position.set(0, 0.104, 0.078);
+    g.add(neck);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.026 * k, 7, 5), belly);
+    head.position.set(0, 0.128, 0.112);
+    g.add(head);
+
+    const bill = new THREE.Mesh(new THREE.BoxGeometry(0.026 * k, 0.016, 0.034), belly);
+    bill.position.set(0, 0.122, 0.138);
+    g.add(bill);
+
+    const crest = new THREE.Mesh(new THREE.ConeGeometry(0.020 * k, 0.046, 5), Shapes.m(D.crest));
+    crest.rotation.x = -Math.PI * 0.30;
+    crest.position.set(0, 0.152, 0.098);
+    g.add(crest);
+
+    for (const [x, z, r, h] of [[-0.026, 0.044, 0.011, 0.062], [0.026, 0.044, 0.011, 0.062],
+                                [-0.032, -0.062, 0.014, 0.070], [0.032, -0.062, 0.014, 0.070]]) {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(r * k, r * k * 1.15, h, 5), belly);
+      leg.position.set(x, h / 2, z);
+      g.add(leg);
+    }
+    return Shapes.mergeGroup(g);
+  },
+
   citizenGeo(rung) {
-    const D = Shapes.citizenDress(rung || 4);
+
+    const D = Shapes.citizenDress(rung === undefined || rung === null ? 4 : rung);
+
+    if (D.beast) return Shapes.beastGeo(D);
     const k = D.bulk || 1;
     const g = new THREE.Group();
 
@@ -2553,7 +2607,7 @@ const Shapes = {
   },
 
   LEDGER_SKINS: { 1: 'boneTally', 4: 'clayTablet', 7: 'clayTablet', 8: 'boneTally',
-                  10: 'clayTablet', 11: 'clayTablet', 12: 'clayTablet' },
+                  10: 'clayTablet', 11: 'clayTablet', 12: 'clayTablet', 13: 'clayTablet' },
 
   ledgerSkin(era) {
     const keys = Object.keys(Shapes.LEDGER_SKINS).map(Number).sort((a, b) => a - b);

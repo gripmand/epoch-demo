@@ -127,6 +127,8 @@ const Econ = {
     C.tallyTick = {};
 
     C.tickExport = 0; C.tickDole = 0; C.tickDues = 0; C.monBoost = 0; C.tickMonBonus = 0;
+
+    C.tickAnnona = 0;
     C.grainDraw = { mill: 0, brewery: 0, oxen: 0, dole: 0 };
 
     const byPlaced = s.buildings.slice()
@@ -303,6 +305,19 @@ const Econ = {
         s.stock.sennit -= need;
         Econ.note('sennit', 0, need);
         C.lashAdd = TUNE.LASH.add;
+      }
+    }
+
+    const wasFleet = !!C.fleetLift;
+    C.fleetLift = 0;
+    if (s.policyFleet && Econ.annonaActive(s)) {
+      const landed = (C.annona ? C.annona.got : 0) * Econ.M;
+      const need = TUNE.FLEET.perLanded * landed;
+      const on = wasFleet ? (s.stock.velum >= need) : (s.stock.velum >= need * 3);
+      if (need > 0 && on) {
+        s.stock.velum -= need;
+        Econ.note('velum', 0, need);
+        C.fleetLift = TUNE.FLEET.lift;
       }
     }
 
@@ -634,6 +649,8 @@ const Econ = {
         }
       }
     }
+
+    shortfall -= Econ.annonaBuy(s, shortfall, s.money - upkeep, offline);
     const eaten = demand - shortfall;
     const fed = (offline || demand <= 0) ? 1 : eaten / demand;
 
@@ -775,6 +792,8 @@ const Econ = {
     const monDrawn = Econ.buildMonuments(s, offline);
 
     income += C.tickExport;
+
+    upkeep += C.tickAnnona;
 
     if (C.monBoost) {
       C.tickMonBonus = income * C.monBoost;
@@ -1187,6 +1206,8 @@ const Econ = {
 
     else if ((s.chill || 0) >= TUNE.COLD.stopGrowth) why = 'cold';
     else if (blocked === houses.length) why = 'blocked';
+
+    else if (open <= 0 && !(Econ.foodRate() > 0)) why = 'nofood';
     else if (open <= 0) why = 'full';
 
     else if (Econ.passageLeft(s) < 1) why = 'nopassage';
@@ -1344,8 +1365,9 @@ const Econ = {
 
   monumentRate(s, k) {
     const base = MONUMENT_RATE[k] || 6;
-    if (!Econ.gridActive(s)) return base;
-    return base * (TUNE.GRID.monBase + TUNE.GRID.monPerFrac * (G.cache.gridFrac || 0));
+    const gift = Math.pow(1 + TUNE.GIFT_ARENA_STEP, ((s && s.giftArena) | 0));
+    if (!Econ.gridActive(s)) return base * gift;
+    return base * gift * (TUNE.GRID.monBase + TUNE.GRID.monPerFrac * (G.cache.gridFrac || 0));
   },
 
   monumentReserve(s) {
@@ -1397,6 +1419,7 @@ const Econ = {
           if (b.beerWages) {
             const capLeft = need.money * 0.5 - (b.beerWageCredit || 0);
             if (capLeft > 0 && (s.stock.beer || 0) > 0) {
+
               const beerTake = Math.min(s.stock.beer, (MONUMENT_RATE.beer || 2) * Econ.M,
                 capLeft / 8, want / 8);
               if (beerTake > 0) {
@@ -1515,6 +1538,8 @@ const Econ = {
     11: (s) => Econ.censusState(s).frac >= TUNE.CENSUS.gateFrac,
 
     12: (s, base) => (s.cum.passage || 0) - (base.passage || 0) >= TUNE.PASSAGE.gateLanded,
+
+    13: (s) => Econ.annonaState(s).premium <= TUNE.ANNONA.gatePremium,
     2: (s, base) => (s.cum.tributePaid || 0) - (base.tributePaid || 0) >= TUNE.TRIBUTE.gate,
 
     6: (s) => (G.cache.gridFrac || 0) >= TUNE.GRID.gateFrac,
@@ -1534,6 +1559,23 @@ const Econ = {
   eraExtraGate(s) {
     const f = Econ.ERA_EXTRA_GATE[rungOf(s.era)];
     return f ? f(s, s.eraBase || {}) : true;
+  },
+
+  ERA_EXTRA_LABEL: {
+    2:  'The quota is paid',
+    6:  'Most of the town is planned',
+    7:  'The magazines administer the roll',
+    8:  'The fans are fed',
+    9:  'Crossings made to other islands',
+    10: 'The table is laid',
+    11: 'The register is current',
+    12: 'Berths landed for arrivals',
+    13: 'The grain bill is under control',
+  },
+  eraExtraLabel(s) {
+    const r = rungOf(s.era);
+    if (!Econ.ERA_EXTRA_GATE[r]) return null;
+    return Econ.ERA_EXTRA_LABEL[r] || 'This age’s own condition';
   },
 
   monumentFor(era) {
@@ -2487,6 +2529,81 @@ const Econ = {
       'or a FIG ORCHARD: neither needs water, a road or anything off a quay.', 12000);
   },
 
+  annonaActive(s) { return rungOf(s.era) === 13; },
+
+  annonaCapacity(s) {
+    let cap = TUNE.ANNONA.base;
+    if (!Econ.annonaActive(s)) return cap;
+
+    const lift = 1 + ((G.cache && G.cache.fleetLift) || 0);
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d || !d.annonaCap || b.done === false || b.mothballed || b.block) continue;
+      if (d.needsRoad && !b.conn) continue;
+      if (d.workers && !b.staff) continue;
+
+      cap += d.annonaCap * rankOutMult(b) * lift;
+    }
+    return cap;
+  },
+
+  annonaPremium(need, cap) {
+    const A = TUNE.ANNONA;
+    if (!(need > 0) || !(cap > 0)) return 1;
+    if (need <= cap) return 1;
+    return Math.min(A.maxPremium, Math.pow(need / cap, A.bite));
+  },
+
+  annonaBuy(s, need, purse, offline) {
+    const C = G.cache;
+    C.annona = null;
+    if (!Econ.annonaActive(s)) return 0;
+    const A = TUNE.ANNONA;
+    const capMin = Econ.annonaCapacity(s);
+    const cap = capMin * Econ.M;
+    const premium = Econ.annonaPremium(need, cap);
+    const per = A.price * premium;
+
+    const got = per > 0 ? Math.min(need, Math.max(0, purse) / per) : 0;
+    const bill = got * per;
+    C.tickAnnona = (C.tickAnnona || 0) + bill;
+
+    const perMin = Econ.M > 0 ? 1 / Econ.M : 0;
+    C.annona = {
+      need: need * perMin, got: got * perMin, short: (need - got) * perMin,
+      cap: capMin, premium, bill: bill * perMin, purse: Math.max(0, purse),
+    };
+    if (!offline) {
+
+      if (premium < A.rearmAt) C.annonaTold = 0;
+      else if (premium >= A.warnAt && !C.annonaTold) {
+        C.annonaTold = 1;
+        UI.toast('\u{1F33E} THE ANNONA IS COSTING ×' + premium.toFixed(1) +
+          '. This city outgrew its landings — it is buying ' + (need * perMin).toFixed(1) +
+          ' a minute against works that land ' + capMin.toFixed(1) +
+          ', and the whole shipment reprices, not just the excess. Two answers, and ' +
+          'both are builds: land more (a STATIO ANNONAE), or grow more (a ' +
+          'CENTURIATED FIELD). Buying will not open the gate — only what you grow ' +
+          'counts toward it.', 13000);
+      }
+    }
+    return got;
+  },
+
+  annonaState(s) {
+    const a = G.cache.annona;
+    const cap = Econ.annonaCapacity(s);
+    if (!a) {
+      return { on: Econ.annonaActive(s), need: 0, got: 0, short: 0, cap,
+               premium: 1, bill: 0, secs: Infinity, warn: false, bad: false };
+    }
+    const perSec = a.bill * TUNE.TEMPO / 60;
+    const secs = perSec > 0 ? Math.max(0, s.money) / perSec : Infinity;
+    return { on: true, need: a.need, got: a.got, short: a.short, cap: a.cap,
+             premium: a.premium, bill: a.bill, secs: secs,
+             warn: a.premium >= TUNE.ANNONA.warnAt, bad: a.short > 0.001 };
+  },
+
   censusActive(s) { return rungOf(s.era) === 11; },
 
   counted(s, b) {
@@ -2914,8 +3031,19 @@ const Econ = {
     };
   },
 
-  HERD_NAMES: { mammoth: 'woolly mammoth', bison: 'steppe bison', rhino: 'woolly rhinoceros', sabertooth: 'sabertooth' },
-  HERD_ICON: { mammoth: '\u{1F9A3}', bison: '\u{1F9AC}', rhino: '\u{1F98F}', sabertooth: '\u{1F405}' },
+  HERD_NAMES: { mammoth: 'woolly mammoth', bison: 'steppe bison', rhino: 'woolly rhinoceros', sabertooth: 'sabertooth',
+                titanosaur: 'titanosaur', hadrosaur: 'crested hadrosaur', ceratopsian: 'horned ceratopsian', raptor: 'raptor' },
+  HERD_ICON: { mammoth: '\u{1F9A3}', bison: '\u{1F9AC}', rhino: '\u{1F98F}', sabertooth: '\u{1F405}',
+               titanosaur: '\u{1F995}', hadrosaur: '\u{1F995}', ceratopsian: '\u{1F996}', raptor: '\u{1F996}' },
+
+  herdsFor(era) {
+    const rung = rungOf(era);
+    const keys = Object.keys(TUNE.ERA_HERDS).map(Number).sort((a, b) => a - b);
+    let pick = null;
+    for (const k of keys) if (k <= rung) pick = TUNE.ERA_HERDS[k];
+    return pick;
+  },
+  herdsActive(s) { return !!(s && Econ.herdsFor(s.era)); },
 
   herdSpot(rnd, ring) {
     const C = TUNE.WORLD / 2;
@@ -2927,15 +3055,18 @@ const Econ = {
   },
 
   seedHerds(s) {
+    const H = Econ.herdsFor(s.era);
+    if (!H) return [];
     const rnd = Util.mulberry32((s.seed ^ 0x5EED) >>> 0);
     const herds = [];
     let id = 1;
 
-    const ring = TUNE.HERDS.seedRing || [28, 100];
-    for (const kind in TUNE.HERDS.counts) {
-      for (let i = 0; i < TUNE.HERDS.counts[kind]; i++) {
+    const ring = H.seedRing || [28, 100];
 
-        const p = Econ.herdSpot(rnd, i === 0 ? [30, 48] : ring);
+    const near = H.nearRing || [30, 48];
+    for (const kind in H.counts) {
+      for (let i = 0; i < H.counts[kind]; i++) {
+        const p = Econ.herdSpot(rnd, i === 0 ? near : ring);
         herds.push({ id: id++, kind, x: p.x, y: p.y, heading: rnd() * Math.PI * 2, turn: 0 });
       }
     }
@@ -2943,15 +3074,16 @@ const Econ = {
   },
 
   topUpHerds(s) {
-    if (!Econ.hearthActive(s) || !s.herds) return 0;
+    const H = Econ.herdsFor(s.era);
+    if (!H || !s.herds) return 0;
     const rnd = Util.mulberry32((s.seed ^ 0xA11E) >>> 0);
-    const ring = TUNE.HERDS.returnRing || [45, 85];
+    const ring = H.returnRing || [45, 85];
     let id = 1, added = 0;
     for (const h of s.herds) if (h.id >= id) id = h.id + 1;
-    for (const kind in TUNE.HERDS.counts) {
+    for (const kind in H.counts) {
       let have = 0;
       for (const h of s.herds) if (h.kind === kind) have++;
-      for (let i = have; i < (TUNE.HERDS.counts[kind] | 0); i++) {
+      for (let i = have; i < (H.counts[kind] | 0); i++) {
         const p = Econ.herdSpot(rnd, ring);
         s.herds.push({ id: id++, kind, x: p.x, y: p.y, heading: rnd() * Math.PI * 2, turn: 0 });
         added++;
@@ -2960,31 +3092,31 @@ const Econ = {
     return added;
   },
 
-  herdReturns(s) {
-    const R = TUNE.HERDS.returnEvery;
+  herdReturns(s, H) {
+    const R = H.returnEvery;
     if (!R) return;
     const W = TUNE.WORLD;
     let kindIdx = 0;
-    for (const kind in TUNE.HERDS.counts) {
+    for (const kind in H.counts) {
       const every = R[kind] | 0;
       kindIdx++;
       if (every <= 0) continue;
 
       if ((s.tick + kindIdx * 37) % every !== 0) continue;
-      const cap = TUNE.HERDS.counts[kind] | 0;
+      const cap = H.counts[kind] | 0;
       let have = 0;
       for (const h of s.herds) if (h.kind === kind) have++;
       if (have >= cap) continue;
 
       const rnd = Util.mulberry32((s.seed ^ (s.tick * 2654435761) ^ (kindIdx * 0x9E37)) >>> 0);
 
-      const p = Econ.herdSpot(rnd, TUNE.HERDS.returnRing || [45, 85]);
+      const p = Econ.herdSpot(rnd, H.returnRing || [45, 85]);
       const x = p.x, y = p.y;
       let id = 1;
       for (const h of s.herds) if (h.id >= id) id = h.id + 1;
       s.herds.push({ id, kind, x, y, heading: rnd() * Math.PI * 2, turn: 0 });
 
-      if (kind === 'mammoth' || kind === 'rhino') {
+      if (H.announce && H.announce[kind]) {
         Econ.log(s, Econ.HERD_ICON[kind] || '\u{1F43E}',
           'A ' + Econ.HERD_NAMES[kind] + ' has come onto the range from the far country.');
       }
@@ -2992,7 +3124,9 @@ const Econ = {
   },
 
   herdTick(s, offline) {
-    if (!Econ.hearthActive(s)) return;
+
+    const H = Econ.herdsFor(s.era);
+    if (!H) return;
     if (!s.herds) s.herds = Econ.seedHerds(s);
     if (offline) return;
     const W = TUNE.WORLD, C = W / 2;
@@ -3003,9 +3137,9 @@ const Econ = {
       h.turn = (h.turn || 0) * 0.92 + (rnd() - 0.5) * 0.016;
       if (h.turn > 0.05) h.turn = 0.05; else if (h.turn < -0.05) h.turn = -0.05;
       h.heading += h.turn;
-      const sp = TUNE.HERDS.speed[h.kind] || 0.1;
+      const sp = H.speed[h.kind] || 0.1;
       const nx = h.x + Math.cos(h.heading) * sp, ny = h.y + Math.sin(h.heading) * sp;
-      if (Math.hypot(nx - C, ny - C) < TUNE.HERDS.standoff ||
+      if (Math.hypot(nx - C, ny - C) < H.standoff ||
           nx < 12 || ny < 14 || nx > W - 12 || ny > W - 12 ||
           G.cache.terrain[Grid.key(Math.round(nx), Math.round(ny))] === TERRAIN.MOUNTAIN) {
         h.heading += Math.PI * (0.6 + rnd() * 0.8);
@@ -3014,7 +3148,7 @@ const Econ = {
       }
       h.x = nx; h.y = ny;
     }
-    Econ.herdReturns(s);
+    Econ.herdReturns(s, H);
 
     for (const b of s.buildings) {
       if (!DEF(b.type).huntBase || b.done === false) continue;
@@ -3482,7 +3616,10 @@ const Econ = {
 
                 'passage',
 
-                'natron', 'glass', 'pergamena', 'epistyle'],
+                'natron', 'glass', 'pergamena', 'epistyle',
+
+                'sigillata', 'marmor', 'pozzolana', 'concrete',
+                'galena', 'plumbum', 'linum', 'velum'],
 
   capOf(s, kind) {
 

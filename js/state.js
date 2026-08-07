@@ -49,6 +49,8 @@ const Game = {
 
       giftBeacon: 0,
 
+      giftArena: 0,
+
       stock: Game.startStock(granted, era),
 
       cum: { flour: 0, food: 0, stone: 0, earned: 0, tributePaid: 0, landfalls: 0, passage: 0 },
@@ -99,6 +101,8 @@ const Game = {
 
       policyProfessio: false,
       policyAteleia: false,
+
+      policyFleet: false,
 
       census: { at: 0, taken: 1 },
       season: null,
@@ -324,6 +328,7 @@ const Game = {
       giftTable: s.giftTable | 0,
       giftExport: s.giftExport | 0,
       giftBeacon: s.giftBeacon | 0,
+      giftArena: s.giftArena | 0,
 
       tribute: s.tribute ? { bank: +s.tribute.bank || 0, count: s.tribute.count | 0,
                              missed: s.tribute.missed | 0,
@@ -344,6 +349,7 @@ const Game = {
       policyLash: !!s.policyLash,
       policyPublicTable: !!s.policyPublicTable,
       policyAteleia: !!s.policyAteleia,
+      policyFleet: !!s.policyFleet,
       policyProfessio: !!s.policyProfessio,
 
       census: { at: (s.census && s.census.at) | 0, taken: (s.census && s.census.taken) ? 1 : 0 },
@@ -589,6 +595,14 @@ const Game = {
     return rep;
   },
 
+  _loadHerds(d) {
+    if (!Array.isArray(d.herds)) return null;
+    const H = Econ.herdsFor(d.era);
+    if (!H) return null;
+    return d.herds.filter(h => h && h.kind && H.counts[h.kind] !== undefined)
+      .map(h => ({ id: h.id | 0, kind: h.kind, x: +h.x || 0, y: +h.y || 0, heading: +h.heading || 0 }));
+  },
+
   load() {
     const raw = Game.rawSave();
     if (!raw) return false;
@@ -613,7 +627,8 @@ const Game = {
 
     const s = {
       version: 1, seed: d.seed >>> 0, tick: d.tick | 0, money: +d.money || 0,
-      era: Util.clamp(d.era | 0 || 1, 1, MAX_ERA),
+
+      era: d.era == null ? rungOf(START_ERA) : Util.clamp(d.era | 0, 0, MAX_ERA),
       hallLevel: Util.clamp(d.hallLevel | 0 || 1, 1, MAX_ERA),
       realRent: +d.realRent || 0,
 
@@ -677,6 +692,7 @@ const Game = {
       giftTable: d.giftTable | 0,
       giftExport: d.giftExport | 0,
       giftBeacon: d.giftBeacon | 0,
+      giftArena: d.giftArena | 0,
 
       tribute: (d.tribute && typeof d.tribute === 'object')
         ? { bank: Math.max(0, +d.tribute.bank || 0), count: Math.max(0, d.tribute.count | 0),
@@ -702,6 +718,7 @@ const Game = {
       policyLash: !!d.policyLash,
       policyPublicTable: !!d.policyPublicTable,
       policyAteleia: !!d.policyAteleia,
+      policyFleet: !!d.policyFleet,
       policyProfessio: !!d.policyProfessio,
 
       census: d.census
@@ -711,8 +728,8 @@ const Game = {
 
       silt: Util.clamp(+d.silt || 0, 0, 1),
       woodSpent: d.woodSpent || {},
-      herds: Array.isArray(d.herds) ? d.herds.filter(h => h && h.kind && TUNE.HERDS.counts[h.kind] !== undefined)
-        .map(h => ({ id: h.id | 0, kind: h.kind, x: +h.x || 0, y: +h.y || 0, heading: +h.heading || 0 })) : null,
+
+      herds: Game._loadHerds(d),
 
       legacyHunt: (d.hunt && typeof d.hunt === 'object' && d.hunt.kind)
         ? { herdId: d.hunt.herdId | 0, kind: d.hunt.kind, party: d.hunt.party | 0,

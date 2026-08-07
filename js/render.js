@@ -33,6 +33,17 @@ const Rend = {
 
   ERA_GROUND: {
 
+    0: {
+      base:     { color: 0x86885a, tex: 'silt' },
+      fertile:  { color: 0x5f7a3e, tex: 'field' },
+      salt:     { color: 0x6b6559, tex: 'salt' },
+      saltRidge: 0x847d70,
+      rock:     { color: 0x9c9384, tex: 'rock' },
+      cliff:    0x7a7160,
+      bed:      0x7fbfb4,
+      grain: 0.15, macro: 0.24,
+    },
+
     1: {
       base:     { color: 0xcfd3d6, tex: 'silt' },
       fertile:  { color: 0xb8bfb2, tex: 'field' },
@@ -107,6 +118,16 @@ const Rend = {
       grain: 0.13, macro: 0.15,
     },
 
+    13: {
+      base:     { color: 0xb5a279, tex: 'silt' },
+      fertile:  { color: 0x7f9445, tex: 'field' },
+      salt:     { color: 0xded0b8, tex: 'salt' },
+      saltRidge: 0xebe0cc,
+      rock:     { color: 0xd8cdb4, tex: 'rock' },
+      cliff:    0x7e7460,
+      bed:      0x6d7a4a,
+      grain: 0.12, macro: 0.16,
+    },
     12: {
       base:     { color: 0xd2c49e, tex: 'silt' },
       fertile:  { color: 0x6f8a3c, tex: 'field' },
@@ -1189,6 +1210,22 @@ const Rend = {
     return bad;
   },
 
+  auditHerdKinds() {
+    const src = Rend.buildAnimal.toString();
+    const noStyle = [], noBranch = [];
+    for (const rung of Object.keys(TUNE.ERA_HERDS).map(Number).sort((a, b) => a - b)) {
+      const H = TUNE.ERA_HERDS[rung];
+      if (!H) continue;
+      for (const kind in H.counts) {
+        if (!Rend.HERD_STYLE[kind]) noStyle.push(rung + ':' + kind);
+
+        if (kind !== 'sabertooth' && src.indexOf("kind === '" + kind + "'") < 0)
+          noBranch.push(rung + ':' + kind);
+      }
+    }
+    return { noStyle, noBranch };
+  },
+
   scatterFor(era) {
     const keys = Object.keys(Rend.ERA_SCATTER).map(Number).sort((a, b) => a - b);
     let pick = keys[0];
@@ -1955,6 +1992,12 @@ const Rend = {
     bison:      { color: 0x6b4a2c, shag: 0x2f2118, pale: 0xb59a6d, size: 0.95 },
     rhino:      { color: 0x8f8a76, shag: 0x5c584a, pale: 0xc2bda4, size: 1.15 },
     sabertooth: { color: 0xd0983f, shag: 0x8a5f24, pale: 0xf0e2c0, size: 1.0 },
+
+    titanosaur:  { color: 0x6f7a5e, shag: 0x414b39, pale: 0xa9b08c, mark: 0x3d4633, size: 1.60 },
+    hadrosaur:   { color: 0x9a8b45, shag: 0x5d5327, pale: 0xd6c98a, mark: 0xd0533a, size: 1.15 },
+    ceratopsian: { color: 0x7d5a46, shag: 0x4b372b, pale: 0xc0a186, mark: 0xdca93a, size: 1.05 },
+
+    raptor:      { color: 0x3f6f74, shag: 0x24474b, pale: 0xd9cba6, mark: 0xe0663a, size: 0.62 },
   },
 
   loft(spine, ring) {
@@ -2003,6 +2046,8 @@ const Rend = {
 
     const skin = Gfx.mat(0xffffff, { vertexColors: true, cache: false });
     const coat = Gfx.mat(st.color), shag = Gfx.mat(st.shag), pale = Gfx.mat(st.pale);
+
+    const mark = Gfx.mat(st.mark === undefined ? st.pale : st.mark);
     const ivory = Gfx.mat(0xe6d7b6), horn = Gfx.mat(0x6b5f52), eyeM = Gfx.mat(0x120e0b);
 
     const body = spine => {
@@ -2202,6 +2247,152 @@ const Rend = {
       leg(s * 0.37, s * 0.58, s * 0.76, s * 0.39, s * 0.37, s * 0.205, Math.PI, 0.26, -0.10);
       leg(-s * 0.34, -s * 0.88, s * 0.66, s * 0.34, s * 0.32, s * 0.190, Math.PI * 1.05, 0.24, 0.13);
       leg(s * 0.34, -s * 0.88, s * 0.66, s * 0.34, s * 0.32, s * 0.190, 0.05, 0.24, 0.13);
+    } else if (kind === 'titanosaur') {
+
+      body([
+        { z: 1.12, y: 1.60, w: 0.30, up: 0.24, dn: 0.34, c: st.color, cb: st.pale },
+        { z: 0.74, y: 1.66, w: 0.46, up: 0.34, dn: 0.54, c: st.color, cb: st.pale },
+        { z: 0.26, y: 1.68, w: 0.53, up: 0.38, dn: 0.62, c: st.color, cb: st.pale },
+        { z: -0.26, y: 1.68, w: 0.55, up: 0.36, dn: 0.62, c: st.color, cb: st.pale },
+        { z: -0.70, y: 1.64, w: 0.49, up: 0.32, dn: 0.54, c: st.color, cb: st.pale },
+        { z: -1.06, y: 1.60, w: 0.35, up: 0.25, dn: 0.38, c: st.color, cb: st.pale },
+      ]);
+      body([
+        { z: 1.06, y: 1.60, w: 0.29, up: 0.23, dn: 0.30, c: st.color },
+        { z: 1.52, y: 1.86, w: 0.22, up: 0.18, dn: 0.22, c: st.color },
+        { z: 1.96, y: 2.14, w: 0.18, up: 0.15, dn: 0.18, c: st.color },
+        { z: 2.36, y: 2.40, w: 0.15, up: 0.13, dn: 0.15, c: st.color },
+        { z: 2.68, y: 2.58, w: 0.13, up: 0.11, dn: 0.13, c: st.color },
+        { z: 2.88, y: 2.62, w: 0.16, up: 0.14, dn: 0.15, c: st.pale },
+        { z: 3.02, y: 2.58, w: 0.10, up: 0.08, dn: 0.09, c: st.pale },
+      ]);
+      body([
+        { z: -1.02, y: 1.60, w: 0.34, up: 0.25, dn: 0.36, c: st.color, cb: st.pale },
+        { z: -1.58, y: 1.62, w: 0.25, up: 0.19, dn: 0.24, c: st.color },
+        { z: -2.14, y: 1.66, w: 0.17, up: 0.13, dn: 0.16, c: st.color },
+        { z: -2.66, y: 1.70, w: 0.10, up: 0.08, dn: 0.09, c: st.shag },
+        { z: -3.06, y: 1.72, w: 0.05, up: 0.04, dn: 0.05, c: st.shag },
+      ]);
+      body([
+
+        { z: 0.60, y: 2.02, w: 0.07, up: 0.05, dn: 0.30, c: st.mark },
+        { z: 0.10, y: 2.08, w: 0.09, up: 0.06, dn: 0.34, c: st.mark },
+        { z: -0.46, y: 2.02, w: 0.08, up: 0.05, dn: 0.32, c: st.mark },
+        { z: -0.96, y: 1.92, w: 0.06, up: 0.04, dn: 0.28, c: st.mark },
+      ]);
+      eyes(s * 2.62, s * 2.90, s * 0.13, s * 0.045);
+
+      leg(-s * 0.34, s * 0.62, s * 1.22, s * 0.62, s * 0.60, s * 0.175, 0, 0.18, -0.05);
+      leg(s * 0.34, s * 0.62, s * 1.22, s * 0.62, s * 0.60, s * 0.175, Math.PI, 0.18, -0.05);
+      leg(-s * 0.36, -s * 0.66, s * 1.20, s * 0.60, s * 0.60, s * 0.195, Math.PI * 1.05, 0.18, 0.06);
+      leg(s * 0.36, -s * 0.66, s * 1.20, s * 0.60, s * 0.60, s * 0.195, 0.05, 0.18, 0.06);
+    } else if (kind === 'hadrosaur') {
+
+      body([
+        { z: 1.05, y: 1.10, w: 0.26, up: 0.22, dn: 0.26, c: st.color, cb: st.pale },
+        { z: 0.68, y: 1.16, w: 0.40, up: 0.32, dn: 0.44, c: st.color, cb: st.pale },
+        { z: 0.22, y: 1.22, w: 0.46, up: 0.38, dn: 0.52, c: st.color, cb: st.pale },
+        { z: -0.24, y: 1.24, w: 0.48, up: 0.40, dn: 0.52, c: st.color, cb: st.pale },
+        { z: -0.64, y: 1.22, w: 0.44, up: 0.34, dn: 0.46, c: st.color, cb: st.pale },
+        { z: -0.98, y: 1.16, w: 0.32, up: 0.26, dn: 0.34, c: st.color, cb: st.pale },
+      ]);
+      body([
+        { z: -0.94, y: 1.16, w: 0.30, up: 0.28, dn: 0.36, c: st.color, cb: st.pale },
+        { z: -1.42, y: 1.20, w: 0.20, up: 0.34, dn: 0.36, c: st.color },
+        { z: -1.86, y: 1.26, w: 0.13, up: 0.30, dn: 0.28, c: st.color },
+        { z: -2.20, y: 1.32, w: 0.08, up: 0.20, dn: 0.18, c: st.shag },
+        { z: -2.40, y: 1.36, w: 0.04, up: 0.10, dn: 0.09, c: st.shag },
+      ]);
+      body([
+        { z: 1.00, y: 1.10, w: 0.24, up: 0.20, dn: 0.24, c: st.color },
+        { z: 1.32, y: 0.98, w: 0.22, up: 0.18, dn: 0.22, c: st.color },
+        { z: 1.62, y: 0.86, w: 0.22, up: 0.19, dn: 0.21, c: st.color },
+        { z: 1.86, y: 0.78, w: 0.19, up: 0.16, dn: 0.18, c: st.pale },
+        { z: 2.06, y: 0.74, w: 0.21, up: 0.13, dn: 0.15, c: st.pale },
+        { z: 2.18, y: 0.73, w: 0.15, up: 0.09, dn: 0.10, c: st.pale },
+      ]);
+
+      chain({ y: s * 0.92, z: s * 1.58, pitch: -0.55, bend: -0.08, len: s * 0.30,
+              r: s * 0.075, n: 4, mat: mark, taper: 0.90, shrink: 0.95 });
+      eyes(s * 0.92, s * 1.72, s * 0.17, s * 0.042);
+
+      leg(-s * 0.24, s * 0.56, s * 0.66, s * 0.34, s * 0.32, s * 0.105, 0, 0.30, -0.12);
+      leg(s * 0.24, s * 0.56, s * 0.66, s * 0.34, s * 0.32, s * 0.105, Math.PI, 0.30, -0.12);
+      leg(-s * 0.28, -s * 0.60, s * 0.90, s * 0.46, s * 0.44, s * 0.150, Math.PI * 1.05, 0.28, 0.16);
+      leg(s * 0.28, -s * 0.60, s * 0.90, s * 0.46, s * 0.44, s * 0.150, 0.05, 0.28, 0.16);
+    } else if (kind === 'ceratopsian') {
+
+      body([
+        { z: 0.72, y: 1.08, w: 0.34, up: 0.30, dn: 0.34, c: st.color, cb: st.pale },
+        { z: 0.36, y: 1.14, w: 0.46, up: 0.38, dn: 0.46, c: st.color, cb: st.pale },
+        { z: -0.06, y: 1.12, w: 0.48, up: 0.34, dn: 0.44, c: st.color, cb: st.pale },
+        { z: -0.48, y: 1.08, w: 0.46, up: 0.30, dn: 0.40, c: st.color, cb: st.pale },
+        { z: -0.84, y: 1.04, w: 0.32, up: 0.24, dn: 0.30, c: st.color, cb: st.pale },
+        { z: -1.10, y: 1.04, w: 0.18, up: 0.14, dn: 0.16, c: st.shag },
+        { z: -1.32, y: 1.06, w: 0.08, up: 0.06, dn: 0.07, c: st.shag },
+      ]);
+      body([
+        { z: 0.72, y: 1.10, w: 0.30, up: 0.26, dn: 0.28, c: st.color },
+        { z: 0.98, y: 1.08, w: 0.34, up: 0.30, dn: 0.30, c: st.color },
+        { z: 1.28, y: 1.00, w: 0.30, up: 0.26, dn: 0.28, c: st.color },
+        { z: 1.56, y: 0.90, w: 0.22, up: 0.19, dn: 0.22, c: st.pale },
+        { z: 1.72, y: 0.84, w: 0.15, up: 0.13, dn: 0.16, c: st.pale },
+      ]);
+
+      const frill = M(new THREE.SphereGeometry(s * 0.50, 9, 7), mark,
+                      0, s * 1.26, s * 0.86, -0.45, 0, 0);
+      frill.scale.set(1.10, 0.98, 0.16);
+      const rim = M(new THREE.TorusGeometry(s * 0.50, s * 0.045, 5, 12), Gfx.mat(st.shag),
+                    0, s * 1.26, s * 0.86, -0.45, 0, 0);
+      rim.scale.set(1.10, 0.98, 1);
+
+      chain({ y: s * 0.92, z: s * 1.60, pitch: 0.25, bend: -0.16, len: s * 0.17,
+              r: s * 0.075, n: 3, mat: ivory, taper: 0.80 });
+      for (const sx of [-1, 1])
+        chain({ x: sx * s * 0.19, y: s * 1.24, z: s * 1.20, pitch: 0.95, roll: -sx * 0.18,
+                bend: -0.14, len: s * 0.26, r: s * 0.058, n: 3, mat: ivory, taper: 0.82 });
+      eyes(s * 1.06, s * 1.42, s * 0.20, s * 0.04);
+      leg(-s * 0.28, s * 0.40, s * 0.66, s * 0.34, s * 0.32, s * 0.115, 0, 0.30, -0.12);
+      leg(s * 0.28, s * 0.40, s * 0.66, s * 0.34, s * 0.32, s * 0.115, Math.PI, 0.30, -0.12);
+      leg(-s * 0.26, -s * 0.48, s * 0.70, s * 0.36, s * 0.34, s * 0.120, Math.PI * 1.05, 0.28, 0.14);
+      leg(s * 0.26, -s * 0.48, s * 0.70, s * 0.36, s * 0.34, s * 0.120, 0.05, 0.28, 0.14);
+    } else if (kind === 'raptor') {
+
+      body([
+        { z: 0.52, y: 1.16, w: 0.15, up: 0.14, dn: 0.16, c: st.color, cb: st.pale },
+        { z: 0.24, y: 1.20, w: 0.21, up: 0.19, dn: 0.24, c: st.color, cb: st.pale },
+        { z: -0.10, y: 1.20, w: 0.22, up: 0.18, dn: 0.24, c: st.color, cb: st.pale },
+        { z: -0.42, y: 1.16, w: 0.20, up: 0.15, dn: 0.20, c: st.color, cb: st.pale },
+        { z: -0.66, y: 1.14, w: 0.14, up: 0.11, dn: 0.14, c: st.color, cb: st.pale },
+      ]);
+      body([
+
+        { z: -0.62, y: 1.14, w: 0.13, up: 0.11, dn: 0.13, c: st.color },
+        { z: -1.06, y: 1.16, w: 0.09, up: 0.08, dn: 0.09, c: st.color },
+        { z: -1.50, y: 1.18, w: 0.06, up: 0.05, dn: 0.06, c: st.shag },
+        { z: -1.86, y: 1.20, w: 0.03, up: 0.03, dn: 0.03, c: st.shag },
+      ]);
+      body([
+        { z: 0.50, y: 1.18, w: 0.13, up: 0.12, dn: 0.13, c: st.color },
+        { z: 0.68, y: 1.30, w: 0.10, up: 0.09, dn: 0.10, c: st.color },
+        { z: 0.84, y: 1.40, w: 0.09, up: 0.08, dn: 0.09, c: st.color },
+        { z: 1.00, y: 1.42, w: 0.11, up: 0.10, dn: 0.11, c: st.color },
+        { z: 1.16, y: 1.38, w: 0.09, up: 0.07, dn: 0.09, c: st.pale },
+        { z: 1.28, y: 1.34, w: 0.05, up: 0.04, dn: 0.05, c: st.pale },
+      ]);
+      body([
+
+        { z: 0.86, y: 1.50, w: 0.05, up: 0.03, dn: 0.14, c: st.mark },
+        { z: 1.02, y: 1.53, w: 0.06, up: 0.03, dn: 0.16, c: st.mark },
+        { z: 1.14, y: 1.47, w: 0.04, up: 0.02, dn: 0.12, c: st.mark },
+      ]);
+      for (const sx of [-1, 1])
+        chain({ x: sx * s * 0.16, y: s * 1.14, z: s * 0.28, pitch: 2.30, roll: -sx * 0.25,
+                bend: 0.35, len: s * 0.16, r: s * 0.030, n: 2, mat: coat, taper: 0.82 });
+      eyes(s * 1.44, s * 1.10, s * 0.09, s * 0.030);
+
+      leg(-s * 0.14, -s * 0.30, s * 0.82, s * 0.42, s * 0.40, s * 0.062, 0, 0.55, 0.42);
+      leg(s * 0.14, -s * 0.30, s * 0.82, s * 0.42, s * 0.40, s * 0.062, Math.PI, 0.55, 0.42);
     } else {
 
       body([
@@ -2246,7 +2437,9 @@ const Rend = {
   syncHerds(s, time) {
     if (!Rend._herdObjs) Rend._herdObjs = new Map();
     const live = new Set();
-    const active = s && s.herds && Econ.hearthActive && Econ.hearthActive(s);
+
+    const H = (s && Econ.herdsFor) ? Econ.herdsFor(s.era) : null;
+    const active = s && s.herds && H;
 
     const dt = Math.min(0.1, Math.max(0.001, time - (Rend._herdT === undefined ? time : Rend._herdT)));
     Rend._herdT = time;
@@ -2265,7 +2458,7 @@ const Rend = {
           Rend._herdObjs.set(h.id, o);
         }
 
-        const sp = (TUNE.HERDS.speed[h.kind] || 0.1);
+        const sp = (H.speed[h.kind] || 0.1);
         if (o._hx !== h.x || o._hz !== h.y) { o._hx = h.x; o._hz = h.y; o._simT = time; }
         const el = Math.min(1.2, time - (o._simT === undefined ? time : o._simT));
         const tx = h.x + Math.cos(h.heading) * sp * el;

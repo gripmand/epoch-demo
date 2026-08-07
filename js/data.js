@@ -51,7 +51,10 @@ const TUNE = {
 
                  passage: 6,
 
-                 natron: 0, glass: 0, pergamena: 0, epistyle: 0 },
+                 natron: 0, glass: 0, pergamena: 0, epistyle: 0,
+
+                 sigillata: 0, marmor: 0, pozzolana: 0, concrete: 0,
+                 galena: 0, plumbum: 0, linum: 0, velum: 0 },
 
   FOUNDING_CREW: 10,
 
@@ -62,7 +65,9 @@ const TUNE = {
                  7: 'figorchard', 8: 'milletfield', 9: 'breadfruitgrove',
                  11: 'arvum',
 
-                 12: 'kleros', 14: 'milpa' },
+                 12: 'kleros',
+
+                 13: 'centuria', 14: 'milpa' },
 
   ERA_START_MONEY: {
     0: 1080, 1: 3000, 2: 3000, 3: 3000, 4: 3000, 5: 3000, 6: 3000, 7: 3000,
@@ -121,6 +126,9 @@ const TUNE = {
   SALSAMENTUM_CAP: 79, TEGULA_CAP: 159, SILEX_CAP: 106,
 
   NATRON_CAP: 122, GLASS_CAP: 91, PERGAMENA_CAP: 61, EPISTYLE_CAP: 122,
+
+  SIGILLATA_CAP: 105, MARMOR_CAP: 70, POZZOLANA_CAP: 175, CONCRETE_CAP: 140,
+  GALENA_CAP: 175, PLUMBUM_CAP: 87, LINUM_CAP: 140, VELUM_CAP: 87,
   PRICES: { grain: 0.5, flour: 2, stone: 1, blocks: 4,
             clay: 0.6, pottery: 4, wool: 1.2, cloth: 7, beer: 3,
             dates: 1.8, fish: 1.5, salt: 1.5, reeds: 0.35, baskets: 8.9,
@@ -152,7 +160,10 @@ const TUNE = {
             salsamentum: 22.31, tegula: 28.83, silex: 32.59,
 
             natron: 1.72, glass: 32.88, pergamena: 53.61, epistyle: 37.16,
-            passage: 0 },
+            passage: 0,
+
+            sigillata: 13, marmor: 85, pozzolana: 1.15, concrete: 10,
+            galena: 1.96, plumbum: 42, linum: 3.91, velum: 23 },
 
   NO_EXPORT: { water: 1, passage: 1 },
 
@@ -171,6 +182,8 @@ const TUNE = {
   GIFT_EXPORT_STEP: 0.10,
 
   GIFT_BEACON_STEP: 0.12,
+
+  GIFT_ARENA_STEP: 0.20,
   DEMOLISH_REFUND: 0.5,
   CLEAR_TREE: 15,
 
@@ -394,16 +407,36 @@ const TUNE = {
 
   FUEL_RESERVE_MIN: 2,
 
-  HERDS: {
-    counts: { mammoth: 8, bison: 22, rhino: 4, sabertooth: 5 },
-    speed: { mammoth: 0.09, bison: 0.13, rhino: 0.10, sabertooth: 0.17 },
-    standoff: 24,
+  ERA_HERDS: {
 
-    seedRing: [28, 100],
+    0: {
+      counts: { titanosaur: 5, hadrosaur: 12, ceratopsian: 7, raptor: 10 },
+      speed: { titanosaur: 0.05, hadrosaur: 0.11, ceratopsian: 0.08, raptor: 0.26 },
+      standoff: 20,
+      seedRing: [24, 92],
+      nearRing: [26, 44],
+      returnRing: [40, 80],
+      returnEvery: { titanosaur: 0, hadrosaur: 0, ceratopsian: 0, raptor: 0 },
+      announce: {},
+    },
 
-    returnRing: [45, 85],
+    1: {
+      counts: { mammoth: 8, bison: 22, rhino: 4, sabertooth: 5 },
+      speed: { mammoth: 0.09, bison: 0.13, rhino: 0.10, sabertooth: 0.17 },
+      standoff: 24,
 
-    returnEvery: { bison: 180, sabertooth: 900, rhino: 1500, mammoth: 3600 },
+      seedRing: [28, 100],
+
+      nearRing: [30, 48],
+
+      returnRing: [45, 85],
+
+      returnEvery: { bison: 180, sabertooth: 900, rhino: 1500, mammoth: 3600 },
+
+      announce: { mammoth: true, rhino: true },
+    },
+
+    2: null,
   },
   HUNT: {
     party: 6,
@@ -462,6 +495,8 @@ const TUNE = {
     11: { kind: 'grain', price: 4, who: 'A Sicilian corn factor sold the city', unit: 'modius' },
 
     12: { kind: 'grain', price: 4, who: 'A factor off an Alexandrian grain ship sold the city', unit: 'artaba' },
+
+    13: { kind: 'grain', price: 5, who: 'The African fleet broke bulk for the city', unit: 'modius' },
 
     0: { kind: 'flour', price: 8, who: 'A week grazing beyond the range brought back', unit: 'load' },
     1: { kind: 'pemmican', price: 8, who: 'A passing band traded the camp', unit: 'bundle' },
@@ -527,6 +562,11 @@ const TUNE = {
 
   PASSAGE: { per: 1, warnBeds: 6, gateLanded: 240 },
 
+  ANNONA: { price: 2.72, base: 0.9, bite: 1.35, maxPremium: 8.0,
+            warnAt: 1.8, rearmAt: 1.3, gatePremium: 1.8 },
+
+  FLEET: { lift: 0.60, perLanded: 0.05 },
+
   WATER_PER_RESIDENT: 0.09,
   WATER_PER_WORKER: 0.045,
 
@@ -547,7 +587,8 @@ const HOUSE_RUNG_REF = { 0: 'nestmound', 1: 'hidetent', 3: 'brushshelter', 4: 'h
                          5: 'villa', 6: 'brickhouse', 7: 'ashlarhouse',
                          8: 'courtyardcompound', 9: 'halepili', 10: 'oikos',
 
-                         11: 'casacolonica', 12: 'katoikia', 14: 'stonehouse' };
+                         11: 'casacolonica', 12: 'katoikia', 13: 'cenaculum',
+                         14: 'stonehouse' };
 function houseRungRefCost(era) {
   const rung = rungOf(era);
   const keys = Object.keys(HOUSE_RUNG_REF).map(Number).sort((a, b) => a - b);
@@ -588,7 +629,8 @@ const ERAS = [
 
   { n: 11, name: 'Roman Republic',     blurb: 'The city is governed by the last census it took. The uncounted still eat.' },
   { n: 12, name: 'Hellenistic',        blurb: 'A city at the far end of somebody else’s rope.' },
-  { n: 13, name: 'Roman Age',          blurb: 'Water flows downhill through an empire of law.' },
+
+  { n: 13, name: 'Roman Age',          blurb: 'A city too big for its fields, fed by an empire of law.' },
   { n: 14, name: 'Maya',               blurb: 'No rivers. You live on what you caught in the wet season.' },
   { n: 15, name: 'Late Roman',         blurb: 'The deficit is paid out of the buildings themselves.' },
   { n: 16, name: 'Byzantium',          blurb: 'The half that never fell. Price is what the state allows.' },
@@ -623,7 +665,7 @@ function eraInfo(era) {
   return r === 0 ? ERA_PROLOGUE : (ERAS[r - 1] || ERA_PROLOGUE);
 }
 
-const WRITTEN_RUNGS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14];
+const WRITTEN_RUNGS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
 
 const START_ERA = WRITTEN_RUNGS[0];
 function nextWrittenEra(era) {
@@ -798,6 +840,11 @@ const ERA_TERRA_LOCK = {
       'censors let no man fill it — the priests would not even let iron into the bridge over it',
   },
 
+  13: {
+    fertile: 'the good soil is where it is, and there is not enough of it -- that sentence is ' +
+      'the whole age. A city that could paint its own black earth would never need a grain ' +
+      'fleet, and this one is built on needing one.',
+  },
   12: {
     water: 'the gulf is the whole reason this city stands where it stands — every citizen in it ' +
       'arrived across water somebody else owned, and a founder who fills his own harbour has ' +
@@ -951,16 +998,16 @@ const BUILDINGS = {
   landmark: {
     name: 'The Landmark', tier: 'civic', era: 0, w: 3, h: 3, cost: 0, upkeep: 0,
     icon: '\u{1F332}', color: '#6f8a4a', fixed: true, selfRun: true,
-    desc: 'A sixty-metre araucaria on a rise, standing alone above the fern. The whole range is ' +
+    desc: 'A sixty-metre araucaria on a rise, standing alone above the fern. The whole camp is ' +
       'organised around it and nothing on this floodplain is out of sight of it. It pays a trickle ' +
       'into the record every second.',
   },
 
   waterhole: {
     name: 'Waterhole', tier: 'infra', era: 0, w: 1, h: 1, cost: 22, upkeep: 0.033,
-    icon: '\u{1F573}\u{FE0F}', color: '#7fb4c9', selfRun: true, waterRadius: 3,
+    icon: '\u{1F573}\u{FE0F}', color: '#7fb4c9', selfRun: true, waterRadius: 5,
 
-    desc: 'A hoof-punched hollow that holds water through the dry weeks. Waters 3 tiles. Everything ' +
+    desc: 'A hoof-punched hollow that holds water through the dry weeks. Waters 5 tiles. Everything ' +
       'that needs water shuts down without it — AND THE SEA DOES NOT COUNT: standing on the shore ' +
       'waters nothing, because coverage is stamped by a building and never by the ground.',
   },
@@ -978,7 +1025,7 @@ const BUILDINGS = {
     icon: '\u{1F6B6}', color: '#8fa8b5', selfRun: true, onWater: true, bridge: true,
 
     desc: 'A gravel bar shallow enough to cross. Laid ON water it carries the trail over the channel — ' +
-      'lay a line of them and the far braid joins your range.',
+      'lay a line of them and the far braid joins your ground.',
   },
 
   fernprairie: {
@@ -986,26 +1033,27 @@ const BUILDINGS = {
     icon: '\u{1F33F}', color: '#7d9a55', selfRun: true, needsWater: true,
     out: { grain: 0.33 },
 
-    desc: '0.33 browse/min off a stand of tree fern and horsetail. +50% on floodplain silt, +25% ' +
-      'touching a Grazing Lawn. THREE of these feed one Lawn on plain ground, two on silt.',
+    desc: '0.33 frond/min off a stand of tree fern and horsetail. +50% on floodplain silt, +25% ' +
+      'touching a Drying Lawn. THREE of these feed one Lawn on plain ground, two on silt.',
   },
+
   grazinglawn: {
-    name: 'Grazing Lawn', tier: 'food', era: 0, w: 2, h: 2, cost: 90, upkeep: 0.083,
+    name: 'The Drying Lawn', tier: 'food', era: 0, w: 2, h: 2, cost: 90, upkeep: 0.083,
     icon: '\u{1F343}', color: '#8fae62', selfRun: true, needsWater: true, industry: true,
     grainMill: true,
     procIn: 'grain', procRate: 1.00, procOut: 'flour', procRatio: 0.6,
 
-    desc: 'A stretch worked down to the root: 1.00 standing browse/min becomes 0.60 forage — 1.25 and ' +
-      '0.75 when it touches a Prairie, because the +25% raises both sides. ONE LAWN FEEDS TEN HEAD. ' +
-      'Industry: nothing nests beside a lawn with no cover on it.',
+    desc: 'Fronds beaten flat and left to dry: 1.00 standing frond/min becomes 0.60 fern meal — 1.25 ' +
+      'and 0.75 when it touches a Prairie, because the +25% raises both sides. ONE LAWN FEEDS TEN. ' +
+      'Industry: nobody sleeps beside a lawn with no cover on it.',
   },
   leafmat: {
     name: 'The Leaf Mat', tier: 'commerce', era: 0, w: 2, h: 2, cost: 90, upkeep: 0.100,
     icon: '\u{1F342}', color: '#6a7a4a', selfRun: true, needsWater: true, needsRoad: true,
     sells: 'flour', sellRate: 0.338, sellPrice: 3.07, custRadius: 6, custMin: 3,
 
-    desc: 'Surplus the herd does not eat, trodden into airless mud and kept. 0.338 forage/min at $3.07. ' +
-      'Needs 3 head. Forage sustains the range; it is not what makes it rich.',
+    desc: 'Surplus the camp cannot eat now, trodden into airless mud and kept. 0.338 fern meal/min at $3.07. ' +
+      'Needs 3 people. Fern meal sustains the camp; it is not what makes it rich.',
   },
 
   coccolithshoal: {
@@ -1112,8 +1160,8 @@ const BUILDINGS = {
     icon: '\u{1F95A}', color: '#c9b48f', selfRun: true, needsWater: true,
     procIn: 'grain', procRate: 0.67, procOut: 'beer', procRatio: 0.5,
 
-    desc: '0.67 browse/min becomes 0.34 clutches. It drinks the same fern your Grazing Lawn wants, so ' +
-      'the herd’s own fertility competes with the herd’s own dinner — grow more prairie, or ' +
+    desc: '0.67 frond/min becomes 0.34 clutches. It drinks the same fern your Drying Lawn wants, so ' +
+      'the eggs you gather compete with the dinner you dry — grow more prairie, or ' +
       'choose. Clutches are also what a Carrion Ground gives away.',
   },
   eggbed: {
@@ -1122,7 +1170,7 @@ const BUILDINGS = {
     sells: 'beer', sellRate: 0.394, sellPrice: 4.02, custRadius: 6, custMin: 3,
 
     desc: '0.394 clutches/min at $4.02, buried in successive flood layers. Auca Mahuevo is thousands ' +
-      'of eggs across four such layers, and every one of them is a year the colony came back to the ' +
+      'of eggs across four such layers, and every one of them is a year the nesting grounds came back to the ' +
       'same mud.',
   },
 
@@ -1131,9 +1179,9 @@ const BUILDINGS = {
     icon: '\u{1F338}', color: '#b5849c', selfRun: true, saltProof: true,
     out: { dates: 0.50 },
 
-    desc: 'The first flowers in the world, and a hadrosaur eats them: 0.50 fruit/min, eaten like ' +
-      'forage. Needs NO water coverage and no road, ignores the trophic loop entirely, and takes +50% ' +
-      'standing on ash-buried ground nobody else wants. It is what feeds the colony while the ' +
+    desc: 'The first flowers in the world, and a hadrosaur eats them: 0.50 fruit/min, eaten like fern ' +
+      'meal. Needs NO water coverage and no road, ignores the trophic loop entirely, and takes +50% ' +
+      'standing on ash-buried ground nobody else wants. It is what feeds the camp while the ' +
       'predators are being paid.',
   },
   rotwoodbed: {
@@ -1142,8 +1190,8 @@ const BUILDINGS = {
     out: { fish: 0.40 },
 
     desc: '0.40 crustaceans/min out of rotted conifer logs on the bar. Hadrosaur dung from this exact ' +
-      'formation is full of decayed wood AND crustacean shell (Chin et al. 2017) — the herd was not a ' +
-      'pure browser. Eaten at 75% of forage. Needs no water coverage, no road and no herd.',
+      'formation is full of decayed wood AND crustacean shell (Chin et al. 2017) — the duckbills were not ' +
+      'pure browsers. Eaten at 75% of fern meal. Needs no water, no road and nobody to staff it.',
   },
 
   channellag: {
@@ -1152,45 +1200,45 @@ const BUILDINGS = {
     sellsRaw: ['stone', 'grain', 'clay', 'wool', 'reeds'], sellRate: 0.845,
     custRadius: 6, custMin: 3,
 
-    desc: 'A bend where everything the flood carried settles out. Sells whichever raw the range has ' +
-      'most of — bone, browse, marl, resin, horsetail — at 80% of list, 0.845/min. Your first income ' +
+    desc: 'A bend where everything the flood carried settles out. Sells whichever raw the camp has ' +
+      'most of — bone, frond, marl, resin, horsetail — at 80% of list, 0.845/min. Your first income ' +
       'the minute the first shoal opens; knowing when to demolish it is the real decision.',
   },
 
   nestmound: {
-    name: 'Nest Mound', tier: 'housing', era: 0, w: 1, h: 1, cost: 12, upkeep: 0.017,
-    icon: '\u{1F95A}', color: '#b09a72', selfRun: true, cap: 2, needsWater: true, needsRoad: true,
+    name: 'Fern Bower', tier: 'housing', era: 0, w: 1, h: 1, cost: 12, upkeep: 0.017,
+    icon: '\u{1F6D6}', color: '#b09a72', selfRun: true, cap: 2, needsWater: true, needsRoad: true,
 
-    desc: 'A scraped bowl banked with rotting fern, warm from the inside. Holds 1, and 2 once it has ' +
-      'earned a rung. +1 near a Wallow or a Sentinel Knoll, −1 next to industry — nothing nests beside ' +
-      'a lawn with no cover on it.',
+    desc: 'Bent boughs over a scraped hollow, banked with fern and warm from the inside. Holds 1, and 2 ' +
+      'once it has earned a rung. +1 near a Soak or a Sentinel Knoll, −1 next to industry — nobody ' +
+      'sleeps beside a lawn with no cover on it.',
   },
   rookeryterrace: {
-    name: 'Rookery Terrace', tier: 'housing', era: 0, w: 2, h: 2, cost: 30, upkeep: 0.043,
-    icon: '\u{1F426}', color: '#c2a878', selfRun: true, cap: 6, needsWater: true, needsRoad: true,
+    name: 'Thatch Row', tier: 'housing', era: 0, w: 2, h: 2, cost: 30, upkeep: 0.043,
+    icon: '\u{1F3D8}\u{FE0F}', color: '#c2a878', selfRun: true, cap: 6, needsWater: true, needsRoad: true,
 
-    levels: ['Scrape Row', 'Rookery Terrace', 'Packed Rookery', 'Terraced Colony',
-             'Great Rookery', 'Ancestral Rookery'],
+    levels: ['Bough Line', 'Thatch Row', 'Packed Row', 'Screened Row',
+             'Long Thatch', 'Ancestral Thatch'],
 
-    desc: 'Nests packed nest-to-nest at one adult’s reach: 3 head in four tiles, 6 once it has ' +
-      'earned a rung. Colonial nesting IS the predation strategy — a hundred parents see a predator a ' +
-      'hundred times sooner, and the dilution term is not a metaphor.',
+    desc: 'One long thatch with the doors all on the same side: 3 in four tiles, 6 once it has ' +
+      'earned a rung. Sleeping packed IS the defence — a hundred people see a predator a hundred ' +
+      'times sooner, and the dilution term is not a metaphor.',
   },
 
   wallow: {
-    name: 'The Wallow', tier: 'civic', era: 0, w: 1, h: 1, cost: 29, upkeep: 0.017,
-    icon: '\u{1F43E}', color: '#8a7a5f', selfRun: true, capRadius: 11,
+    name: 'The Soak', tier: 'civic', era: 0, w: 1, h: 1, cost: 29, upkeep: 0.017,
+    icon: '\u{1F4A7}', color: '#8a7a5f', selfRun: true, capRadius: 11,
 
-    desc: 'Churned mud the whole range comes back to: cooling, parasites, and the only place everybody ' +
-      'is in one place at once. +1 capacity for EVERY nest within 11 tiles. One is enough; a second ' +
-      'adds nothing to a nest already covered.',
+    desc: 'Churned warm mud at the water’s edge that the whole camp comes back to: washing, the sting ' +
+      'taken out of bites, and the only hour everybody is in one place. +1 capacity for EVERY shelter ' +
+      'within 11 tiles. One is enough; a second adds nothing to a shelter already covered.',
   },
   sentinelknoll: {
     name: 'Sentinel Knoll', tier: 'civic', era: 0, w: 1, h: 1, cost: 33, upkeep: 0.027,
     icon: '\u{1F441}\u{FE0F}', color: '#9a8f6a', selfRun: true,
     amenityRadius: 4, sentinelRelief: 0.25,
 
-    desc: 'A rise with a clear line to the treeline. +1 capacity within 4 tiles, and nests it covers ' +
+    desc: 'A rise with a clear line to the treeline. +1 capacity within 4 tiles, and shelters it covers ' +
       'lose 25% less to predators — the cheapest lever in the age, the only one that costs no food, ' +
       'and the only one that still works when everything else has stopped.',
   },
@@ -1207,7 +1255,7 @@ const BUILDINGS = {
     icon: '\u{1F5FF}', color: '#a89a7a', selfRun: true, needsWater: true, needsRoad: true,
     depot: true, storeGrain: 80, storeFlour: 50,
 
-    desc: 'A deep bank hollow the whole range shelters under: far more browse and forage capacity, and ' +
+    desc: 'A deep bank hollow the whole camp shelters under: far more frond and fern-meal capacity, and ' +
       'a supply point so the far districts stop paying the carting premium.',
   },
 
@@ -1229,8 +1277,8 @@ const BUILDINGS = {
     name: 'The Deep Brake', tier: 'food', era: 0, w: 2, h: 2, cost: 108, upkeep: 0.088,
     icon: '\u{1F33F}', color: '#6f8a4a', selfRun: true, needsWater: true,
     out: { grain: 0.66 },
-    desc: 'The stand let to grow deep and cut in strips instead of grazed flat, so it comes back ' +
-      'behind the herd: 0.66 browse/min, double the open prairie.',
+    desc: 'The stand let to grow deep and cut in strips instead of stripped bare, so it comes back ' +
+      'behind you: 0.66 frond/min, double the open prairie.',
   },
   bloomshelf: {
     name: 'The Bloom Shelf', tier: 'food', era: 0, w: 2, h: 2, cost: 120, upkeep: 0.088,
@@ -1274,7 +1322,7 @@ const BUILDINGS = {
     icon: '\u{1F980}', color: '#6a5c40', selfRun: true, nearWater: 2,
     out: { fish: 0.64 },
     desc: 'Whole trunks worked down into the mud, rotting from the inside and crawling: 0.64/min. ' +
-      'Needs no water coverage and no herd.',
+      'Needs no water coverage and nobody to staff it.',
   },
 
   trampleflat: {
@@ -1282,8 +1330,8 @@ const BUILDINGS = {
     icon: '\u{1F343}', color: '#7d9a52', selfRun: true, needsWater: true, industry: true,
     grainMill: true,
     procIn: 'grain', procRate: 1.40, procOut: 'flour', procRatio: 0.6,
-    desc: 'Ground worked flat by the whole colony passing over it twice a day: 1.40 browse/min into ' +
-      '0.84 forage. Fourteen head off one flat.',
+    desc: 'Ground worked flat by the whole camp passing over it twice a day: 1.40 frond/min into ' +
+      '0.84 fern meal. Fourteen fed off one flat.',
   },
   whitecliff: {
     name: 'The White Cliff', tier: 'food', era: 0, w: 2, h: 2, cost: 188, upkeep: 0.126,
@@ -1302,7 +1350,7 @@ const BUILDINGS = {
     name: 'The Brood Bank', tier: 'food', era: 0, w: 2, h: 2, cost: 174, upkeep: 0.118,
     icon: '\u{1F95A}', color: '#d8c9a8', selfRun: true, needsWater: true,
     procIn: 'grain', procRate: 0.94, procOut: 'beer', procRatio: 0.5,
-    desc: 'A whole bank of mounds, laid and re-laid in the same season: 0.94 browse/min into 0.47 ' +
+    desc: 'A whole bank of mounds, laid and re-laid in the same season: 0.94 frond/min into 0.47 ' +
       'clutches. It drinks proportionally more of your dinner.',
   },
   silicaspring: {
@@ -1346,7 +1394,7 @@ const BUILDINGS = {
     name: 'The Flood Layer', tier: 'commerce', era: 0, w: 2, h: 2, cost: 200, upkeep: 0.130,
     icon: '\u{1F423}', color: '#d8b87a', selfRun: true, needsWater: true, needsRoad: true,
     sells: 'beer', sellRate: 0.788, sellPrice: 4.02, custRadius: 6, custMin: 3,
-    desc: 'Four seasons of nests one on top of the other, each sealed by the flood that ended it: ' +
+    desc: 'Four seasons of clutches one layer on top of the other, each sealed by the flood that ended it: ' +
       '0.788 clutches/min.',
   },
   scourpool: {
@@ -1366,9 +1414,9 @@ const BUILDINGS = {
 
   seep: {
     name: 'Spring Seep', tier: 'infra', era: 0, w: 1, h: 1, cost: 55, upkeep: 0.053,
-    icon: '\u{1F4A7}', color: '#7fb4c9', selfRun: true, waterRadius: 5,
+    icon: '\u{1F4A7}', color: '#7fb4c9', selfRun: true, waterRadius: 8,
 
-    desc: 'A true seep at the foot of the ridge: waters 5 tiles and it does not go down in a drought. ' +
+    desc: 'A true seep at the foot of the ridge: waters 8 tiles and it does not go down in a drought. ' +
       'The only way to get water onto the upland, which is the only place amber grows.',
   },
   driftbank: {
@@ -1381,7 +1429,7 @@ const BUILDINGS = {
   churnedhollow: {
     name: 'The Churned Hollow', tier: 'civic', era: 0, w: 1, h: 1, cost: 73, upkeep: 0.031,
     icon: '\u{1F43E}', color: '#7a6a52', selfRun: true, capRadius: 16,
-    desc: 'Generations of wallowing in one hollow until it is a pond: +1 capacity for every nest ' +
+    desc: 'Generations of washing in one hollow until it is a pond: +1 capacity for every shelter ' +
       'within 16 tiles.',
   },
   watchrise: {
@@ -1389,8 +1437,8 @@ const BUILDINGS = {
     icon: '\u{1F441}\u{FE0F}', color: '#a89a72', selfRun: true,
     amenityRadius: 6, sentinelRelief: 0.36,
 
-    desc: 'A rise with sight of the whole range and somebody on it at all hours: +1 capacity within ' +
-      '6 tiles, and nests it covers lose 36% less to predators.',
+    desc: 'A rise with sight of the whole floodplain and somebody on it at all hours: +1 capacity within ' +
+      '6 tiles, and shelters it covers lose 36% less to predators.',
   },
   openkill: {
     name: 'The Open Kill', tier: 'civic', era: 0, w: 2, h: 4, cost: 363, upkeep: 0.140,
@@ -1403,8 +1451,8 @@ const BUILDINGS = {
     name: 'The Silt Bank', tier: 'civic', era: 0, w: 4, h: 4, cost: 813, upkeep: 0.209,
     icon: '\u{1F5FF}', color: '#b5a888', selfRun: true, needsWater: true, needsRoad: true,
     depot: true, storeGrain: 116, storeFlour: 73,
-    desc: 'A whole cut bank of layered flood silt, hollowed out along the seams: half again the browse ' +
-      'and forage the Refuge holds, and still a supply point.',
+    desc: 'A whole cut bank of layered flood silt, hollowed out along the seams: half again the frond ' +
+      'and fern meal the Refuge holds, and still a supply point.',
   },
 
   hearth: {
@@ -7865,6 +7913,527 @@ const BUILDINGS = {
       'the harbour does not silt. Carries the road, and carries it through a storm.',
   },
 
+  statioannonae: {
+    name: 'The Statio Annonae', tier: 'infra', era: 13, w: 2, h: 2, cost: 2240, upkeep: 2.05,
+    icon: '\u{1F33E}', color: '#c9a86a', workers: 3, needsRoad: true, annonaCap: 1.5,
+    desc: 'The grain office on the road in: a weigh-floor, a tally-clerk and a bonded shed. Lands ' +
+      '1.5 rations a minute at the fair price. It sells nothing and makes nothing — what it earns ' +
+      'is the bill that does not arrive.',
+  },
+  navicularium: {
+    name: 'The Navicularium', tier: 'infra', era: 13, w: 3, h: 3, cost: 4780, upkeep: 4.30,
+    icon: '\u{1F6E5}\u{FE0F}', color: '#b08f5e', workers: 6, needsRoad: true, nearWater: 3,
+    annonaCap: 3.0,
+    desc: 'The river landing with its own quay, cranes and bonded vaults: 3.0 rations a minute, two ' +
+      'Statios in one footprint, and it must stand within 3 tiles of water. A city that eats what ' +
+      'other provinces grow is a city that lives on its wharf.',
+  },
+
+  thermae: {
+    name: 'Thermae', tier: 'civic', era: 13, w: 4, h: 4, cost: 3510, upkeep: 3.72,
+    icon: '\u{1F6C1}', color: '#c9b9a0', workers: 6,
+    needsRoad: true, needsWater: true, amenityRadius: 14,
+    desc: 'Caldarium, tepidarium, frigidarium and a furnace that never goes out. +1 housing capacity ' +
+      'within 14 tiles — the widest amenity on the ladder, and the cheapest way to hold a city ' +
+      'together while its bread comes off somebody else\'s ships.',
+  },
+
+  atriumlibertatis: {
+    name: 'Atrium Libertatis', tier: 'civic', era: 13, w: 4, h: 4, cost: 9880, upkeep: 10.27,
+    icon: '\u{1F4DC}', color: '#dcd2b8', workers: 8,
+    needsRoad: true, needsWater: true, keepsTally: true, amenityRadius: 12,
+    desc: 'The censors\' own archive, where the register of citizens and the public contracts were ' +
+      'kept. Keeps the city\'s books: +10% sales at every shop in range, and +1 housing capacity ' +
+      'within 12. One covers a quarter; a second adds nothing to a shop already counted.',
+  },
+
+  horreum: {
+    name: 'Horreum', tier: 'infra', era: 13, w: 3, h: 3, cost: 7200, upkeep: 4.01,
+    icon: '\u{1F3DB}\u{FE0F}', color: '#c2a878', workers: 6,
+    needsRoad: true, needsWater: true, depot: true,
+    storeGrain: 16750, storeFlour: 10000, storeCraft: 700,
+    desc: 'The state warehouse: raised floors, buttressed walls and a clerk on the door. +16,750 ' +
+      'grain, +10,000 farina and +700 of every craft good, and it counts as a SUPPLY POINT. ' +
+      'Without one your mill fills its shelf in two and a half minutes and sells the rest abroad ' +
+      'at half price.',
+  },
+
+  castellum: {
+    name: 'Castellum Aquae', tier: 'infra', era: 13, w: 1, h: 1, cost: 1970, upkeep: 1.82,
+    icon: '\u{1F3E7}', color: '#9ec4d2', needsRoad: true, waterRadius: 18,
+    desc: 'The distribution tank where the line from the hills ends and the city begins. Waters 18 ' +
+      'tiles — the widest coverage on the ladder — and needs a road so the fountaineers can reach ' +
+      'the taps.',
+  },
+
+  puteus: {
+    name: 'Puteus', tier: 'infra', era: 13, w: 1, h: 1, cost: 590, upkeep: 1.15,
+    icon: '\u{26F2}', color: '#8fc2cf', waterRadius: 12,
+    desc: 'A shaft well with a stone kerb and a bucket on a rope. Waters 12 tiles for $590 and needs ' +
+      'no road at all — the cheapest coverage in the age, and what the first squares drink from ' +
+      'while you are still finding a spring.',
+  },
+
+  centuria: {
+    name: 'Centuriated Field', tier: 'food', era: 13, w: 4, h: 4, cost: 3530, upkeep: 6.18,
+    icon: '\u{1F33E}', color: '#a8ab45', workers: 3, needsWater: true,
+    out: { grain: 26.62 },
+    desc: 'One registered square of the survey, ploughed and cropped: 26.62 grain/min — exactly one ' +
+      'Pistrinum\'s appetite. Wants FERTILE ground (+50%) but grows on plain grass. It is the whole ' +
+      'of what this city can feed itself, and it is not enough.',
+  },
+
+  pistrinum: {
+    name: 'Pistrinum', tier: 'food', era: 13, w: 2, h: 2, cost: 2960, upkeep: 3.43,
+    icon: '\u{1F35E}', color: '#c9b478', workers: 4,
+    needsWater: true, industry: true, grainMill: true,
+    procIn: 'grain', procRate: 26.62, procOut: 'flour', procRatio: 0.60,
+    desc: 'Lava millstones turned by a blindfolded donkey, and the ovens against the back wall: ' +
+      '26.62 grain/min into 15.97 farina. +25% both ways with an adjacent square.',
+  },
+
+  panificium: {
+    name: 'Panificium', tier: 'commerce', era: 13, w: 2, h: 2, cost: 2960, upkeep: 4.10,
+    icon: '\u{1F956}', color: '#c98f5f', workers: 4,
+    needsRoad: true, needsWater: true,
+    sells: 'flour', sellRate: 5.324, sellPrice: 8.00, custRadius: 8, custMin: 13,
+    desc: 'The bread counter opening onto the street: 5.324 farina/min at $8. Three of these clear ' +
+      'one Pistrinum exactly — and then your own bread is all SOLD. What the city eats comes off ' +
+      'the ponds, the orchards and the grain ships. That is the age.',
+  },
+
+  stercorarium: {
+    name: 'Stercorarium', tier: 'food', era: 13, w: 2, h: 2, cost: 1750, upkeep: 1.86,
+    icon: '\u{1F5D1}\u{FE0F}', color: '#8a7a5c', workers: 1, soilRadius: 9,
+    desc: 'The dung yard, carted out to the squares. Ground within 9 tiles recovers from exhaustion ' +
+      'x3 faster — which is the only way a centuriated square keeps cropping year after year.',
+  },
+
+  lucrinum: {
+    name: 'Stagnum Lucrinum', tier: 'food', era: 13, w: 1, h: 3, cost: 1190, upkeep: 1.29,
+    icon: '\u{1F41F}', color: '#5f9eb5', workers: 2, onWater: true,
+    out: { fish: 6.58 },
+    desc: 'The walled lagoon at Baiae, sluiced with the tide and netted daily: 6.58 fish/min, eaten ' +
+      'at 75% of bread\'s worth. It stands IN the water and it is the single largest thing this ' +
+      'city grows for itself.',
+  },
+
+  pomarium: {
+    name: 'Pomarium', tier: 'food', era: 13, w: 3, h: 3, cost: 690, upkeep: 1.20,
+    icon: '\u{1F333}', color: '#7f9a55', workers: 3, dryLand: true,
+    out: { dates: 4.91 },
+    desc: 'Figs on the dry ground above the vines, picked and laid out to dry: 4.91/min, eaten like ' +
+      'bread. It costs almost nothing to plant and it eats NINE TILES to do it — which is the ' +
+      'whole trade this age offers you, stated in one building.',
+  },
+
+  olivetum: {
+    name: 'Olivetum', tier: 'food', era: 13, w: 3, h: 3, cost: 2900, upkeep: 3.83,
+    icon: '\u{1FAD2}', color: '#8a9a62', workers: 4, dryLand: true,
+    out: { olives: 7.86 },
+    desc: 'Olives on the dry interfluve: 7.86/min, +50% on ground with no fertile silt and no water ' +
+      'under it. ★ dryLand accepts ROCK too, so a careless grove will sit on the tuff your quarry ' +
+      'and your lead mine both wanted.',
+  },
+
+  torcularium: {
+    name: 'Torcularium', tier: 'food', era: 13, w: 2, h: 2, cost: 4180, upkeep: 4.82,
+    icon: '\u{2699}\u{FE0F}', color: '#a89143', workers: 5,
+    needsWater: true, industry: true,
+    procIn: 'olives', procRate: 7.86, procOut: 'oil', procRatio: 0.50,
+    desc: 'The press room proper — beam, windlass and stone weights over a paved floor with a ' +
+      'run-off channel: 7.86 olives/min into 3.93 oil. Two Oleariae clear one exactly.',
+  },
+
+  olearia: {
+    name: 'Olearia', tier: 'commerce', era: 13, w: 2, h: 2, cost: 4420, upkeep: 5.58,
+    icon: '\u{1F6E2}\u{FE0F}', color: '#b5a04a', workers: 4,
+    needsRoad: true, needsWater: true,
+    sells: 'oil', sellRate: 1.965, sellPrice: 42, custRadius: 8, custMin: 16,
+    desc: 'Amphorae racked in sand and sold by the sextarius: 1.965 oil/min at $42. Lamp fuel, ' +
+      'cooking fat, soap, and the stuff you scrape off at the baths.',
+  },
+
+  argilla: {
+    name: 'Argilla', tier: 'food', era: 13, w: 2, h: 2, cost: 1900, upkeep: 2.16,
+    icon: '\u{1FAA8}', color: '#a5643c', workers: 3, nearWater: 3,
+    out: { clay: 8.38 },
+    desc: 'The river bank cut back and worked in courses: 8.38 clay/min, +50% within 3 tiles of ' +
+      'water. One bed feeds one kiln exactly — and the flax fields want the same bank.',
+  },
+
+  figlina: {
+    name: 'Figlina', tier: 'food', era: 13, w: 3, h: 3, cost: 3080, upkeep: 3.84,
+    icon: '\u{1F3FA}', color: '#b5713f', workers: 5,
+    needsWater: true, industry: true,
+    procIn: 'clay', procRate: 8.38, procOut: 'sigillata', procRatio: 0.50,
+    desc: 'The muffle kiln that made red gloss possible — the load fired in a sealed chamber so the ' +
+      'flame never touches it: 8.38 clay/min into 4.19 samian. Two Officinae sell one kiln.',
+  },
+
+  officinasamia: {
+    name: 'Officina Samia', tier: 'commerce', era: 13, w: 2, h: 2, cost: 2830, upkeep: 4.10,
+    icon: '\u{1F37D}\u{FE0F}', color: '#c05c3a', workers: 4,
+    needsRoad: true, needsWater: true,
+    sells: 'sigillata', sellRate: 2.095, sellPrice: 37, custRadius: 8, custMin: 15,
+    desc: 'Stamped red tableware sold by the crate and shipped to the ends of the empire: 2.095 ' +
+      'samian/min at $37. Two of these clear one Figlina.',
+  },
+
+  lapicidina: {
+
+    name: 'Lapicidina', tier: 'food', era: 13, w: 3, h: 3, cost: 4940, upkeep: 4.45,
+    icon: '\u{26CF}\u{FE0F}', color: '#c9bfa0', workers: 5,
+    onRock: true, industry: true,
+    out: { stone: 9.76 },
+    desc: 'Travertine cut in benches out of the mountain flank: 9.76 stone/min, scaled by how much ' +
+      'rock is under it. Every rock tile holds 900 and there is NO recovery — no brush brings it ' +
+      'back. Three trades want this ground and TWO of them eat it.',
+  },
+
+  marmoraria: {
+    name: 'Officina Marmoraria', tier: 'food', era: 13, w: 2, h: 2, cost: 5260, upkeep: 4.77,
+    icon: '\u{1FA9A}', color: '#d8d2c4', workers: 5,
+    needsWater: true, industry: true,
+    procIn: 'stone', procRate: 9.76, procOut: 'marmor', procRatio: 0.50,
+    desc: 'A gang saw fed with sand and water — crank, connecting rod, eight blades at once: 9.76 ' +
+      'stone/min into 4.88 dressed marble. Your Statuaria sells 0.911 of it and the Colosseum takes ' +
+      '3.00 — one saw covers both, with 0.969 to spare. The squeeze is behind it: 9.76 stone/min is ' +
+      'exactly one Lapicidina, standing on rock your lead mine also wants.',
+  },
+
+  statuaria: {
+    name: 'Officina Statuaria', tier: 'commerce', era: 13, w: 2, h: 2, cost: 2860, upkeep: 3.42,
+    icon: '\u{1F5FF}', color: '#e2ded2', workers: 4,
+    needsRoad: true, needsWater: true,
+    sells: 'marmor', sellRate: 0.911, sellPrice: 85, custRadius: 8, custMin: 20,
+    desc: 'Portrait busts, veneer, table tops and a copy of a Greek original for anyone who asks: ' +
+      '0.911 marmor/min at $85 — the most valuable good in the age. It sells SLOWLY on purpose. ' +
+      'The marble it does not sell is the only marble your Colosseum will ever see.',
+  },
+
+  pozzolana: {
+    name: 'Pozzolana Pit', tier: 'food', era: 13, w: 2, h: 2, cost: 1900, upkeep: 2.16,
+    icon: '\u{1F30B}', color: '#8a7a6a', workers: 3, onRock: true,
+    out: { pozzolana: 8.38 },
+    desc: 'Volcanic ash out of the beds at Puteoli — nearly worthless raw, and the reason Roman ' +
+      'concrete sets under sea water. 8.38/min, +50% on rock. It does NOT eat the outcrop; the ' +
+      'quarry and the lead mine beside it do.',
+  },
+
+  caementicia: {
+    name: 'Officina Caementicia', tier: 'food', era: 13, w: 3, h: 3, cost: 3080, upkeep: 3.84,
+    icon: '\u{1F9F1}', color: '#a89e8a', workers: 5,
+    needsWater: true, industry: true,
+    procIn: 'pozzolana', procRate: 8.38, procOut: 'concrete', procRatio: 0.50,
+    desc: 'Ash, lime and rubble turned in a pit: 8.38 pozzolana/min into 4.19 concrete. NOTHING ' +
+      'BUYS CONCRETE. Its only customer is the Colosseum, which absorbs 4.00/min for the whole ' +
+      'build — one of these, running flat out, from foundation to topping out.',
+  },
+
+  plumbaria: {
+    name: 'Plumbaria', tier: 'food', era: 13, w: 3, h: 3, cost: 4420, upkeep: 3.98,
+    icon: '\u{2692}\u{FE0F}', color: '#7c7f86', workers: 5,
+    onRock: true, industry: true,
+    out: { galena: 8.73 },
+    desc: 'Galena — lead ore, bright as a mirror on a fresh break — cut out of the flank in ' +
+      'stepped galleries: 8.73/min. It EATS THE OUTCROP, 900 to a tile and gone for good, and it ' +
+      'is competing with your travertine for the same rock.',
+  },
+
+  ustrina: {
+    name: 'Ustrina', tier: 'food', era: 13, w: 2, h: 2, cost: 4710, upkeep: 4.27,
+    icon: '\u{1F525}', color: '#8f7a6a', workers: 5,
+    needsWater: true, industry: true,
+    procIn: 'galena', procRate: 8.73, procOut: 'plumbum', procRatio: 0.35,
+    desc: 'The smelting hearth: ore roasted on a bed of charcoal, the metal run off into moulds and ' +
+      'the slag thrown out behind. 8.73 galena/min into just 3.056 lead — the poorest yield on the ' +
+      'rung, and the reason lead is bulk and not treasure.',
+  },
+
+  fistularia: {
+    name: 'Fistularia', tier: 'commerce', era: 13, w: 2, h: 2, cost: 3120, upkeep: 3.73,
+    icon: '\u{1F6B0}', color: '#9aa3ad', workers: 4,
+    needsRoad: true, needsWater: true,
+    sells: 'plumbum', sellRate: 1.528, sellPrice: 42, custRadius: 8, custMin: 15,
+    desc: 'The pipe works: sheet rolled round a mandrel and seamed, stamped with the maker\'s name ' +
+      'and the ward it serves. 1.528 lead/min at $42 — pipe for the city, sheet for the roofs, and ' +
+      'sheathing for the hulls that bring the grain.',
+  },
+
+  linarius: {
+    name: 'Ager Linarius', tier: 'food', era: 13, w: 3, h: 3, cost: 2900, upkeep: 3.83,
+    icon: '\u{1F33F}', color: '#8fa88a', workers: 4, nearWater: 3,
+    out: { linum: 7.86 },
+    desc: 'Flax sown thick for fibre rather than seed, pulled by the root and retted in standing ' +
+      'water: 7.86 linum/min, +50% within 3 tiles of water. It wants the same bank your clay beds ' +
+      'do, and there is only one river.',
+  },
+
+  textrinum: {
+    name: 'Textrinum', tier: 'food', era: 13, w: 3, h: 3, cost: 4180, upkeep: 4.82,
+    icon: '\u{1F9F5}', color: '#b0a68f', workers: 5,
+    needsWater: true, industry: true,
+    procIn: 'linum', procRate: 7.86, procOut: 'velum', procRatio: 0.50,
+    desc: 'The weaving shed: retted flax scutched, hackled, spun and thrown across a warp-weighted ' +
+      'loom twenty feet wide. 7.86 linum/min into 3.93 bolts of sailcloth.',
+  },
+
+  armamentarium: {
+    name: 'Armamentarium', tier: 'commerce', era: 13, w: 2, h: 2, cost: 4420, upkeep: 5.58,
+    icon: '\u{26F5}', color: '#8aa4b5', workers: 4,
+    needsRoad: true, needsWater: true,
+    sells: 'velum', sellRate: 1.965, sellPrice: 61, custRadius: 8, custMin: 20,
+    desc: 'The ship-gear store: sail, rigging, sheets and a sailmaker\'s bench at the back. 1.965 ' +
+      'bolts/min at $61, the richest counter in the age. Every grain ship on the Alexandria run ' +
+      'was fitted out of a shop like this one.',
+  },
+
+  cenaculum: {
+    name: 'Cenaculum', tier: 'housing', era: 13, w: 1, h: 1, cost: 1190, upkeep: 0.56,
+    icon: '\u{1F3E0}', color: '#c4a98a', cap: 10, needsRoad: true, needsWater: true,
+    desc: 'A let room on an upper floor, reached by an outside stair: 10 residents on one tile. ' +
+      'What most of Rome actually lived in, and the cheapest bed in the age.',
+  },
+
+  insula: {
+    name: 'Insula', tier: 'housing', era: 13, w: 2, h: 2, cost: 4080, upkeep: 1.89,
+    icon: '\u{1F3E2}', color: '#b58a6a', cap: 42, needsRoad: true, needsWater: true,
+    levels: ['Canaba', 'Insula', 'Brick Insula', 'Five-Storey Insula', 'Balconied Insula',
+             'Regio Insula'],
+    desc: 'Five storeys of let rooms over shops, timber-framed above the second floor and a fire ' +
+      'brigade\'s nightmare: 42 residents on four tiles. Every one of them is a mouth the annona ' +
+      'has to feed.',
+  },
+
+  columna: {
+    name: 'Columna', tier: 'beauty', era: 13, w: 1, h: 1, cost: 490, upkeep: 0,
+    icon: '\u{1F5FC}', color: '#d8d2c4', cosmetic: true,
+    desc: 'A fluted column with somebody\'s name cut into the base. No output and no upkeep: the ' +
+      'label on the quarter is the entire point of it.',
+  },
+
+  latifundium: {
+    name: 'Latifundium', tier: 'food', era: 13, w: 4, h: 4, cost: 8680, upkeep: 12.36,
+    icon: '\u{1F33E}', color: '#b8a45c', workers: 4, needsWater: true,
+    out: { grain: 53.24 },
+    desc: 'Four squares thrown together and worked by a gang under a bailiff: 53.24 grain/min, two ' +
+      'mills\' worth off one holding.',
+  },
+  ficulnea: {
+    name: 'Ficulnea', tier: 'food', era: 13, w: 3, h: 3, cost: 1700, upkeep: 2.40,
+    icon: '\u{1F333}', color: '#8fa85c', workers: 4, dryLand: true,
+    out: { dates: 9.82 },
+    desc: 'The grove grafted, pruned and manured instead of merely standing there: 9.82 figs/min ' +
+      'off the same nine tiles. Still the cheapest food in the age and still the greediest for ground.',
+  },
+  ostrearia: {
+    name: 'Ostrearia', tier: 'food', era: 13, w: 1, h: 3, cost: 2930, upkeep: 2.58,
+    icon: '\u{1F41F}', color: '#4f8ea5', workers: 3, onWater: true,
+    out: { fish: 13.16 },
+    desc: 'Sergius Orata\'s oyster beds: stakes, tiles and rope hung in the tide so the spat has ' +
+      'something to grip. 13.16/min out of the same lagoon.',
+  },
+  praedium: {
+    name: 'Praedium', tier: 'food', era: 13, w: 3, h: 3, cost: 7130, upkeep: 7.66,
+    icon: '\u{1FAD2}', color: '#9aa672', workers: 5, dryLand: true,
+    out: { olives: 15.72 },
+    desc: 'The working estate Cato wrote the manual for — press room, oil store, a bailiff and a ' +
+      'rota: 15.72 olives/min.',
+  },
+  cretaria: {
+    name: 'Cretaria', tier: 'food', era: 13, w: 2, h: 2, cost: 4670, upkeep: 4.32,
+    icon: '\u{1FAA8}', color: '#b06a3c', workers: 4, nearWater: 3,
+    out: { clay: 16.76 },
+    desc: 'The clay washed, levigated and settled in stepped tanks so only the finest fraction ' +
+      'goes to the kiln: 16.76/min — two kilns\' worth.',
+  },
+  lautumiae: {
+    name: 'Lautumiae', tier: 'food', era: 13, w: 3, h: 3, cost: 12150, upkeep: 8.90,
+    icon: '\u{26CF}\u{FE0F}', color: '#c2b894', workers: 6, onRock: true, industry: true,
+    out: { stone: 19.52 },
+    desc: 'Quarry galleries worked in benches on a state contract: 19.52 stone/min — and it eats ' +
+      'the outcrop twice as fast. The travertine still does not come back.',
+  },
+  harenaria: {
+    name: 'Harenaria', tier: 'food', era: 13, w: 2, h: 2, cost: 4670, upkeep: 4.32,
+    icon: '\u{1F30B}', color: '#8f7f6a', workers: 4, onRock: true,
+    out: { pozzolana: 16.76 },
+    desc: 'The ash pits driven in under the hill as galleries rather than scraped off the top: ' +
+      '16.76/min. Two Officinae\' worth, and it still does not touch the outcrop ledger.',
+  },
+  cuniculus: {
+    name: 'Cuniculus', tier: 'food', era: 13, w: 3, h: 3, cost: 10870, upkeep: 7.96,
+    icon: '\u{2692}\u{FE0F}', color: '#6f737a', workers: 6, onRock: true, industry: true,
+    out: { galena: 17.46 },
+    desc: 'A driven adit following the vein into the hill, timbered and drained by an Archimedes ' +
+      'screw: 17.46 galena/min, and twice the bite out of a ridge that never grows back.',
+  },
+  agercumanus: {
+    name: 'Ager Cumanus', tier: 'food', era: 13, w: 3, h: 3, cost: 7130, upkeep: 7.66,
+    icon: '\u{1F33F}', color: '#7f9a7a', workers: 5, nearWater: 3,
+    out: { linum: 15.72 },
+    desc: 'The Campanian flax the sailmakers asked for by name — sown thicker, retted longer, ' +
+      'combed finer: 15.72/min off the same bank.',
+  },
+
+  barbegal: {
+    name: 'Barbegal Cascade', tier: 'food', era: 13, w: 2, h: 2, cost: 4880, upkeep: 4.80,
+    icon: '\u{1F35E}', color: '#d2bf88', workers: 5,
+    needsWater: true, industry: true, grainMill: true,
+    procIn: 'grain', procRate: 37.27, procOut: 'flour', procRatio: 0.60,
+    desc: 'Sixteen wheels in a stepped cascade down one slope, all turning off one channel — the ' +
+      'largest mill complex in the ancient world: 37.27 grain/min into 22.36 farina.',
+  },
+  prelum: {
+    name: 'Prelum', tier: 'food', era: 13, w: 2, h: 2, cost: 6900, upkeep: 6.75,
+    icon: '\u{2699}\u{FE0F}', color: '#b59a4a', workers: 6, needsWater: true, industry: true,
+    procIn: 'olives', procRate: 11.00, procOut: 'oil', procRatio: 0.50,
+    desc: 'The screw press behind the beam, so the paste is worked twice and the third pressing is ' +
+      'worth having: 11.00 olives/min into 5.50 oil.',
+  },
+  mufflekiln: {
+    name: 'Muffle Kiln', tier: 'food', era: 13, w: 3, h: 3, cost: 5080, upkeep: 5.38,
+    icon: '\u{1F3FA}', color: '#c07a44', workers: 6, needsWater: true, industry: true,
+    procIn: 'clay', procRate: 11.73, procOut: 'sigillata', procRatio: 0.50,
+    desc: 'A double-chambered kiln with a sealed muffle and a controlled draught, so the gloss comes ' +
+      'out even across the whole load: 11.73 clay/min into 5.865 samian.',
+  },
+  serraaquaria: {
+    name: 'Serra Aquaria', tier: 'food', era: 13, w: 2, h: 2, cost: 8680, upkeep: 6.68,
+    icon: '\u{1FA9A}', color: '#e2ded2', workers: 6, needsWater: true, industry: true,
+    procIn: 'stone', procRate: 13.66, procOut: 'marmor', procRatio: 0.50,
+    desc: 'The Hierapolis saw: a crank and connecting rod turning rotation into a stroke, eight ' +
+      'blades at once. 13.66 stone/min into 6.83 marble — 5.92 of it for the arena.',
+  },
+  calcaria: {
+    name: 'Fornax Calcaria', tier: 'food', era: 13, w: 3, h: 3, cost: 5080, upkeep: 5.38,
+    icon: '\u{1F9F1}', color: '#b0a692', workers: 6, needsWater: true, industry: true,
+    procIn: 'pozzolana', procRate: 11.73, procOut: 'concrete', procRatio: 0.50,
+    desc: 'The lime kiln built against the pit, so the mortar is burnt where the ash is dug: 11.73 ' +
+      'pozzolana/min into 5.865 concrete. The arena finishes a third faster.',
+  },
+  cupella: {
+    name: 'Cupella', tier: 'food', era: 13, w: 2, h: 2, cost: 7770, upkeep: 5.98,
+    icon: '\u{1F525}', color: '#a08a6a', workers: 6, needsWater: true, industry: true,
+    procIn: 'galena', procRate: 12.22, procOut: 'plumbum', procRatio: 0.35,
+    desc: 'Cupellation: the lead blown across a bone-ash bed so the silver in it separates and the ' +
+      'metal runs clean. 12.22 galena/min into 4.277 lead — the same poor yield, done properly.',
+  },
+  linteonum: {
+    name: 'Linteonum', tier: 'food', era: 13, w: 3, h: 3, cost: 6900, upkeep: 6.75,
+    icon: '\u{1F9F5}', color: '#c2b89f', workers: 6, needsWater: true, industry: true,
+    procIn: 'linum', procRate: 11.00, procOut: 'velum', procRatio: 0.50,
+    desc: 'The linen-weavers\' hall: hackling benches, a spinning floor and four looms wide enough ' +
+      'for a mainsail. 11.00 linum/min into 5.50 bolts.',
+  },
+
+  porticusminucia: {
+    name: 'Porticus Minucia', tier: 'commerce', era: 13, w: 2, h: 2, cost: 5920, upkeep: 6.15,
+    icon: '\u{1F956}', color: '#d29a5f', workers: 5, needsRoad: true, needsWater: true,
+    sells: 'flour', sellRate: 10.648, sellPrice: 8.00, custRadius: 8, custMin: 13,
+    desc: 'The portico where the grain tesserae were presented and the ration drawn — forty-five ' +
+      'doors and a queue at every one. 10.648 farina/min. The bread chain is still thin; it is ' +
+      'just thin at twice the volume.',
+  },
+  testaceus: {
+    name: 'Mons Testaceus', tier: 'commerce', era: 13, w: 2, h: 2, cost: 8840, upkeep: 8.37,
+    icon: '\u{1F6E2}\u{FE0F}', color: '#c2ac52', workers: 5, needsRoad: true, needsWater: true,
+    sells: 'oil', sellRate: 3.930, sellPrice: 42, custRadius: 8, custMin: 16,
+    desc: 'The riverside oil store, dolia sunk to the neck in a cool vaulted cellar: 3.930 oil/min. ' +
+      'One of these clears a Torcularium on its own.',
+  },
+  sigillariae: {
+    name: 'Sigillariae', tier: 'commerce', era: 13, w: 2, h: 2, cost: 5660, upkeep: 6.15,
+    icon: '\u{1F37D}\u{FE0F}', color: '#c9663f', workers: 5, needsRoad: true, needsWater: true,
+    sells: 'sigillata', sellRate: 4.190, sellPrice: 37, custRadius: 8, custMin: 15,
+    desc: 'The street of stalls that sold Rome its Saturnalia presents, and red gloss ware by the ' +
+      'crate the rest of the year: 4.190 samian/min at $37.',
+  },
+  statiomarmorum: {
+    name: 'Statio Marmorum', tier: 'commerce', era: 13, w: 2, h: 2, cost: 5720, upkeep: 5.13,
+    icon: '\u{1F5FF}', color: '#eae6dc', workers: 5, needsRoad: true, needsWater: true,
+    sells: 'marmor', sellRate: 1.822, sellPrice: 85, custRadius: 8, custMin: 20,
+    desc: 'The imperial marble yard on the Tiber, blocks numbered with the quarry marks still on ' +
+      'them: 1.822 marmor/min at $85. ★ It sells twice as fast — which is exactly twice as much ' +
+      'marble your Colosseum will never see. Read the arena\'s panel before you buy this.',
+  },
+  statioplumbi: {
+    name: 'Statio Plumbi', tier: 'commerce', era: 13, w: 2, h: 2, cost: 6240, upkeep: 5.60,
+    icon: '\u{1F6B0}', color: '#8a939d', workers: 5, needsRoad: true, needsWater: true,
+    sells: 'plumbum', sellRate: 3.056, sellPrice: 42, custRadius: 8, custMin: 15,
+    desc: 'One of the trade offices around the square at Ostia, with the provinces\' marks in mosaic ' +
+      'on the floor: 3.056 lead/min. One of these clears an Ustrina exactly.',
+  },
+  velariorum: {
+    name: 'Corpus Velariorum', tier: 'commerce', era: 13, w: 2, h: 2, cost: 8840, upkeep: 8.37,
+    icon: '\u{26F5}', color: '#7a97ad', workers: 5, needsRoad: true, needsWater: true,
+    sells: 'velum', sellRate: 3.930, sellPrice: 61, custRadius: 8, custMin: 20,
+    desc: 'The sailmakers\' guild hall, with a cutting floor long enough to lay out a mainsail and ' +
+      'the fleet\'s standing order on the wall: 3.930 bolts/min at $61.',
+  },
+
+  natatio: {
+    name: 'Natatio', tier: 'civic', era: 13, w: 4, h: 4, cost: 7370, upkeep: 5.58,
+    icon: '\u{1F3CA}', color: '#d2c2a8', workers: 7,
+    needsRoad: true, needsWater: true, amenityRadius: 20,
+    desc: 'The open-air swimming pool added along the whole north front, big enough to lose a ' +
+      'crowd in: amenity out to 20 tiles.',
+  },
+  templumpacis: {
+    name: 'Templum Pacis', tier: 'civic', era: 13, w: 4, h: 4, cost: 20750, upkeep: 15.41,
+    icon: '\u{1F4DC}', color: '#dcd2b8', workers: 9,
+    needsRoad: true, needsWater: true, keepsTally: true, amenityRadius: 17,
+    desc: 'Vespasian\'s temple, library and record hall, with the marble plan of the whole city cut ' +
+      'into one wall. Still keeps the books; amenity out to 17.',
+  },
+  piperataria: {
+    name: 'Horrea Piperataria', tier: 'infra', era: 13, w: 3, h: 3, cost: 15120, upkeep: 6.02,
+    icon: '\u{1F3EC}', color: '#cbb48a', workers: 7,
+    needsRoad: true, needsWater: true, depot: true,
+    storeGrain: 33500, storeFlour: 20000, storeCraft: 1400,
+    desc: 'Domitian\'s bonded warehouse for the eastern trade, vaulted in brick-faced concrete: ' +
+      '+33,500 grain, +20,000 farina and +1,400 of every craft good. Still a supply point.',
+  },
+  septemcellae: {
+    name: 'Septem Cellae', tier: 'infra', era: 13, w: 1, h: 1, cost: 4140, upkeep: 2.73,
+    icon: '\u{1F3E7}', color: '#b0d2dc', needsRoad: true, waterRadius: 26,
+    desc: 'Nine parallel vaulted chambers cut into the hill above the baths, the largest reservoir ' +
+      'in the city. Waters 26 tiles.',
+  },
+  salientes: {
+    name: 'Salientes', tier: 'infra', era: 13, w: 1, h: 1, cost: 1240, upkeep: 1.73,
+    icon: '\u{26F2}', color: '#a8d2d8', waterRadius: 17,
+    desc: 'The aquae salientes — leaping water at a street corner, running day and night with a ' +
+      'basin under it. Waters 17 tiles and still needs no road.',
+  },
+  margarium: {
+    name: 'Margarium', tier: 'food', era: 13, w: 2, h: 2, cost: 3680, upkeep: 2.79,
+    icon: '\u{26CF}\u{FE0F}', color: '#9a8a68', workers: 2, soilRadius: 17,
+    desc: 'Marl pits and a cart rota — the chalky clay Pliny says the Gauls taught Italy to spread: ' +
+      'ground within 17 tiles recovers x3.',
+  },
+  tropaeum: {
+    name: 'Tropaeum', tier: 'beauty', era: 13, w: 1, h: 1, cost: 1030, upkeep: 0,
+    icon: '\u{1F3C6}', color: '#e2ddd0', cosmetic: true,
+    desc: 'A trophy monument: captured arms carved in stone on a stepped drum. No output, no ' +
+      'upkeep, no excuses needed.',
+  },
+
+  praefectura: {
+    name: 'Praefectura Annonae', tier: 'infra', era: 13, w: 2, h: 2, cost: 4700, upkeep: 3.08,
+    icon: '\u{1F33E}', color: '#d2b478', workers: 4, needsRoad: true, annonaCap: 2.2,
+    desc: 'The grain prefect\'s own office: contracts with the shippers, a fleet register and the ' +
+      'power to requisition. Lands 2.2 rations a minute at the fair price. It still sells nothing.',
+  },
+  traiani: {
+    name: 'Portus Traiani', tier: 'infra', era: 13, w: 3, h: 3, cost: 10040, upkeep: 6.45,
+    icon: '\u{1F6E5}\u{FE0F}', color: '#a8845e', workers: 7, needsRoad: true, nearWater: 3,
+    annonaCap: 4.35,
+    desc: 'The hexagonal basin Trajan cut behind the Claudian harbour, ringed with bonded vaults and ' +
+      'dug for one purpose: 4.35 rations a minute. This is the building the whole age is about.',
+  },
+
   coal: {
     name: 'Coal Plant', tier: 'infra', era: 30, w: 2, h: 2, cost: 800, upkeep: 1.0,
     icon: '\u{1F3ED}', color: '#8d8d99', workers: 4, needsWater: true, industry: true,
@@ -7907,10 +8476,11 @@ const HOUSE_LEVELS = {
   11: ['Casula', 'Casa Colonica', 'Tiled Casa', 'Courtyard Casa', 'Fundus',
        'Greater Fundus'],
 
+  13: ['Pergula', 'Cenaculum', 'Solarium', 'Contignatio', 'Maenianum', 'Diaeta'],
   12: ['Skene', 'The Katoikia', 'Tiled Katoikia', 'Courtyard Katoikia', 'The Oikia',
        'The Great Oikia'],
 
-  0: ['Scrape', 'Nest Mound', 'Guarded Mound', 'Nest Ring', 'Colony Mound', 'Ancestral Mound'],
+  0: ['Scrape', 'Fern Bower', 'Banked Bower', 'Fenced Bower', 'Walled Bower', 'Elder Bower'],
   1: ['Windbreak', 'Hide Tent', 'Banked Tent', 'Sunken Hut', 'Winter Hut', "Elder's Hut"],
 
   2: ['Brush Lean-To', 'Reed-Roof Shelter', 'Stone-Walled House', 'Terrace House',
@@ -8019,6 +8589,26 @@ const MONUMENT_GIFT = {
     log: 'Their gift: a fire on a tower that can be seen from over the horizon — and every year ' +
       'after this one, more of them come.',
     apply(s) { s.giftBeacon = (s.giftBeacon | 0) + 1; },
+  },
+
+  13: {
+    key: 'arena',
+    icon: '\u{1F3DF}\u{FE0F}',
+    title: 'How to Raise Something Enormous',
+    lead: 'The awnings go up over fifty thousand seats, and the sand is laid.',
+    body: 'It took eight years, which for a building of that size is a fact stranger than the ' +
+      'building. What made it possible was not stone and not money: it was contractors who had ' +
+      'done it before, gangs who stayed together between jobs, cranes that were designed rather ' +
+      'than improvised, and a written schedule that said which stone arrived in which month. The ' +
+      'arena is the demonstration. The method is the thing that leaves with you.',
+    grant: '<b>In this age and every age after it, every monument you raise takes deliveries ' +
+      Math.round(TUNE.GIFT_ARENA_STEP * 100) + '% faster.</b>',
+    toast: '\u{1F3DF}\u{FE0F} The method is yours. Every monument you ever build, in this age and ' +
+      'every age after it, takes deliveries ' + Math.round(TUNE.GIFT_ARENA_STEP * 100) +
+      '% faster — the same gangs, the same cranes, the same schedule.',
+    log: 'Their gift: how to organise a very large building site — every monument after this one ' +
+      'goes up faster for it.',
+    apply(s) { s.giftArena = (s.giftArena | 0) + 1; },
   },
 
   0: {
@@ -8215,6 +8805,22 @@ const ERA_POLICY = {
     off: 'The exemption lapses. The head-money is collected in full, and the harbour is a little ' +
       'emptier for it.',
   },
+
+  13: {
+    key: 'policyFleet', icon: '\u{26F4}', name: 'The Standing Fleet',
+    liveFlag: 'fleetLift', idle: 'idle — no sailcloth on the shelf',
+    tip: 'The city keeps the grain ships fitted out of its own stores: every landing works — ' +
+      'STATIO ANNONAE, NAVICULARIUM and anything they become — lands +' +
+      Math.round(TUNE.FLEET.lift * 100) + '% more, for ' + TUNE.FLEET.perLanded.toFixed(2) +
+      ' sailcloth per ration landed. ★ It is the only lever in the game whose cost rises with ' +
+      'how much the mechanic is moving, so a city buying twice as much pays twice as much cloth. ' +
+      'AT PAR IT BUYS NOTHING — the price is already fair — and it stops the moment the ' +
+      'sailcloth runs short. One Textrinum weaves enough for it; one Armamentarium sells ' +
+      'enough to leave you with none.',
+    on: 'The charters are signed and the hulls are fitted. Every landing lands more — and the ' +
+      'sailmakers are working for the city now.',
+    off: 'The fleet is stood down. Watch the \u{1F33E} chip: the premium may have just risen.',
+  },
   11: {
     key: 'policyProfessio', icon: '\u{1F3DB}\u{FE0F}', name: 'The Professio',
     tip: 'Every householder must declare himself, his family and his property to the censor. ' +
@@ -8277,6 +8883,8 @@ const ERA_POLICY = {
 
   6: {
     key: 'policySweep', icon: '\u{1F9F9}', name: 'The Sweeping Order',
+
+    liveFlag: 'swept', idle: 'idle — no brick in store',
     tip: 'The drains are swept and re-kerbed daily: every Covered Drain reaches ' +
       TUNE.SWEEP.radius + ' tiles instead of ' + TUNE.GRID.drainRadius + ' — nearly twice the ground — ' +
       'for ' + (TUNE.SWEEP.perDrain * TUNE.TEMPO).toFixed(1) + ' brick per drain per minute. It stops ' +
@@ -8287,6 +8895,7 @@ const ERA_POLICY = {
 
   7: {
     key: 'policyWideIssue', icon: '\u{1F4DC}', name: 'The Wide Issue',
+    liveFlag: 'wideIssue', idle: 'idle — not enough oil to double the issue',
     tip: 'The scribes ride further and write more names down: every magazine administers ' +
       TUNE.WIDEISSUE.widen + ' tiles further, and every building on the roll draws ' +
       TUNE.WIDEISSUE.mult + 'x its ration. It stops the moment the oil runs short, and the names ' +
@@ -8297,6 +8906,7 @@ const ERA_POLICY = {
 
   8: {
     key: 'policyRevet', icon: '\u{1F30A}', name: 'The Revetted Ditch Order',
+    liveFlag: 'revetAdd', idle: 'idle — no blocks in store',
     tip: 'The ward turns out and lines every run below a gate in tamped courses, so the sluice can be ' +
       'opened wider: each DIVERSION GATE emits ' + TUNE.REVET.add.toFixed(1) + ' more head — one more ' +
       'BUNDED FIELD per gate, on the ditches you already dug. It costs ' + TUNE.REVET.per.toFixed(2) +
@@ -8309,6 +8919,7 @@ const ERA_POLICY = {
 
   9: {
     key: 'policyLash', icon: '\u{1FAA2}', name: 'The Lashing Order',
+    liveFlag: 'lashAdd', idle: 'idle — no sennit in store',
     tip: 'Every hull in the city is stripped and re-lashed, and the crews are kept at it: each CANOE ' +
       'LANDING crosses ' + TUNE.LASH.add + ' tiles further while the order is paid. It costs ' +
       TUNE.LASH.per.toFixed(2) + ' sennit a minute PER LIVE LANDING and stops the moment the coils run ' +
@@ -8392,6 +9003,11 @@ const ERA_ROAD = {
              'and the civic buildings; terraces, groves, beds, pans, springs, mulch pits, the quarry ' +
              'and THE CANOE LANDING never do. $10 a tile, nothing to keep.' },
 
+  13: { flavour: 'Via', color: 0x4f5250, hw: 0.36,
+        desc: 'Polygonal basalt blocks set in mortar over a rubble core, kerbed and cambered, ' +
+              'with the ruts of four centuries in it. Only SOME buildings need one -- homes, ' +
+              'shops, stores and the civics; fields, orchards, groves, quarries, mines and the ' +
+              'clay beds never do. $10 a tile, nothing to keep.' },
   12: { flavour: 'The Plateiai', color: 0x5c5348, hw: 0.38,
         desc: 'The grid, pegged out by a surveyor before a single house went up: two great streets ' +
               'thirty metres wide, packed limestone chip over a rubble bed, and everything else ' +
@@ -8467,7 +9083,8 @@ const MONUMENTS = [
   { id: 'capitolium',  name: 'The Capitolium',  era: 11, cost: 33400,     icon: '\u{1F3DB}️', desc: 'Jupiter Best and Greatest, over the whole city, from its first year.' },
 
   { id: 'pharos',      name: 'The Pharos',      era: 12, cost: 43710,     icon: '\u{1F5FC}', desc: 'A fire on a tower, seen from over the horizon, so a ship can find this coast at night.' },
-  { id: 'colosseum',   name: 'Colosseum',       era: 13, cost: 1500000,   icon: '\u{1F3DF}️', desc: 'Concrete vaults seating fifty thousand.' },
+
+  { id: 'colosseum',   name: 'Colosseum',       era: 13, cost: 57200,     icon: '\u{1F3DF}️', desc: 'Concrete vaults seating fifty thousand -- the first monument on this ladder built for the population rather than for the heavens.' },
   { id: 'cathedral',   name: 'Cathedral',       era: 22, cost: 4600000,   icon: '⛪', desc: 'A lodge of masons, working for a century.' },
   { id: 'duomo',       name: 'Grand Duomo',     era: 28, cost: 14000000,  icon: '\u{1F54C}', desc: 'A dome raised without centring.' },
   { id: 'crystalPal',  name: 'Crystal Palace',  era: 30, cost: 42000000,  icon: '\u{1F3ED}', desc: 'Iron and plate glass, prefabricated.' },
@@ -8660,7 +9277,9 @@ const QUARRIED = ['quarry', 'deepquarry', 'granitequarry', 'desertquarry',
 
   'silicaria', 'lapisalbanus',
 
-  'latomia', 'metallon'];
+  'latomia', 'metallon',
+
+  'lapicidina', 'lautumiae', 'plumbaria', 'cuniculus'];
 for (const t of QUARRIED) if (BUILDINGS[t]) BUILDINGS[t].quarried = true;
 
 const MONUMENT_BUILD = {
@@ -8683,7 +9302,7 @@ const MONUMENT_BUILD = {
 
   capitolium: { money: 30060, stone: 7170, silex: 360 },
 
-  pharos:     { money: 39340, stone: 9385, epistyle: 360 },
+  colosseum:  { money: 51480, concrete: 8580, marmor: 6435, velum: 2145 },
   ziggurat:  { money: 3600, clay: 900, beer: 300 },
   pyramid:   { money: 12000, clay: 2200, stone: 900 },
   templePyr: { money: 40000, stone: 3000, blocks: 1200 },
@@ -8705,7 +9324,9 @@ const MONUMENT_RATE = { money: 24, clay: 6, beer: 2, stone: 6, blocks: 3, potter
 
                         silex: 3,
 
-                        epistyle: 3 };
+                        epistyle: 3,
+
+                        concrete: 4, marmor: 3, velum: 1 };
 
 function monumentBuild(type, era) {
   return MONUMENT_BUILD[type] || { money: Math.round((BUILDINGS[type] || {}).cost * 0.9) || 1000 };
@@ -9225,6 +9846,42 @@ const UPGRADES = {
   gymnasion:          { to: 'ephebeion',        cost: 1020, era: 12, label: 'The Ephebeion' },
   agoranomion:        { to: 'sekoma',           cost: 5750, era: 12, label: 'The Sekoma' },
   heptastadion:       { to: 'gephyra',          cost: 1380, era: 12, label: 'The Gephyra' },
+
+  centuria:           { to: 'latifundium',      cost: 7060,  era: 13, label: 'Latifundium' },
+  pomarium:           { to: 'ficulnea',         cost: 1380,  era: 13, label: 'Ficulnea' },
+  lucrinum:           { to: 'ostrearia',        cost: 2380,  era: 13, label: 'Ostrearia' },
+  olivetum:           { to: 'praedium',         cost: 5800,  era: 13, label: 'Praedium' },
+  argilla:            { to: 'cretaria',         cost: 3800,  era: 13, label: 'Cretaria' },
+  lapicidina:         { to: 'lautumiae',        cost: 9880,  era: 13, label: 'Lautumiae' },
+  pozzolana:          { to: 'harenaria',        cost: 3800,  era: 13, label: 'Harenaria' },
+  plumbaria:          { to: 'cuniculus',        cost: 8840,  era: 13, label: 'Cuniculus' },
+  linarius:           { to: 'agercumanus',      cost: 5800,  era: 13, label: 'Ager Cumanus' },
+
+  pistrinum:          { to: 'barbegal',         cost: 2960,  era: 13, label: 'Barbegal Cascade' },
+  torcularium:        { to: 'prelum',           cost: 4180,  era: 13, label: 'Prelum' },
+  figlina:            { to: 'mufflekiln',       cost: 3080,  era: 13, label: 'Muffle Kiln' },
+  marmoraria:         { to: 'serraaquaria',     cost: 5260,  era: 13, label: 'Serra Aquaria' },
+  caementicia:       { to: 'calcaria',         cost: 3080,  era: 13, label: 'Fornax Calcaria' },
+  ustrina:            { to: 'cupella',          cost: 4710,  era: 13, label: 'Cupella' },
+  textrinum:          { to: 'linteonum',        cost: 4180,  era: 13, label: 'Linteonum' },
+
+  panificium:         { to: 'porticusminucia',  cost: 4440,  era: 13, label: 'Porticus Minucia' },
+  olearia:            { to: 'testaceus',     cost: 6630,  era: 13, label: 'Mons Testaceus' },
+  officinasamia:      { to: 'sigillariae',      cost: 4250,  era: 13, label: 'Sigillariae' },
+  statuaria:          { to: 'statiomarmorum',   cost: 4290,  era: 13, label: 'Statio Marmorum' },
+  fistularia:         { to: 'statioplumbi',     cost: 4680,  era: 13, label: 'Statio Plumbi' },
+  armamentarium:      { to: 'velariorum',       cost: 6630,  era: 13, label: 'Corpus Velariorum' },
+
+  thermae:            { to: 'natatio',          cost: 5270,  era: 13, label: 'Natatio' },
+  atriumlibertatis:   { to: 'templumpacis',     cost: 14820, era: 13, label: 'Templum Pacis' },
+  horreum:            { to: 'piperataria',      cost: 10800, era: 13, label: 'Horrea Piperataria' },
+  castellum:          { to: 'septemcellae',     cost: 2960,  era: 13, label: 'Septem Cellae' },
+  puteus:             { to: 'salientes',        cost: 890,   era: 13, label: 'Salientes' },
+  stercorarium:       { to: 'margarium',        cost: 2630,  era: 13, label: 'Margarium' },
+  columna:            { to: 'tropaeum',         cost: 740,   era: 13, label: 'Tropaeum' },
+
+  statioannonae:      { to: 'praefectura',      cost: 3360,  era: 13, label: 'Praefectura Annonae' },
+  navicularium:       { to: 'traiani',         cost: 7170,  era: 13, label: 'Portus Traiani' },
 };
 
 const UPGRADE_TARGETS = (function () {
@@ -9494,6 +10151,8 @@ function auditDataTables() {
 
 const ERA_FOOD_LABEL = { 10: 'Bread, figs, pulses and fish this age',
 
+                         13: 'Fish, figs and farina GROWN this age',
+
                          11: 'Farina, greens and fish this age',
                          12: 'Aleuron, greens and fish this age',
   7: 'Meal issued this age',
@@ -9540,6 +10199,18 @@ const ERA_VOICE = {
       'or an OVILE, which takes its +50% on exactly the ground the ploughland ruined',
   },
 
+  13: {
+    settlers: ['Verecundus', 'Lucilla', 'Faustinus', 'Severa', 'Candidus', 'Postuma'],
+    place: 'city',
+    mill: 'Pistrinum',
+    tally: 'The Atrium Libertatis',
+    tallyLine: 'The Atrium Libertatis is opened and the censors let the contracts -- the city ' +
+      'can read its own accounts now, down to the last modius that came off a ship.',
+    ration: 'The founding grant is spent -- the last of the state grain goes out at the Pistrinum.',
+    saltName: 'ground worked out under continuous cropping',
+    saltAnswers: 'a STERCORARIUM in range (x3 recovery), or simply rest the square -- and note ' +
+      'that a rested square grows nothing, which at this rung is a bill rather than a pause',
+  },
   12: {
     settlers: ['Sostratos', 'Berenike', 'Kleitos', 'Arsinoe', 'Demetrios', 'Lysandra'],
     place: 'foundation',
@@ -9555,9 +10226,10 @@ const ERA_VOICE = {
   },
   0: {
 
-    settlers: ['Pale-Crest', 'Broken-Frill', 'Long-Stride', 'Ash-Back', 'Two-Notch', 'Mud-Foot'],
-    place: 'range',
-    mill: 'Grazing Lawn',
+    settlers: ['Ash-Back', 'Two-Notch', 'Long-Stride', 'Mud-Foot', 'Reed-Hand', 'Far-Walker'],
+
+    place: 'camp',
+    mill: 'The Drying Lawn',
     tally: 'the record in the mud',
     tallyLine: 'Nothing here writes anything down. The record is the ground: every layer you lay is ' +
       'counted, and it will still be there in ninety million years.',
@@ -9758,6 +10430,24 @@ const ERA_STAPLE = {
                  clay: 'Creta', tegula: 'Tegulae', stone: 'Silex', silex: 'Dressed Silex' },
   },
 
+  13: {
+    raw: 'grain', cooked: 'flour',
+    rawIcon: '\u{1F33E}', cookedIcon: '\u{1F956}',
+    rawName: 'Frumentum', cookedName: 'Farina',
+    cookedVerb: 'milled',
+    rawFrom: 'the centuriated squares',
+    rawNote: 'and the squares are not enough and never will be -- what the city cannot grow it ' +
+      'BUYS, at a price that climbs with the number of mouths. Watch the \u{1F33E} chip',
+    shortNote: 'Every chain you add adds mouths. The bread you bake is SOLD; what the city eats ' +
+      'comes off the ponds, the orchards and the grain fleet. Land more, or grow slower.',
+    hungerFix: 'sow another CENTURIATED FIELD, hang a POMARIUM on the dry ground, or -- the ' +
+      'answer this age is actually about -- build a STATIO ANNONAE and land more of it',
+    goodNames: { grain: 'Frumentum', flour: 'Farina', dates: 'Figs', fish: 'Fish',
+                 olives: 'Olives', oil: 'Oil', clay: 'Clay', sigillata: 'Samian',
+                 stone: 'Travertine', marmor: 'Marble', pozzolana: 'Pozzolana',
+                 concrete: 'Concrete', galena: 'Galena', plumbum: 'Lead',
+                 linum: 'Flax', velum: 'Sailcloth' },
+  },
   12: {
     raw: 'grain', cooked: 'flour',
     rawIcon: '\u{1F33E}', cookedIcon: '\u{1F35E}',
@@ -9788,14 +10478,15 @@ const ERA_STAPLE = {
   0: {
     raw: 'grain', cooked: 'flour',
     rawIcon: '\u{1F33F}', cookedIcon: '\u{1F342}',
-    rawName: 'Browse', cookedName: 'Forage',
+
+    rawName: 'Frond', cookedName: 'Fern Meal',
     cookedVerb: 'laid down', rawFrom: 'the fern prairies',
     rawNote: 'the Clutch Mounds draw on it too, and only one of the two feeds anyone',
-    shortNote: 'Every chain you add brings mouths and no browse — add prairies and a Lawn, or plant a ' +
+    shortNote: 'Every chain you add brings mouths and no fronds — add prairies and a Lawn, or plant a ' +
       'Magnolia Thicket, which needs nothing at all.',
-    hungerFix: 'lay out a Fern Prairie and a Grazing Lawn, or plant a Magnolia Thicket',
+    hungerFix: 'lay out a Fern Prairie and a Drying Lawn, or plant a Magnolia Thicket',
 
-    goodNames: { grain: 'Browse', flour: 'Forage', clay: 'Marl', pottery: 'Chalk',
+    goodNames: { grain: 'Frond', flour: 'Fern Meal', clay: 'Marl', pottery: 'Chalk',
                  wool: 'Resin', cloth: 'Amber', beer: 'Clutches', reeds: 'Horsetail',
                  baskets: 'Lignite', stone: 'Bone', blocks: 'Fossil',
                  dates: 'Fruit', fish: 'Crustaceans' },

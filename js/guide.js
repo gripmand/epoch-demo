@@ -2,7 +2,7 @@
 
 const ERA_ANCHOR = {
 
-  0:  { name: 'The Landmark',       short: 'Landmark',   note: 'A sixty-metre araucaria on a rise, standing alone above the fern. The whole range is organised around it and nothing on this floodplain is out of sight of it.' },
+  0:  { name: 'The Landmark',       short: 'Landmark',   note: 'A sixty-metre araucaria on a rise, standing alone above the fern. The whole camp is laid out around it, and nothing on this floodplain is out of sight of it. It is not a seat of power — it is the thing everyone can find their way back to.' },
 
   1:  { name: 'The Long Hearth',    short: 'Hearth',     note: 'Not a government — a fire that is never allowed to go out. The band sleeps in its heat and the tally of the season is cut into bone beside it.' },
   2:  { name: 'The Overseer\'s Compound', short: 'Compound', note: 'In the Atrahasis the lesser gods dug the canals, rebelled, and people were made from clay to bear the labour instead. This is where the quota is set. The gold is not yours.' },
@@ -19,7 +19,8 @@ const ERA_ANCHOR = {
   10: { name: 'Prytaneion',         short: 'Prytaneion', note: 'The civic hearth of the polis. Its fire was never allowed to go out.' },
   11: { name: 'The Comitium',       short: 'Comitium',   note: 'Open assembly ground, before anyone thought to roof it. The Republic is argued standing up.' },
   12: { name: 'The Founder\'s Agora', short: 'Agora',    note: 'A city planted deliberately, a long way from home. The grid and the founder\'s cult were laid out in the same week.' },
-  13: { name: 'Curia',              short: 'Curia',      note: 'The senate house on the forum, from which the censors let the public contracts. This is the empire that built the aqueducts, not the one that lost them.' },
+
+  13: { name: 'Curia',              short: 'Curia',      note: 'The senate house on the forum, where the prefect of the annona answered for the bread. The city below it has outgrown every field within a day\'s cart, and somebody has to sign for the difference.' },
   14: { name: 'Council House',      short: 'Popol Nah',  note: 'The popol nah — the mat house — where lineage heads met beneath a woven-mat frieze.' },
 
   15: { name: 'The Praetorium',     short: 'Praetorium', note: 'The governor\'s residence inside a wall that was not needed when the city was built. It now administers only what can still be defended.' },
@@ -81,7 +82,7 @@ const ERA_RECORD = {
         chronicle: 'The Archive', chronBtn: 'Archive', chronSub: 'Set down in wet clay and filed by the month. The record keeps the last 200 entries.',
         keeper: 'the scribe of the west magazine' },
   0:  { icon: '\u{1FAA8}', tally: 'The Layer Count', tallyBtn: 'Layers',
-        tallySub: 'What this range has laid down, and what is left of it.',
+        tallySub: 'What this camp has laid down, and what is left of it.',
         chronicle: 'The Seam', chronBtn: 'The Seam',
         chronSub: 'Nothing here writes anything down. The record is the ground — the last 200 layers.',
         keeper: 'the mud, which forgets nothing' },
@@ -132,6 +133,12 @@ const ERA_RECORD = {
         chronicle: 'The Ephemeris', chronBtn: 'Ephemeris',
         chronSub: 'A day-book, written up each evening and shelved. It keeps the last 200 entries.',
         keeper: 'a Bibliotheke' },
+
+  13: { icon: '\u{1F33E}', tally: 'The Incisio', tallyBtn: 'The Incisio',
+        tallySub: 'The grain roll, cut on bronze tesserae. Heads, not citizens.',
+        chronicle: 'The Acta Diurna', chronBtn: 'Acta Diurna',
+        chronSub: 'Whitewashed and posted in the forum each morning. It keeps the last 200 entries.',
+        keeper: 'an Atrium Libertatis' },
   14: { icon: '\u{1F4D6}', tally: 'The Codex Tally', tallyBtn: 'Codex Tally',
         tallySub: 'Painted on bark paper, against the day-count.',
         chronicle: 'The Long Count', chronBtn: 'Long Count',
@@ -161,11 +168,11 @@ const ERA_FOUNDING = {
         founded: ' was founded on the break of slope — above the wet ground and below the ridge.',
         toast: ' is founded. May the water run the way you send it.' },
 
-  0:  { icon: '\u{1F332}', title: 'Name This Range',
-        sub: 'Nothing here can name it. Sixty-six million years from now, somebody will.',
-        placeholder: 'The Landmark Beds', ok: 'Name the range', skip: 'Leave it unnamed',
+  0:  { icon: '\u{1F332}', title: 'Name This Camp',
+        sub: 'Nothing here can write it down. Sixty-six million years from now, somebody will read it out of the mud anyway.',
+        placeholder: 'The Landmark Beds', ok: 'Name the camp', skip: 'Leave it unnamed',
         founded: ' was laid down, layer on layer, in the same mud.',
-        toast: ' is named — by the people who will one day dig it up.' },
+        toast: ' is named — and the ground is already keeping the record.' },
   7:  { icon: '\u{1F300}', title: 'Name This Palace',
         sub: 'Whatever the people here called it, the name we use is the one a stranger wrote down.',
         placeholder: 'Ka-no-so', ok: 'Name the palace', skip: 'Leave it unnamed',
@@ -210,6 +217,45 @@ function eraFounding(era) {
 
 const ERA_SITE = {
 
+  13: {
+    roadYes: '<b>the Cenaculum and the Insula, the Panificium, the Olearia, the Officina Samia, ' +
+      'the Officina Statuaria, the Fistularia, the Armamentarium, the STATIO ANNONAE and the ' +
+      'NAVICULARIUM, the Castellum Aquae, the Horreum, the Thermae, the Atrium Libertatis and the ' +
+      'Colosseum</b>',
+    roadNo: 'the Puteus, the Centuriated Field, the Pistrinum, the Stercorarium, the Stagnum ' +
+      'Lucrinum, the Pomarium, the Olivetum, the Torcularium, the Argilla, the Figlina, the ' +
+      'Lapicidina, the Officina Marmoraria, the Pozzolana Pit, the Officina Caementicia, the ' +
+      'Plumbaria, the Ustrina, the Ager Linarius, the Textrinum and the Columna — and note ' +
+      'especially <b>the PUTEUS and the POMARIUM, which between them need no road, no water ' +
+      'near them and nothing from anybody, and which are the first two things you should put ' +
+      'down</b>.',
+    water: 'Twenty of the thirty-four want to be inside a <b>Puteus</b>’s twelve tiles or a ' +
+      '<b>Castellum Aquae</b>’s eighteen — homes, the field, the mill, every workshop and every ' +
+      'counter. ★ NEITHER OF THEM NEEDS TO STAND NEAR WATER: a shaft well is sunk where the ' +
+      'people are, and the castellum is where the line from the hills ENDS. The Puteus costs ' +
+      '$590 and needs no road either; the Castellum costs $1,970, needs one, and reaches the ' +
+      'widest circle on the ladder. Press <b>O</b> to see the rings. ★ There is no aqueduct to ' +
+      'plan and no gradient to solve — water here is a DISC, exactly as it was at rung 12.',
+    extra: [
+      '<b>Whatever dinner cannot cover out of your own stores is BOUGHT, automatically, every ' +
+      'minute, out of the treasury</b> — and the price rises with how much of it there is. ' +
+      'Nothing turns red and nothing stops; the money simply goes. The 🌾 chip prints the ' +
+      'multiplier, what you are buying against what your works can land, and how long the ' +
+      'treasury carries the bill at today’s price.',
+      '<b>Landings are the only thing that makes the grain cheaper, and they are BUILDINGS.</b> ' +
+      'A STATIO ANNONAE lands 1.5 rations a minute and needs a road and nothing else; a ' +
+      'NAVICULARIUM lands 3.0 and wants to be within three tiles of the river. Every ration ' +
+      'above what they can land reprices <b>the whole shipment</b>, not just the excess.',
+      '<b>Bought bread does not open the age.</b> The food gate counts what this city GREW — ' +
+      'the Centuriated Field, the Stagnum Lucrinum and the Pomarium — and the annona is credited ' +
+      'to none of it. A city that buys its way through rung 13 survives forever and never leaves.',
+      '★ <b>Two things are not in the founding parcels and the map says so on every seed:</b> ' +
+      'open water for the STAGNUM LUCRINUM (7-9 tiles, one parcel out) and an outcrop for the ' +
+      'LAPICIDINA (eleven tiles, three parcels). The quarry is your EXIT — 15,846 stone, and the ' +
+      'Colosseum’s marble wants eight times that again — so it is worth walking to early. ' +
+      'Nothing in the age deadlocks on either.',
+    ],
+  },
   12: {
     roadYes: '<b>the Katoikia and the Amphodon, the Artopolion, the Lachanopolion, the ' +
       'Hyalopolion, the Chartopoleion, the Dromos, the Pissopolion, the NEORION, the Apotheke, ' +
@@ -377,22 +423,25 @@ const ERA_SITE = {
     extra: [],
   },
   0: {
-    roadYes: '<b>Nest Mounds, Rookery Terraces, the Leaf Mat, Chalk Downs, the Petrified Bar, the ' +
+
+    roadYes: '<b>Fern Bowers, Thatch Rows, the Leaf Mat, Chalk Downs, the Petrified Bar, the ' +
       'Amber Bed, the Egg Bed, the Peat Swamp, the Channel Lag and the Refuge</b>',
-    roadNo: 'Fern Prairies, Grazing Lawns, Coccolith Shoals, Chalk Banks, Bone Beds, Mineral Seeps, ' +
+    roadNo: 'Fern Prairies, Drying Lawns, Coccolith Shoals, Chalk Banks, Bone Beds, Mineral Seeps, ' +
       'Resin Conifer Stands, Amber Seeps, Clutch Mounds, Horsetail Marshes, Waterholes, Spring Seeps, ' +
-      'the Ford, the Log Jam, the Wallow, the Sentinel Knoll and the Carrion Ground — and, less ' +
+      'the Ford, the Log Jam, the Soak, the Sentinel Knoll and the Carrion Ground — and, less ' +
       'obviously, the Magnolia Thicket and the Rot-Wood Bed, which need nothing at all',
-    water: 'Most buildings must sit inside a <b>Waterhole’s</b> three tiles or a <b>Spring Seep’s</b> ' +
-      'five. ★ THE SEA DOES NOT COUNT: coverage is stamped only by a placed building, never by the ' +
-      'water you are standing beside. Press <b>O</b> to see it.',
+    water: 'Most buildings must sit inside a <b>Waterhole’s</b> five tiles or a <b>Spring Seep’s</b> ' +
+      'eight — and <b>thirty of this age’s buildings need water</b>, more of them than in any other. ' +
+      '★ THE SEA DOES NOT COUNT: coverage is stamped only by a placed building, never by the ' +
+      'water you are standing beside. Press <b>O</b> to see it. ★ A prairie sited two tiles too far ' +
+      'looks built, costs upkeep and makes NOTHING — that is what the red <b>!</b> is telling you.',
     extra: [
-      '<b>The trophic loop.</b> Every nest loses a share of its head every minute, and the share rises ' +
-      'with the TREE COVER within six tiles of it. Nest in the open and browse in the shelter — the ' +
-      'opposite of what a city builder trains. A <b>Sentinel Knoll</b> cuts it by a quarter and costs ' +
-      'no food; a <b>Carrion Ground</b> cuts it by nearly half and is paid for in clutches. The ' +
-      '<b>Magnolia Thicket</b> and the <b>Rot-Wood Bed</b> feed you either way. Watch the ' +
-      '\u{1F995} chip.',
+      '<b>The trophic loop.</b> Every shelter loses a share of the people in it every minute, and the ' +
+      'share rises with the TREE COVER within six tiles of it. Camp in the open and forage in the ' +
+      'shelter — the opposite of what a city builder trains. A <b>Sentinel Knoll</b> cuts it by a ' +
+      'quarter and costs no food; a <b>Carrion Ground</b> cuts it by nearly half and is paid for in ' +
+      'clutches, which is a bribe laid where you are not. The <b>Magnolia Thicket</b> and the ' +
+      '<b>Rot-Wood Bed</b> feed you either way. Watch the \u{1F995} chip.',
     ],
   },
   1: {
@@ -618,28 +667,32 @@ const ERA_GUIDES = {
       'second one out is always refused. You cross in a hull or you do not cross.',
   },
   0: {
+
     headline: 'You are not the chief. You are the thing being watched.',
-    mechanic: 'The colony IS the food. A second population you never place takes a share of the herd ' +
-      'every minute, and the share depends on the ground you nested on: every tree within 6 tiles of a ' +
-      'nest is cover for something. Growing is the defence — a big herd is safer PER HEAD than a small ' +
-      'one. Watch the \u{1F995} chip: if nests stand empty, the treeline is why.',
+    mechanic: 'You are not the top of anything here. Something you never place takes a share of your ' +
+      'people every minute, and the share depends on the ground you camped on: every tree within 6 ' +
+      'tiles of a shelter is cover for something. Numbers are the defence — a big camp is safer PER ' +
+      'HEAD than a small one, because there are more eyes and worse odds of being the one taken. ' +
+      'Watch the \u{1F995} chip: if shelters stand empty, the treeline is why.',
     chain: [
-      'Fern Prairie ×3 → Grazing Lawn → Leaf Mat  ·  ~$10/min. Dinner, and it barely pays',
+      'Fern Prairie ×3 → Drying Lawn → Leaf Mat  ·  ~$10/min. Dinner, and it barely pays',
       'Coccolith Shoal ×2 → Chalk Bank → Chalk Downs  ·  ~$19/min. The volume earner, on the sea margin',
       'Bone Bed → Mineral Seep → Petrified Bar  ·  ~$22/min. On the gravel, the one ground you cannot make more of',
       'Resin Conifer Stand ×2 → Amber Seep → Amber Bed  ·  ~$25/min. The ridge — a Spring Seep has to walk up there first',
       'Horsetail Marsh → Peat Swamp  ·  ~$16/min. Two buildings and one landform',
     ],
+
     firstSteps: [
-      'A WATERHOLE first, on open floodplain: 3 tiles, and the sea does not count — coverage comes from a building.',
-      'Three FERN PRAIRIES and a GRAZING LAWN: one Lawn is exactly three prairies, and it feeds ten head.',
-      'Then trail out and drop NEST MOUNDS in the OPEN. They are $12 — build far more than you think you need.',
-      'A MAGNOLIA THICKET on the ash beds: no water, no road, no herd, and it feeds you when the rest goes wrong.',
-      'A SENTINEL KNOLL before the fourth chain. $33 buys back a third of a colony nesting in cover.',
+      'A WATERHOLE first, on open floodplain: it waters 5 tiles, and the sea does not count — coverage comes from a building, never from the ground you stand on. Everything you are about to place lives inside that disc.',
+      'A GAME TRAIL out of the Landmark, straight through the Waterhole\'s five tiles. About thirteen tiles of it, $10 each. A shelter here needs BOTH the water and the trail, so the trail is not decoration — lay it before you lay a bower, not after.',
+      'FERN BOWERS along that trail, INSIDE the disc, on ground with no tree within 6 tiles. They are $12 and hold two each, so build nine. ★ "In the open" means open GROUND — the treeline is what takes your people. It does NOT mean out in the open country: a bower off the trail or outside the water simply stands there empty, and the camp grows by nobody.',
+      'Three FERN PRAIRIES and a DRYING LAWN beside them: one Lawn is exactly three prairies, and it feeds ten. Keep them in the disc with everything else — the ground you have already watered is the cheapest ground you own.',
+      'A MAGNOLIA THICKET on the ash beds: no water, no road, nobody to staff it, and it feeds you when the rest goes wrong.',
+      'A SENTINEL KNOLL before the fourth chain. $33 buys back a third of what a camp pitched in cover loses. That is about half your purse spent; the chalk on the sea margin is what pays for the rest.',
     ],
-    mistake: 'Nesting in the trees. Every tree within 6 tiles of a nest raises what is taken from it by ' +
-      'up to half — and clearing one nest\'s cover costs about $540 at $15 a tile, so the answer is ' +
-      'usually to move, or to put a Sentinel Knoll on it. Another nest is never the answer.',
+    mistake: 'Camping in the trees. Every tree within 6 tiles of a shelter raises what is taken from it ' +
+      'by up to half — and clearing one shelter\'s cover costs about $540 at $15 a tile, so the answer ' +
+      'is usually to move, or to put a Sentinel Knoll on it. Another shelter is never the answer.',
   },
   1: {
     headline: 'Keep the fire alive. Everything else is detail.',
@@ -1033,12 +1086,49 @@ const ERA_GUIDES = {
       'a second Donkey Mill feeds nobody new, and the ⚖️ chip has been naming the leg you are actually ' +
       'short of the whole time.',
   },
+
   13: {
-    headline: 'Utilities become networks with gradients, not radii.',
-    mechanic: 'Water enters at a high point and runs downhill through the aqueduct at a fixed gradient into a castellum, which divides it by nozzle size between public fountains, baths and private buyers. You can sell water rights.',
-    chain: ['Aqueduct → Castellum → sold water rights', 'Brickworks and concrete unlock everything else'],
-    firstSteps: ['Plan the water gradient before you build downhill.', 'Concrete unlocks vaults — it gates the big civic buildings.'],
-    mistake: 'Treating water as a radius. It now flows, and downhill matters.',
+    headline: 'Your fields are full, your mills are running, and the city eats more than the valley grows.',
+    mechanic: 'BUY THE DIFFERENCE. Whatever dinner cannot cover out of your own stores is bought — ' +
+      'automatically, every minute, out of the treasury — and THE PRICE RISES WITH HOW MUCH OF IT ' +
+      'THERE IS. Not the excess: the WHOLE SHIPMENT reprices. Land 5.4 rations a minute and buy 4 ' +
+      'and you pay the fair $2.72 each; grow to buy 12 against the same landings and every one of ' +
+      'those twelve costs ×2.9. ★ Nothing turns red and nothing stops — the money simply goes, and ' +
+      'the 🌾 chip prints the multiplier, the two numbers behind it and how many seconds the ' +
+      'treasury carries the bill. ★★ THE ONLY THINGS THAT MAKE IT CHEAPER ARE BUILDINGS: a STATIO ' +
+      'ANNONAE lands 1.5 a minute for a road and $2,240, a NAVICULARIUM 3.0 for a road and a river ' +
+      'bank. ★★★ AND WHAT YOU BUY DOES NOT OPEN THE AGE. The food gate counts what this city GREW. ' +
+      'A city that buys its way through rung 13 survives forever and never leaves it.',
+    chain: [
+      'The Centuriated Field → The Pistrinum → The Panificium  ·  ★ AN EARNER, NOT A LARDER. One survey square is 26.62 grain, exactly one mill\'s appetite; three counters sell all 15.97 of the flour at $8',
+      'The Pomarium  ·  THE LEG THAT CANNOT FAIL — figs on dry ground for $690, no water, no road, nothing from anybody. Nine tiles to feed 4.91 a minute, which is the whole trade this age offers you',
+      'The Stagnum Lucrinum  ·  oysters and fish standing IN the water, 6.58 a minute. One parcel out on every seed, and the largest thing you actually grow',
+      'The Olivetum → The Torcularium → The Olearia  ·  oil at $42 off the dry interfluve. Two Oleariae clear one press exactly',
+      'The Argilla → The Figlina → The Officina Samia  ·  red gloss at $37, and the river bank it wants is the bank the flax wants',
+      'The Lapicidina → The Officina Marmoraria → The Officina Statuaria  ·  ★ THE EXIT: 15,846 stone, and the Colosseum\'s marble wants 128,700 more. The saw sells 0.911 and banks the rest for the arena',
+      'The Pozzolana Pit → The Officina Caementicia  ·  concrete, and NOTHING BUYS IT. Its only customer is the Colosseum, which takes 4.00/min for the whole build',
+      'The Plumbaria → The Ustrina → The Fistularia  ·  lead: pigs, pipes and hull sheathing at $42. The mine eats the same outcrop the quarry does',
+      'The Ager Linarius → The Textrinum → The Armamentarium  ·  ★ SAILCLOTH at $61, the richest counter in the age — and the same bolts the STANDING FLEET and the Colosseum both want',
+      'The Puteus and the Castellum Aquae · The Cenaculum + The Insula · the Horreum, the Thermae, the Atrium Libertatis  ·  water, homes, and the store that stops one mill filling the shelf in two minutes',
+    ],
+    firstSteps: [
+      'A PUTEUS first ($590 of your $34,177). A shaft well needs NO ROAD, NO WATER ANYWHERE NEAR IT and NO WORKERS, and it waters twelve tiles — so it is the cheapest thing in the game that unlocks anything, and everything below wants to be inside its ring.',
+      'A POMARIUM ($690) on dry ground. Figs, three hands, no water, no road, no chain. THIS IS THE LEG THAT CANNOT FAIL, and it is nine tiles for one small food — which is this age telling you what its land is worth before it charges you for the rest.',
+      'A CENTURIATED FIELD ($3,530) inside the well’s ring, on the greenest sixteen tiles you can find. It has no ground requirement, but it grows +50% on FERTILE — and the fertile ribbon here is the narrowest on the ladder, about three tiles either side of the river. MEASURED: the best 4×4 in the founding parcels is 75-88% fertile on three seeds.',
+      'A PISTRINUM ($2,960), also inside the ring. Three hands and three hands and four is TEN — your whole founding crew, spent exactly, and the mill turns all 26.62 grain into 15.97 flour.',
+      'A LANE out of the Hall ($10 a tile, about $120). It has to TOUCH THE HALL: a building is connected when it stands on a network that reaches the Hall, not when it happens to be beside a road tile.',
+      'Four CENACULA ($4,760) on the lane — forty beds on four tiles, at $119 a head, the cheapest housing in the game. Then a PANIFICIUM ($2,960) on the lane too; the bread counter wants thirteen residents within eight tiles and it now has forty.',
+      'An ARGILLA ($1,900) on the river bank — no road needed, but it must be within three tiles of water — then a FIGLINA ($3,080) and an OFFICINA SAMIA ($2,830) inside the well. That is the earner: 2.095 samian a minute at $37.',
+      '★ A STATIO ANNONAE ($2,240) LAST, AND BEFORE YOU NEED IT. It needs a road and nothing else. At fifty residents your fields still cover dinner and the 🌾 chip reads ×1.00 — build the landing while that is true, because the price is decided by the gap and the gap opens the moment you lay more beds.',
+      '★★ MEASURED on three seeds, freeBuild off: thirteen buildings for $25,660 of your $34,177, every one of them working, hunger 0.00, fifty housed, the annona at ×1.00 — and the treasury at $9,267 / $10,212 / $11,158 / $12,108 at ten, twenty, thirty and forty authored minutes. It earns about $95 a minute and it is never short.',
+      '★ TWO THINGS ARE NOT IN THE FOUNDING PARCELS AND THE MAP SAYS SO ON EVERY SEED: open water for the STAGNUM LUCRINUM (7-9 tiles, one parcel) and an outcrop for the LAPICIDINA (eleven tiles, three parcels). The fishery is your biggest home-grown food and the quarry is your EXIT; neither is urgent, and nothing in the age deadlocks on either.',
+    ],
+    mistake: 'Answering the bill with houses. Four more Insulae is 168 more mouths for $16,320, and ' +
+      'every one of them reprices the WHOLE shipment — the bill will roughly triple for a 44% rise ' +
+      'in population, which is the one thing on this ladder that has never happened before. The ' +
+      'answer is always the other two: LAND more (a Statio Annonae, a Navicularium) or GROW more ' +
+      '(a Centuriated Field, a Stagnum Lucrinum, a Pomarium). Watch the 🌾 chip before you lay a ' +
+      'bed, not after.',
   },
   22: {
     headline: 'You start earning by owning rights, not selling goods.',
