@@ -191,6 +191,8 @@ const TUNE = {
   GIFT_BEACON_STEP: 0.12,
 
   GIFT_ARENA_STEP: 0.20,
+
+  GIFT_KEEP_STEP: 0.25,
   DEMOLISH_REFUND: 0.5,
   CLEAR_TREE: 15,
 
@@ -411,6 +413,8 @@ const TUNE = {
   },
 
   FIREKEEPER: { save: 0.15 },
+
+  BONEFIRE: { hot: 1.5 },
 
   FUEL_RESERVE_MIN: 2,
 
@@ -9320,6 +9324,27 @@ const MONUMENT_GIFT = {
     apply(s) { s.giftSupply = (s.giftSupply | 0) + 1; },
   },
 
+  1: {
+    key: 'keep',
+    icon: '\u{1F58C}\u{FE0F}',
+    title: 'What You Leave Standing',
+    lead: 'The last hand is pressed on the wall, the lamps are carried back up the passage, and the ' +
+          'hole in the ground is left exactly as it was found.',
+    body: 'Nobody lived down here. There is no hearth in the painted chamber, no bones, no tools left ' +
+          'lying — people walked four hundred metres into absolute dark carrying fire, drew horses, ' +
+          'and walked out. At Chauvet the charcoal in two of the panels is five thousand years apart, ' +
+          'which means the place was empty for fifty centuries and somebody still knew how to find ' +
+          'it, and still came back. That is the thing this age is actually good at: leaving a thing ' +
+          'standing, spending almost nothing to keep it, and returning.',
+    grant: '<b>Every building you switch off, in this age and every age after it, costs ' +
+           Math.round(TUNE.GIFT_KEEP_STEP * 100) + '% less to keep standing.</b>',
+    toast: '\u{1F58C}\u{FE0F} The passage is closed and the wall keeps. From now on, in this age and ' +
+           'every age after it, anything you mothball costs ' + Math.round(TUNE.GIFT_KEEP_STEP * 100) +
+           '% less to hold.',
+    log: 'Their gift: the habit of coming back. What you switch off is cheaper to keep, forever.',
+    apply(s) { s.giftKeep = (s.giftKeep | 0) + 1; },
+  },
+
 };
 function monumentGift(era) { return MONUMENT_GIFT[rungOf(era)] || null; }
 
@@ -9421,6 +9446,23 @@ const ERA_POLICY = {
       'town; it is what you pull when the land is full and the next ring is not affordable yet.',
     on: 'The camps come down and go up again a mile on. Less ground shared, less work done.',
     off: 'The camps settle. Full work — now keep them apart yourself.',
+  },
+
+  1: {
+    key: 'policyBoneFire', icon: '\u{1F9B4}', name: 'The Bone Fire',
+    liveFlag: 'boneFire', idle: 'idle — no bone in the store',
+    tip: 'The fires are banked on rendered bone. Bone is held back from the benches, burned FIRST, ' +
+      'and delivers ' + TUNE.BONEFIRE.hot.toFixed(1) + '× the warmth it does cold — so the wood you ' +
+      'have left is not touched, and the same store carries the camp ' +
+      Math.round((TUNE.BONEFIRE.hot - 1) * 100) + '% further. It costs no coin and spends no extra ' +
+      'good. It spends BONE: the Carver’s bench, the Trade Post’s best raw, and the Painted Cave’s ' +
+      'own hundred carvings. ★ MEASURED: a camp whose stands are worked out goes from dark one tick ' +
+      'in THREE to never dark, and its carvings barely move — the Lodge needs the fire too. A camp ' +
+      'that was never short pays 31% of its carvings for nothing. Pull it when the \u{1F525} chip ' +
+      'flickers; drop it the moment it stops.',
+    on: 'The fires are banked on bone. The wood can stand — and the benches wait their turn.',
+    off: 'The bone comes off the fire. Watch the \u{1F525} chip: the store you were counting on just ' +
+      'got a third smaller.',
   },
   4: {
     key: 'policyBeerRation', icon: '\u{1F37A}', name: 'Beer Ration Decree',
@@ -9975,6 +10017,11 @@ function stapleCap(s) {
 function exportMult(s) {
   const st = s || (typeof G !== 'undefined' && G ? G.s : null);
   return Math.min(0.90, TUNE.EXPORT_MULT + TUNE.GIFT_EXPORT_STEP * ((st && st.giftExport) | 0));
+}
+
+function mothballKeep(s) {
+  const st = s || (typeof G !== 'undefined' && G ? G.s : null);
+  return TUNE.MOTHBALL_UPKEEP * Math.pow(1 - TUNE.GIFT_KEEP_STEP, ((st && st.giftKeep) | 0));
 }
 function rankOf(b) { return Util.clamp(Math.round(b && b.rank || 1), 1, rankMax()); }
 

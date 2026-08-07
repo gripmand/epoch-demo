@@ -1990,7 +1990,8 @@ const UI = {
     const sup = b.supply || 1;
     const isMothed = b.mothballed;
     const realUp = isMothed
-      ? d.upkeep * TUNE.MOTHBALL_UPKEEP * TUNE.TEMPO
+
+      ? d.upkeep * mothballKeep(s) * TUNE.TEMPO
       : d.upkeep * sup * (b.trade || 1) * rankUpkeepMult(b) * TUNE.TEMPO;
     const perMin = realUp.toFixed(2);
     if (!isMothed && sup > 1.01) {

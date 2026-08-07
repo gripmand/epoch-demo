@@ -360,7 +360,8 @@ const Econ = {
 
       b.uBill = 0;
       if (b.mothballed) {
-        b.uBill = d.upkeep * TUNE.MOTHBALL_UPKEEP * Econ.M;
+
+        b.uBill = d.upkeep * mothballKeep(s) * Econ.M;
         upkeep += b.uBill;
       } else {
         if (b.resting) uBase *= TUNE.FALLOW_UPKEEP;
@@ -596,7 +597,10 @@ const Econ = {
       const want = d.procRate * staffEff * (1 + (b.adjBoost || 0)) *
         rankOutMult(b) * slow * Econ.M * (1 + C.beerBonus) * Econ.mineMult(s, b) *
         Econ.blockMult(s, b);
-      const use = Math.min(want, s.stock[d.procIn]);
+
+      const holdBack = Econ.boneFireHolds(s, d.procIn)
+        ? Econ.warmDemand(s) * TUNE.TEMPO * TUNE.FUEL_RESERVE_MIN / Econ.fuelWorth(s, d.procIn) : 0;
+      const use = Math.min(want, Math.max(0, s.stock[d.procIn] - holdBack));
       s.stock[d.procIn] -= use;
       Econ.note(d.procIn, 0, use);
       if (d.procIn === 'grain') {
@@ -764,7 +768,7 @@ const Econ = {
         for (const k of d.sellsRaw) {
 
           const fKeep = (TUNE.FUEL[k] && Econ.hearthActive(s))
-            ? Econ.warmDemand(s) * TUNE.TEMPO * TUNE.FUEL_RESERVE_MIN / TUNE.FUEL[k] : 0;
+            ? Econ.warmDemand(s) * TUNE.TEMPO * TUNE.FUEL_RESERVE_MIN / Econ.fuelWorth(s, k) : 0;
 
           const kEff = foodEff(k);
           const foodKeep = kEff > 0
@@ -782,7 +786,7 @@ const Econ = {
       } else {
 
         const fuelKeep = (TUNE.FUEL[d.sells] && Econ.hearthActive(s))
-          ? Econ.warmDemand(s) * TUNE.TEMPO * TUNE.FUEL_RESERVE_MIN / TUNE.FUEL[d.sells] : 0;
+          ? Econ.warmDemand(s) * TUNE.TEMPO * TUNE.FUEL_RESERVE_MIN / Econ.fuelWorth(s, d.sells) : 0;
 
         const sellEff = foodEff(d.sells);
         const keep = (sellEff > 0
@@ -3652,9 +3656,24 @@ const Econ = {
     return sum * (1 - Math.min(0.9, best));
   },
 
+  boneFireOn(s) {
+    return !!(s && s.policyBoneFire) && Econ.hearthActive(s);
+  },
+
+  boneFireHolds(s, good) {
+    return good === 'bone' && Econ.boneFireOn(s);
+  },
+
+  fuelWorth(s, kind) {
+    const base = TUNE.FUEL[kind] || 0;
+    if (!base) return 0;
+    if (kind === 'bone' && Econ.boneFireOn(s)) return base * TUNE.BONEFIRE.hot;
+    return base;
+  },
+
   fuelEquiv(s) {
     let e = 0;
-    for (const k in TUNE.FUEL) e += (s.stock[k] || 0) * TUNE.FUEL[k];
+    for (const k in TUNE.FUEL) e += (s.stock[k] || 0) * Econ.fuelWorth(s, k);
     return e;
   },
 
@@ -3687,18 +3706,23 @@ const Econ = {
     const want = Econ.warmDemand(s) * Econ.M;
     let unpaid = want;
 
-    for (const kind of ['deadwood', 'bone', 'charcoal']) {
+    const boneFire = Econ.boneFireOn(s);
+    let boneBurned = 0;
+    for (const kind of (boneFire ? ['bone', 'deadwood', 'charcoal'] : ['deadwood', 'bone', 'charcoal'])) {
       if (unpaid <= 0) break;
-      const worth = TUNE.FUEL[kind];
+      const worth = Econ.fuelWorth(s, kind);
       const useUnits = Math.min(s.stock[kind] || 0, unpaid / worth);
       if (useUnits <= 0) continue;
       s.stock[kind] -= useUnits;
       Econ.note(kind, 0, useUnits);
+      if (kind === 'bone') boneBurned += useUnits;
       unpaid -= useUnits * worth;
     }
     const dark = unpaid > want * 0.001;
     C.dark = dark;
     C.warmDraw = want - unpaid;
+
+    C.boneFire = boneFire && boneBurned > 0;
 
     C.warm.fill(0);
     if (!dark) C.warm.set(Econ.warmGeo(s));

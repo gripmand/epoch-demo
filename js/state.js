@@ -51,6 +51,8 @@ const Game = {
 
       giftArena: 0,
 
+      giftKeep: 0,
+
       stock: Game.startStock(granted, era),
 
       cum: { flour: 0, food: 0, stone: 0, earned: 0, tributePaid: 0, landfalls: 0, passage: 0,
@@ -106,6 +108,8 @@ const Game = {
       policyFleet: false,
 
       policyMunus: false,
+
+      policyBoneFire: false,
 
       ruinStock: {},
 
@@ -351,6 +355,7 @@ const Game = {
       giftExport: s.giftExport | 0,
       giftBeacon: s.giftBeacon | 0,
       giftArena: s.giftArena | 0,
+      giftKeep: s.giftKeep | 0,
 
       tribute: s.tribute ? { bank: +s.tribute.bank || 0, count: s.tribute.count | 0,
                              missed: s.tribute.missed | 0,
@@ -373,6 +378,7 @@ const Game = {
       policyAteleia: !!s.policyAteleia,
       policyFleet: !!s.policyFleet,
       policyMunus: !!s.policyMunus,
+      policyBoneFire: !!s.policyBoneFire,
       policyProfessio: !!s.policyProfessio,
 
       ruinStock: s.ruinStock || {},
@@ -723,6 +729,7 @@ const Game = {
       giftExport: d.giftExport | 0,
       giftBeacon: d.giftBeacon | 0,
       giftArena: d.giftArena | 0,
+      giftKeep: d.giftKeep | 0,
 
       tribute: (d.tribute && typeof d.tribute === 'object')
         ? { bank: Math.max(0, +d.tribute.bank || 0), count: Math.max(0, d.tribute.count | 0),
@@ -750,6 +757,7 @@ const Game = {
       policyAteleia: !!d.policyAteleia,
       policyFleet: !!d.policyFleet,
       policyMunus: !!d.policyMunus,
+      policyBoneFire: !!d.policyBoneFire,
       policyProfessio: !!d.policyProfessio,
 
       ruinStock: d.ruinStock || {},
