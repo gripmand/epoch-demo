@@ -82,8 +82,7 @@ const Game = {
 
       lastSeenMs: Date.now(),
       subTier: 'free',
-      cp: 0,
-      cpFrac: 0,
+
       hallJob: null,
 
       cityName: '',
@@ -134,7 +133,8 @@ const Game = {
       herds: null,
       hunt: null,
       granaryPolicy: 'lean',
-      holdAtCap: {},
+
+      siteNoticed: 0,
       festival: null,
       chronicle: [],
       records: {},
@@ -292,6 +292,17 @@ const Game = {
     return n;
   },
 
+  groundReport(s) {
+    let dry = 0, blocked = 0;
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d || b.mothballed || b.done === false) continue;
+      if (d.needsWater && !Grid.covered(G.cache.water, b)) dry++;
+      if (Econ.blockOf(b)) blocked++;
+    }
+    return { dry, blocked };
+  },
+
   serialize(s) {
     return JSON.stringify({
       version: s.version, seed: s.seed, tick: s.tick, money: s.money,
@@ -306,7 +317,7 @@ const Game = {
       terraEdits: s.terraEdits, cleared: s.cleared, planted: s.planted,
       elevEdits: s.elevEdits,
       soilEdits: s.soilEdits, rockSpent: s.rockSpent,
-      lastSeenMs: Date.now(), cp: s.cp, cpFrac: s.cpFrac, hallJob: s.hallJob, subTier: s.subTier,
+      lastSeenMs: Date.now(), hallJob: s.hallJob, subTier: s.subTier,
       settlerAcc: s.settlerAcc || 0,
       literate: s.literate ? 1 : 0,
       foundingLeft: +s.foundingLeft || 0,
@@ -318,6 +329,7 @@ const Game = {
       policyCorvee: !!s.policyCorvee,
       granaryPolicy: s.granaryPolicy || 'lean',
       holdAtCap: s.holdAtCap || {},
+      siteNoticed: s.siteNoticed ? 1 : 0,
       festival: s.festival || null,
       chronicle: s.chronicle || [],
       records: s.records || {},
@@ -679,7 +691,6 @@ const Game = {
       soilEdits: d.soilEdits || {}, rockSpent: d.rockSpent || {},
       lastSeenMs: +d.lastSeenMs || Date.now(),
       subTier: SUB_TIERS[d.subTier] ? d.subTier : 'free',
-      cp: +d.cp || 0, cpFrac: +d.cpFrac || 0,
       settlerAcc: +d.settlerAcc || 0,
 
       cityName: d.cityName || '',
@@ -689,7 +700,8 @@ const Game = {
       policyBeerRation: !!d.policyBeerRation,
       policyCorvee: !!d.policyCorvee,
       granaryPolicy: TUNE.RESERVE_POLICY[d.granaryPolicy] ? d.granaryPolicy : 'lean',
-      holdAtCap: d.holdAtCap || {},
+
+      siteNoticed: d.siteNoticed ? 1 : 0,
       festival: d.festival && d.festival.left > 0 ? { left: Math.round(d.festival.left) } : null,
       chronicle: Array.isArray(d.chronicle) ? d.chronicle.slice(-200) : [],
       records: d.records || {},

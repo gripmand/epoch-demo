@@ -188,8 +188,11 @@ const Rend = {
   },
 
   tex: {},
+
+  GROUND_TEXTURES: [],
+
   loadGroundTextures() {
-    for (const name of ['silt', 'field', 'salt', 'rock', 'road']) {
+    for (const name of Rend.GROUND_TEXTURES) {
       if (Rend.tex[name] !== undefined) continue;
       Rend.tex[name] = null;
       const img = new Image();

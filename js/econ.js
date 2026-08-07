@@ -166,6 +166,8 @@ const Econ = {
       b.staff = 0;
 
       if (b.mothballed) { b.block = null; b.status = 'mothballed'; b.rate = 0; continue; }
+
+      b.block = Econ.blockOf(b);
       if (!d.workers) continue;
 
       if (b.resting) {
@@ -174,7 +176,7 @@ const Econ = {
           if (!offline) UI.toast((d.icon || '\u{1F331}') + ' ' + d.name + ' is back at full soil and has resumed cropping on its own.', 8000);
         } else { b.block = null; continue; }
       }
-      b.block = Econ.blockOf(b);
+
       if (b.block) continue;
 
       let want = d.workers;
@@ -421,8 +423,7 @@ const Econ = {
           : b.staff < d.workers ? 'understaffed' : 'ok';
       } else if (!d.workers && !d.cap && !b.mothballed) {
 
-        b.status = (d.needsRoad && !b.conn) ? 'no_road'
-          : (d.needsWater && !Grid.covered(C.water, b)) ? 'no_water' : 'ok';
+        b.status = b.block || 'ok';
       }
     }
 
@@ -764,7 +765,11 @@ const Econ = {
 
           const fKeep = (TUNE.FUEL[k] && Econ.hearthActive(s))
             ? Econ.warmDemand(s) * TUNE.TEMPO * TUNE.FUEL_RESERVE_MIN / TUNE.FUEL[k] : 0;
-          const avail = (s.stock[k] || 0) - (monRes[k] || 0) - fKeep;
+
+          const kEff = foodEff(k);
+          const foodKeep = kEff > 0
+            ? residents * TUNE.FLOUR_PER_RESIDENT * TUNE.TEMPO * reserveMin / kEff : 0;
+          const avail = (s.stock[k] || 0) - (monRes[k] || 0) - fKeep - foodKeep;
           if (avail > best) { best = avail; kind = k; }
         }
         b.rawKind = kind;
@@ -1839,10 +1844,20 @@ const Econ = {
 
     if (b.relic) return null;
     const d = DEF(b.type);
+    return Econ.siteBlock(b, d) || Econ.stateBlock(b, d);
+  },
+
+  siteBlock(b, d) {
+    d = d || DEF(b.type);
 
     if (d.needsRoad && !b.conn) return 'no_road';
     if (d.needsWater && !Grid.covered(G.cache.water, b)) return 'no_water';
     if (d.needsPower && !Grid.covered(G.cache.power, b)) return 'no_power';
+    return null;
+  },
+
+  stateBlock(b, d) {
+    d = d || DEF(b.type);
 
     if (d.needsWarm && (!G.cache.warm || !Grid.covered(G.cache.warm, b))) return 'no_warmth';
 
@@ -3913,8 +3928,7 @@ const Econ = {
       for (const b of s.buildings) {
         const d = DEF(b.type);
 
-        if (!d || !d[key] || b.done === false || b.mothballed || (d.needsRoad && !b.conn)) continue;
-        if (d.needsWater && !Grid.covered(G.cache.water, b)) continue;
+        if (!d || !d[key] || b.done === false || b.mothballed || Econ.siteBlock(b, d)) continue;
 
         extra += d[key] * rankStoreMult(b);
       }
@@ -3936,7 +3950,8 @@ const Econ = {
       let extra = 0;
       for (const b of s.buildings) {
         const d = DEF(b.type);
-        if (!d || !d.storeCraft || b.done === false || !b.conn || b.mothballed) continue;
+
+        if (!d || !d.storeCraft || b.done === false || b.mothballed || Econ.siteBlock(b, d)) continue;
         if (b.staff !== undefined && d.workers && b.staff === 0) continue;
         extra += d.storeCraft * rankStoreMult(b);
       }
@@ -3955,9 +3970,7 @@ const Econ = {
 
       if (TUNE.NO_EXPORT && TUNE.NO_EXPORT[kind]) {
         Econ.note(kind, amt, 0, 0, overflow);
-      } else if (s.holdAtCap && s.holdAtCap[kind]) {
 
-        Econ.note(kind, amt, 0, 0, overflow);
       } else {
 
         G.cache.tickExport += overflow * TUNE.PRICES[kind] * exportMult(s);

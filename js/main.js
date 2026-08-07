@@ -146,22 +146,21 @@ const Main = {
     } else if (Game.migratedFrom) {
 
       setTimeout(() => {
-        let dry = 0;
-        for (const b of G.s.buildings) {
-          const d = DEF(b.type);
-          if (d && d.needsWater && !Grid.covered(G.cache.water, b)) dry++;
-        }
+        const g = Game.groundReport(G.s);
         UI.toast('\u{1F3DB}\u{FE0F} Your city carried over. Your ' + anchorFor(G.s.era).name + ' still stands, and this ' +
           'build adds the Chronicle (C), the overlays (O) and R to rotate. Press G for the guide to this age.',
           20000);
-        if (dry) {
-          UI.toast('⚠️ ' + dry + ' building' + (dry === 1 ? ' is' : 's are') + ' out of water. Coverage is now a ' +
+        if (g.dry) {
+          UI.toast('⚠️ ' + g.dry + ' building' + (g.dry === 1 ? ' is' : 's are') + ' out of water. Coverage is now a ' +
             'true CIRCLE rather than a square, so anything that sat in a corner of the old radius needs a well ' +
             'nudged closer — or ranked, which adds a tile of reach. Press O to see the coverage.', 24000);
         }
+        Main.siteNotice(g);
       }, 1500);
     } else {
       UI.toast('City loaded — Era ' + G.s.era + ' · ' + eraInfo(G.s.era).name + '. Autosaves every 10s.');
+
+      setTimeout(() => Main.siteNotice(Game.groundReport(G.s)), 1500);
     }
 
     if (askFresh) setTimeout(() => UI.promptReset(), 700);
@@ -172,6 +171,17 @@ const Main = {
 
     Main.last = performance.now();
     requestAnimationFrame(Main.loop);
+  },
+
+  siteNotice(g) {
+    if (!G.s || G.s.siteNoticed) return;
+    G.s.siteNoticed = 1;
+    if (!g.blocked) return;
+    UI.toast('\u{1F6A7} ' + g.blocked + ' building' + (g.blocked === 1 ? '' : 's') +
+      ' in your city ' + (g.blocked === 1 ? 'is' : 'are') + ' now stopped for want of a road, ' +
+      'water or warmth. Those requirements were printed on the buildings but never enforced; ' +
+      'they are enforced from this build. Click the red ! on any of them for the cause, or ' +
+      'press O for the coverage overlay.', 26000);
   },
 };
 

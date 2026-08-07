@@ -1315,12 +1315,15 @@ const UI = {
       const monFrac = Econ.monumentDone(s, s.era) ? 1
         : (site ? (Econ.monumentProgress(s, site) || {}).frac || 0 : 0);
 
+      const xLabel = Econ.eraExtraLabel(s);
+      const xOK = xLabel ? Econ.eraExtraGate(s) : true;
       const f = Math.min(
         Game.housedResidents(s) / r.pop,
         Math.max(0, s.money) / r.money,
         Math.max(0, Econ.cumFood(s) - Econ.baseFood(base)) / r.food,
         r.stone ? Math.max(0, s.cum.stone - (base.stone || 0)) / r.stone : 1,
-        monFrac
+        monFrac,
+        xOK ? 1 : 0
       );
       UI.els.eraBar.style.width = Math.round(Math.min(1, f) * 100) + '%';
     }
@@ -3208,6 +3211,9 @@ const UI = {
       ];
       if (r.stone) legs.push({ k: 'stone', f: Math.max(0, (cum.stone || 0) - (eb.stone || 0)) / r.stone });
       if (MON) legs.push({ k: MON.def.name, f: monFrac });
+
+      const xLabel = Econ.eraExtraLabel(s);
+      if (xLabel) legs.push({ k: xLabel.toLowerCase(), f: Econ.eraExtraGate(s) ? 1 : 0 });
       legs.sort((x, y) => x.f - y.f);
       gate = { ready: Econ.eraReady(s), binds: legs[0] };
     }

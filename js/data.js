@@ -1035,7 +1035,7 @@ const ROAD_REQUIRED = ['townhall', 'house', 'villa', 'stonehouse', 'market', 'ba
   'porticusaemilia', 'horreagalbana', 'stabulum', 'hospitium',
   'tabularium', 'libraria', 'aerarium', 'quaestorium', 'moneta', 'argentaria',
 
-  'mansio', 'stativa', 'granarium', 'condita',
+  'mansio', 'stativa',
   'ecclesia', 'episcopium', 'scrinium', 'notitia', 'castrum', 'burgus',
   'catabolum', 'annonaria', 'vestiarium', 'emporiumvestium',
   'praebitorium', 'sagittaria', 'structoris', 'redemptorum',
