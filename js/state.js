@@ -53,7 +53,9 @@ const Game = {
 
       stock: Game.startStock(granted, era),
 
-      cum: { flour: 0, food: 0, stone: 0, earned: 0, tributePaid: 0, landfalls: 0, passage: 0 },
+      cum: { flour: 0, food: 0, stone: 0, earned: 0, tributePaid: 0, landfalls: 0, passage: 0,
+
+             ruins: 0 },
       hunger: 0,
       settlerAcc: 0,
 
@@ -103,6 +105,12 @@ const Game = {
       policyAteleia: false,
 
       policyFleet: false,
+
+      policyMunus: false,
+
+      ruinStock: {},
+
+      curated: [],
 
       census: { at: 0, taken: 1 },
       season: null,
@@ -242,6 +250,8 @@ const Game = {
       power: new Uint8Array(n),
 
       magazine: new Uint8Array(n),
+
+      shield: new Uint8Array(n),
       midden: new Uint8Array(n),
 
       elev: new Int8Array(n),
@@ -350,7 +360,11 @@ const Game = {
       policyPublicTable: !!s.policyPublicTable,
       policyAteleia: !!s.policyAteleia,
       policyFleet: !!s.policyFleet,
+      policyMunus: !!s.policyMunus,
       policyProfessio: !!s.policyProfessio,
+
+      ruinStock: s.ruinStock || {},
+      curated: (s.curated || []).slice(0, 64),
 
       census: { at: (s.census && s.census.at) | 0, taken: (s.census && s.census.taken) ? 1 : 0 },
 
@@ -379,6 +393,8 @@ const Game = {
         name: b.name || undefined,
 
         resting: !!b.resting,
+
+        fabric: (b.fabric !== undefined && b.fabric < 1) ? +b.fabric.toFixed(4) : undefined,
 
         autoHunt: b.autoHunt === false ? false : undefined,
 
@@ -577,7 +593,7 @@ const Game = {
       });
     }
 
-    for (const field of ['cleared', 'planted', 'terraEdits', 'elevEdits', 'soilEdits']) {
+    for (const field of ['cleared', 'planted', 'terraEdits', 'elevEdits', 'soilEdits', 'ruinStock']) {
       const src = d[field];
       if (!src || typeof src !== 'object' || Array.isArray(src)) continue;
       const out = {};
@@ -650,7 +666,8 @@ const Game = {
              stone: +d.cum.stone || 0, earned: +d.cum.earned || 0,
              tributePaid: +d.cum.tributePaid || 0, landfalls: +d.cum.landfalls || 0,
 
-             passage: +d.cum.passage || 0 },
+             passage: +d.cum.passage || 0,
+             ruins: +d.cum.ruins || 0 },
       hunger: +d.hunger || 0,
       nextId: d.nextId | 0 || 1, placeCounter: d.placeCounter | 0 || 0,
       owned: d.owned.slice(), firsts: d.firsts || {}, prompted: d.prompted || {},
@@ -719,7 +736,11 @@ const Game = {
       policyPublicTable: !!d.policyPublicTable,
       policyAteleia: !!d.policyAteleia,
       policyFleet: !!d.policyFleet,
+      policyMunus: !!d.policyMunus,
       policyProfessio: !!d.policyProfessio,
+
+      ruinStock: d.ruinStock || {},
+      curated: Array.isArray(d.curated) ? d.curated.slice(0, 64) : [],
 
       census: d.census
         ? { at: (+d.census.at) | 0, taken: d.census.taken ? 1 : 0 }
@@ -758,6 +779,8 @@ const Game = {
           evolve: +b.evolve || 0,
           job: b.job || null, done: b.done !== false,
           resting: !!b.resting,
+
+          fabric: b.fabric === undefined ? undefined : Util.clamp(+b.fabric || 0, 0, 1),
           autoHunt: b.autoHunt === false ? false : undefined,
           hunt: b.hunt || null,
           huntRest: Math.max(0, +b.huntRest || 0),

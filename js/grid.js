@@ -1,6 +1,6 @@
 'use strict';
 
-const TERRAIN = { GRASS: 0, FERTILE: 1, ROCK: 2, WATER: 3, MOUNTAIN: 4, SALT: 5, ASH: 6 };
+const TERRAIN = { GRASS: 0, FERTILE: 1, ROCK: 2, WATER: 3, MOUNTAIN: 4, SALT: 5, ASH: 6, RUIN: 7 };
 
 const Grid = {
   W: TUNE.WORLD,
@@ -88,6 +88,10 @@ const Grid = {
     13: { trunkW: 7.0, trunkW2: 6.0, branch: 1, secondW: 2.0, wander: 0.30,
           fertileTo: 2, dryFrom: 4, edgeJitter: 2.0,
           beyond: 'GRASS', saltAt: 0.99, rockAt: 0.58, peakR: 6 },
+
+    15: { trunkW: 6.4, trunkW2: 5.2, branch: 1, secondW: 2.4, wander: 0.34,
+          fertileTo: 2, dryFrom: 4, edgeJitter: 2.0,
+          beyond: 'GRASS', saltAt: 0.99, rockAt: 0.56, peakR: 6 },
   },
 
   terrainProfile(era) {
@@ -508,6 +512,8 @@ const Grid = {
 
     if (G.cache.terrain[Grid.key(x, y)] === TERRAIN.ASH) return 'ash';
 
+    if (G.cache.terrain[Grid.key(x, y)] === TERRAIN.RUIN) return 'ruin';
+
     if (Econ.reachActive(s) && G.cache.terrain[Grid.key(x, y)] === TERRAIN.WATER) return 'sea';
     const k = Grid.key(x, y);
     if (G.cache.occ[k] >= 0) return 'occupied';
@@ -736,6 +742,11 @@ const Grid = {
   },
   dimsOf(b) { return Grid.dims(b.type, b.rot || 0); },
 
+  within(a, o, r) {
+    const ad = Grid.dimsOf(a), od = Grid.dimsOf(o);
+    return Util.rectDist(a.x, a.y, ad.w, ad.h, o.x, o.y, od.w, od.h) <= r;
+  },
+
   tilesOf(b, fn) { Grid.footTiles(b.type, b.x, b.y, fn, b.rot || 0); },
 
   footTiles(type, x, y, fn, rot) {
@@ -773,7 +784,7 @@ const Grid = {
       if (type === 'road' || d.onRock) { if (t === TERRAIN.WATER) ok = false; }
 
       else if (d.onWater) { if (t !== TERRAIN.WATER) ok = false; }
-      else if (t !== TERRAIN.GRASS && t !== TERRAIN.FERTILE && t !== TERRAIN.SALT && t !== TERRAIN.ASH) ok = false;
+      else if (!Grid.buildableGround(t)) ok = false;
 
       if (ok && !d.onWood && Grid.treeAt(s, tx, ty)) ok = false;
     }, rot);
@@ -859,7 +870,8 @@ const Grid = {
       if (t === TERRAIN.WATER) water = true;
       if (t === TERRAIN.SALT) salt++;
       if (d.onWater && t !== TERRAIN.WATER) dry = true;
-      if (type !== 'road' && !d.onRock && !d.onWater && t !== TERRAIN.GRASS && t !== TERRAIN.FERTILE && t !== TERRAIN.SALT) wrong = true;
+
+      if (type !== 'road' && !d.onRock && !d.onWater && !Grid.buildableGround(t)) wrong = true;
     }, rot);
 
     if (unowned) return 'you do not own that land yet — buy the parcel first';
@@ -924,6 +936,48 @@ const Grid = {
         if (Grid.inB(nx, ny) && G.cache.terrain[Grid.key(nx, ny)] === TERRAIN.WATER) return true;
       }
     return false;
+  },
+
+  buildableGround(t) {
+    return t === TERRAIN.GRASS || t === TERRAIN.FERTILE ||
+           t === TERRAIN.SALT || t === TERRAIN.ASH || t === TERRAIN.RUIN;
+  },
+
+  ruinSpoliaAt(s, x, y) {
+    if (!Grid.inB(x, y)) return 0;
+    if (G.cache.terrain[Grid.key(x, y)] !== TERRAIN.RUIN) return 0;
+    const st = s.ruinStock || (s.ruinStock = {});
+    const k = Grid.key(x, y);
+
+    if (st[k] === undefined) st[k] = TUNE.ARREARS.ruinTileSpolia;
+    return Math.max(0, st[k]);
+  },
+  spendRuinSpolia(s, x, y, amt) {
+    const k = Grid.key(x, y);
+    const have = Grid.ruinSpoliaAt(s, x, y);
+    s.ruinStock[k] = Math.max(0, have - amt);
+    return Math.min(have, amt);
+  },
+
+  makeRuin(s, b, spolia) {
+    const per = Math.max(0, spolia) / Math.max(1, Grid.footCount(b));
+    Grid.tilesOf(b, (x, y) => {
+      if (!Grid.inB(x, y)) return;
+      const k = Grid.key(x, y);
+
+      const t = G.cache.terrain[k];
+      if (t === TERRAIN.WATER || t === TERRAIN.MOUNTAIN) return;
+      G.cache.terrain[k] = TERRAIN.RUIN;
+      s.terraEdits[k] = TERRAIN.RUIN;
+      if (!s.ruinStock) s.ruinStock = {};
+      s.ruinStock[k] = (s.ruinStock[k] || 0) + per;
+    });
+    Grid.rockChanged && Grid.rockChanged();
+  },
+
+  footCount(b) {
+    const sz = Grid.dimsOf(b);
+    return Math.max(1, sz.w * sz.h);
   },
 
   isDryLand(x, y, d) {
@@ -1252,6 +1306,12 @@ const Grid = {
       Grid.tilesOf(b, (x, y) => { if (Grid.inB(x, y) && G.cache.terrain[Grid.key(x, y)] === TERRAIN.SALT) n++; });
       return n >= want;
     }
+
+    if (d.onRuin) {
+      let n = 0;
+      Grid.tilesOf(b, (x, y) => { if (Grid.inB(x, y) && G.cache.terrain[Grid.key(x, y)] === TERRAIN.RUIN) n++; });
+      return n >= want;
+    }
     if (d.nearWater) return Grid.waterWithin(b.x, b.y, sz, d.nearWater);
     if (d.nearTrees) return Grid.treesWithin(s, b.x, b.y, sz, 3) >= d.nearTrees;
 
@@ -1293,10 +1353,7 @@ const Grid = {
 
     const scribes = s.buildings.filter(b => DEF(b.type).keepsTally && b.done !== false);
 
-    const within = (a, o, r) => {
-      const ad = Grid.dimsOf(a), od = Grid.dimsOf(o);
-      return Util.rectDist(a.x, a.y, ad.w, ad.h, o.x, o.y, od.w, od.h) <= r;
-    };
+    const within = Grid.within;
 
     for (const b of s.buildings) {
       const d = DEF(b.type);

@@ -118,6 +118,16 @@ const Rend = {
       grain: 0.13, macro: 0.15,
     },
 
+    15: {
+      base:     { color: 0xa8a68c, tex: 'silt' },
+      fertile:  { color: 0x77883f, tex: 'field' },
+      salt:     { color: 0xded0b8, tex: 'salt' },
+      saltRidge: 0xebe0cc,
+      rock:     { color: 0xc0b6a4, tex: 'rock' },
+      cliff:    0x746c5c,
+      bed:      0x5f6f4c,
+      grain: 0.13, macro: 0.17,
+    },
     13: {
       base:     { color: 0xb5a279, tex: 'silt' },
       fertile:  { color: 0x7f9445, tex: 'field' },
@@ -328,6 +338,8 @@ const Rend = {
     if (t === TERRAIN.MOUNTAIN) return L.mountain;
     if (t === TERRAIN.SALT) return -0.05;
     if (t === TERRAIN.ASH) return -0.02;
+
+    if (t === TERRAIN.RUIN) return 0.06;
     return 0;
   },
 
@@ -591,7 +603,8 @@ const Rend = {
           if (t === TERRAIN.FERTILE) r = 255;
 
           else if (t === TERRAIN.SALT || t === TERRAIN.ASH) gg = 255;
-          else if (t === TERRAIN.ROCK || t === TERRAIN.MOUNTAIN) b = 255;
+
+          else if (t === TERRAIN.ROCK || t === TERRAIN.MOUNTAIN || t === TERRAIN.RUIN) b = 255;
 
           if (t !== TERRAIN.WATER && t !== TERRAIN.ROCK && t !== TERRAIN.MOUNTAIN) {
             const soil = Grid.soilAt(wx, wy);
@@ -768,7 +781,7 @@ const Rend = {
         const i = (y * W + x) * 4;
         data[i] = t === TERRAIN.FERTILE ? 255 : 0;
         data[i + 1] = (t === TERRAIN.SALT || t === TERRAIN.ASH) ? 255 : 0;
-        data[i + 2] = (t === TERRAIN.ROCK || t === TERRAIN.MOUNTAIN) ? 255 : 0;
+        data[i + 2] = (t === TERRAIN.ROCK || t === TERRAIN.MOUNTAIN || t === TERRAIN.RUIN) ? 255 : 0;
         data[i + 3] = 255;
       }
     return (Rend._worldSplat = Rend._dataTex(Rend._worldSplat, data, W));
@@ -2652,6 +2665,9 @@ const Rend = {
         [TERRAIN.FERTILE]: rgb(GR.fertile.color),
         [TERRAIN.SALT]: rgb(GR.salt.color),
         [TERRAIN.ASH]: rgb(GR.salt.color).map(v => Math.round(v * 0.55)),
+
+        [TERRAIN.RUIN]: rgb(GR.rock.color).map((v, i) =>
+          Math.min(255, Math.round(v * (i === 2 ? 0.92 : 1.14)))),
         [TERRAIN.ROCK]: rgb(GR.rock.color),
         [TERRAIN.MOUNTAIN]: rgb(GR.cliff),
         [TERRAIN.WATER]: rgb(Gfx.gradeFor(rungOf(Rend._era)).water.color),

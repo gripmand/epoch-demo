@@ -139,6 +139,12 @@ const ERA_RECORD = {
         chronicle: 'The Acta Diurna', chronBtn: 'Acta Diurna',
         chronSub: 'Whitewashed and posted in the forum each morning. It keeps the last 200 entries.',
         keeper: 'an Atrium Libertatis' },
+
+  15: { icon: '\u{1F4DC}', tally: 'The Polyptych', tallyBtn: 'The Polyptych',
+        tallySub: 'The estate survey: what is still standing, and what each of it owes.',
+        chronicle: 'The Gesta Municipalia', chronBtn: 'Gesta',
+        chronSub: 'The town acts, entered by the curia. It keeps the last 200 entries.',
+        keeper: 'a Scrinium' },
   14: { icon: '\u{1F4D6}', tally: 'The Codex Tally', tallyBtn: 'Codex Tally',
         tallySub: 'Painted on bark paper, against the day-count.',
         chronicle: 'The Long Count', chronBtn: 'Long Count',
@@ -216,6 +222,39 @@ function eraFounding(era) {
 }
 
 const ERA_SITE = {
+
+  15: {
+    roadYes: '<b>the Canabae, the Meritorium, the Turris, the Catabolum, the Vestiarium, the ' +
+      'Praebitorium, the Officina Structoris, the Ripa Marmorata, the Penuaria, the Mansio, the ' +
+      'Granarium, the Ecclesia, the Scrinium, the Castrum and the Wall</b>',
+    roadNo: 'Iugationes, the Aquimolae, the Aqua Vetus, the Fontinalis, the Bubile, Pascua, the ' +
+      'Gynaeceum, the Ferraria, the Fabrica Armorum, the Ruderatio, the Caminus, the Saxifodina, ' +
+      'the Officina Lapidaria, Piscationes -- and, most importantly, the OLEASTRUM and the ' +
+      'CURATOR OPERUM, which need nothing at all',
+    water: 'Most things must sit inside an <b>Aqua Vetus\'s</b> fifteen tiles or a ' +
+      '<b>Fontinalis\'s</b> seven. Nothing on this map draws water off the channel by standing ' +
+      'near it -- coverage comes from those two buildings and nowhere else, which is why the ' +
+      'arcade is the thing you protect first, and why it lasts four times longer than anything ' +
+      'else you own. Press <b>O</b> to see the discs.',
+    extra: [
+      '<b>The ledger.</b> When the treasury reaches zero the city keeps paying -- out of the ' +
+      'buildings. Every minute of deficit is charged as CONDITION, apportioned by each building\'s ' +
+      'share of the bill, and a building at zero condition FALLS and refunds nothing. Distance is ' +
+      'the multiplier: a counter far from a depot and far from its customers pays supply and trade ' +
+      'at once, so it is billed up to twelve times over and rots twelve times faster. MOTHBALL ' +
+      'takes it to a fifth of base and stops its clock dead. Watch the HOUSE chip: it names the ' +
+      'next building to fall and how long it has.',
+      '<b>What cannot be taken.</b> The <b>Oleastrum</b> costs nothing to keep, so it is charged ' +
+      'nothing, so it can never fall -- and it needs no water and no road either. The <b>Curator ' +
+      'Operum</b> is the same, and it is the only thing that puts condition back. The <b>Cippus</b> ' +
+      'too, for the same arithmetic. Everything else in this city is negotiable.',
+      '<b>Ruined ground is not damage, it is stock.</b> A building that falls leaves RUIN tiles ' +
+      'holding 30% of what it cost, and a <b>RUDERATIO</b> works them into spolia -- which the ' +
+      '<b>CAMINUS</b> burns into the lime the Wall is built out of. You cannot paint a ruin away ' +
+      'at any price, in any age. The one chain in this city whose supply goes UP when everything ' +
+      'else goes down is the one that eats your failures.',
+    ],
+  },
 
   13: {
     roadYes: '<b>the Cenaculum and the Insula, the Panificium, the Olearia, the Officina Samia, ' +
@@ -629,6 +668,41 @@ const ERA_SITE = {
 function eraSite(era) { return ERA_SITE[rungOf(era)] || ERA_SITE._default; }
 
 const ERA_GUIDES = {
+
+  15: {
+    headline: 'You inherit more city than you can pay for. Decide what to let go.',
+    mechanic: 'THE TREASURY NOW FLOORS AT ZERO, and after that the deficit is paid in BUILDINGS — ' +
+      'charged as CONDITION, in proportion to what each one costs you. The far ones die first, ' +
+      'because distance already multiplies their bill up to twelvefold. A fallen building refunds ' +
+      'NOTHING, where demolishing pays back half and sells the parcel for 60% more — so the whole ' +
+      'skill is getting ahead of the ledger. MOTHBALL is the brake: a fifth of base upkeep, and the ' +
+      'condition clock stops dead. Watch the 🏚 chip — it names the next building to fall and how ' +
+      'long it has.',
+    chain: [
+      'Iugatio → Aquimolae → Catabolum  ·  ~$110/min. The bread, and the only chain that feeds you as well as pays you',
+      'Pascua → Gynaeceum → Vestiarium ×2  ·  ~$205/min per counter — the richest trade in the age, on the dry ground nobody ploughs',
+      'Ferraria → Fabrica Armorum → Praebitorium  ·  ~$133/min, and the Wall wants the arms your counter is selling',
+      'Ruderatio → Caminus → Officina Structoris  ·  ~$133/min. Its raw material is your own failure, so its supply goes UP when everything else goes down',
+      'Saxifodina → Officina Lapidaria → Ripa Marmorata  ·  ~$110/min, and the quarry ALONE is how the age is left: 38,140 stone, and nothing else in the rung makes any',
+    ],
+    firstSteps: [
+      'An OLEASTRUM first, wherever there is room — $2,300. No water, no road, ZERO upkeep, and it can never fall. The founding crew can staff it before anything else in the age is even legal.',
+      'A road out of the Praetorium, then a FONTINALIS ($980) on it. Seven tiles of water, and almost everything below has to sit inside that ring — put it where the ring will cover the field AND the counters, not where the well looks tidy.',
+      'CANABAE ×14 ($4,760 the lot). The cheapest beds on the ladder: 5 each, a fifth of a Meritorium to keep. Sixty-two residents is enough to open every counter in the age.',
+      'IUGATIO ($5,870) inside the ring, then an AQUIMOLAE ($4,920) TOUCHING it — +25% both ways — then a CATABOLUM ($7,380) on the road. That is bread, and the Catabolum is also a depot, which in this age is the more valuable half.',
+      'PASCUA ($4,820) out on the dry ground: no water, no soil clock, and Grid.isDryLand excludes the ribbon, so it wants the land the fields do not.',
+      'GYNAECEUM ($6,950) and then TWO VESTIARIA ($7,350 each). Two, not one: the Gynaeceum makes 5.19 bolts a minute and each counter sells 2.59. One counter leaves half the richest chain in the age unsold, and you will not notice until the founding ration stops.',
+      'That is $52,860 of $58,687 and it measures +$4,810 a minute by minute ten. Now BUY GROUND EASTWARD: the rock is outside your grant, and the ARMS and MASONRY chains both stand on it. Nothing in this age makes stone except the SAXIFODINA, and the age cannot be left without 38,140 of it.',
+      'A CURATOR OPERUM only AFTER the bleeding starts and stops. It spends from the treasury AFTER the deficit is charged, so while you are in deficit its budget is $0 and it does literally nothing. It is the building you buy to undo what winning cost.',
+      'An ECCLESIA when you can afford $14,790. Everything within 16 tiles decays at HALF rate, which in this age is worth more than most chains — and it stacks with the Munus, not with a second church.',
+      'Lay the Wall LAST. An open monument site draws money straight out of the treasury every minute, silently, and while it is open your buildings fall at twice the rate.',
+    ],
+    mistake: 'Building the Wall early. It is a hard gate so it cannot be skipped — but its money leg ' +
+      'doubles your deficit and its arms leg darkens your Praebitorium at exactly the moment you are ' +
+      'poorest. Get solvent, then build it. The other mistake is REPAIRING: a Curator Operum in a ' +
+      'deficit spends nothing, because there is nothing to spend. The move that works while you are ' +
+      'bleeding is MOTHBALL, and the move that works before you are is DEMOLISH.',
+  },
 
   9: {
     headline: 'You can see land you are not allowed to buy. That is the whole age.',

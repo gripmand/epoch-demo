@@ -355,8 +355,11 @@ const Econ = {
       } else b.trade = 1;
 
       let uBase = d.upkeep * rankUpkeepMult(b);
+
+      b.uBill = 0;
       if (b.mothballed) {
-        upkeep += d.upkeep * TUNE.MOTHBALL_UPKEEP * Econ.M;
+        b.uBill = d.upkeep * TUNE.MOTHBALL_UPKEEP * Econ.M;
+        upkeep += b.uBill;
       } else {
         if (b.resting) uBase *= TUNE.FALLOW_UPKEEP;
         else if (d.workers) uBase *= TUNE.STAFF_UPKEEP_FLOOR +
@@ -364,7 +367,8 @@ const Econ = {
 
         uBase *= Econ.blockUpkeep(s, b);
         const uFull = uBase * b.supply * b.trade;
-        upkeep += uFull * Econ.M;
+        b.uBill = uFull * Econ.M;
+        upkeep += b.uBill;
         premium += (uFull - uBase) * Econ.M;
       }
       if (b.type === 'townhall') {
@@ -534,6 +538,23 @@ const Econ = {
         }
         b.rate = made;
 
+        b.status = left <= 0 ? 'stand_spent' : (staffEff < 1 ? 'understaffed' : 'ok');
+        continue;
+      } else if (d.salvaged) {
+
+        const good = Object.keys(d.out)[0];
+        const left = Econ.ruinSpoliaLeft(s, b);
+        b.stoneLeft = left;
+        const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b) * Econ.siteMult(s, b);
+        made = left > 0 ? d.out[good] * staffEff * mult * Econ.M * (1 + C.beerBonus) : 0;
+
+        made = Math.min(made, Math.max(0, Econ.capOf(s, good) - s.stock[good]));
+        made = Math.min(made, left);
+        if (made > 0) {
+          Econ.spendRuin(s, b, made);
+          Econ.addStock(s, good, made);
+        }
+        b.rate = made;
         b.status = left <= 0 ? 'stand_spent' : (staffEff < 1 ? 'understaffed' : 'ok');
         continue;
       } else if (d.out) {
@@ -801,6 +822,9 @@ const Econ = {
     }
     s.money += income - upkeep;
     s.cum.earned += Math.max(0, income - upkeep);
+
+    Econ.arrearsTick(s, offline);
+    Econ.repairTick(s, offline);
     const flow = income - upkeep - monDrawn;
 
     C.net = C.ratesDirty ? flow : C.net * 0.9 + flow * 0.1;
@@ -1540,6 +1564,8 @@ const Econ = {
     12: (s, base) => (s.cum.passage || 0) - (base.passage || 0) >= TUNE.PASSAGE.gateLanded,
 
     13: (s) => Econ.annonaState(s).premium <= TUNE.ANNONA.gatePremium,
+
+    15: (s) => Econ.chainsRunning(s, 15) >= 3,
     2: (s, base) => (s.cum.tributePaid || 0) - (base.tributePaid || 0) >= TUNE.TRIBUTE.gate,
 
     6: (s) => (G.cache.gridFrac || 0) >= TUNE.GRID.gateFrac,
@@ -1571,6 +1597,8 @@ const Econ = {
     11: 'The register is current',
     12: 'Berths landed for arrivals',
     13: 'The grain bill is under control',
+
+    15: 'Three chains are still selling',
   },
   eraExtraLabel(s) {
     const r = rungOf(s.era);
@@ -2730,6 +2758,256 @@ const Econ = {
     return out;
   },
 
+  arrearsActive(s) { return rungOf(s.era) === 15; },
+
+  fabricPool(b) {
+    const d = DEF(b.type);
+    if (!d) return 0;
+    let paid = paidCost(b.type);
+    for (let r = 1; r < (b.rank || 1); r++) paid += rankUpCost(d, r);
+    return TUNE.ARREARS.fabricFrac * paid * (d.fabricMult != null ? d.fabricMult : 1);
+  },
+
+  fabricOf(b) { return b.fabric === undefined ? 1 : b.fabric; },
+
+  stampShield(s) {
+    const C = G.cache;
+    if (!C.shield) return;
+    C.shield.fill(0);
+    C.shieldBest = 1;
+    if (!Econ.arrearsActive(s)) return;
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d || !d.fabricShield || b.mothballed || b.done === false || b.block) continue;
+      if (d.workers && !(b.staff > 0)) continue;
+      Grid.stampRadiusCircle(C.shield, b, (d.shieldRadius || 0) + rankRadiusBonus(b));
+      C.shieldBest = Math.min(C.shieldBest, d.fabricShield);
+    }
+  },
+  fabricShield(s, b) {
+    if (!Econ.arrearsActive(s)) return 1;
+    const C = G.cache;
+    if (!C.shield || C.shieldBest === undefined) return 1;
+    return Grid.covered(C.shield, b) ? C.shieldBest : 1;
+  },
+
+  protectSlots(s) {
+    if (!Econ.arrearsActive(s)) return 0;
+    let gangs = 0;
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d || !d.repairRadius || b.mothballed || b.done === false) continue;
+      if (d.workers && !(b.staff > 0)) continue;
+      gangs++;
+    }
+    return TUNE.ARREARS.protectFree + gangs * TUNE.ARREARS.protectPerCurator;
+  },
+
+  protectedSet(s) {
+    const n = Econ.protectSlots(s);
+    const list = (s.curated || []).slice(0, n);
+    return new Set(list);
+  },
+
+  chargeable(s) {
+    const out = [];
+    if (!Econ.arrearsActive(s)) return out;
+    const prot = Econ.protectedSet(s);
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d || d.fabricProof || d.fixed) continue;
+
+      if (b.done === false) continue;
+      if (b.mothballed && TUNE.ARREARS.mothballFreeze) continue;
+      if (prot.has(b.id)) continue;
+      if (!(b.uBill > 0)) continue;
+      out.push(b);
+    }
+    return out;
+  },
+
+  munusBase(s) {
+    if (!Econ.arrearsActive(s)) return 0;
+    let sum = 0;
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d || d.fabricProof || d.fixed || b.done === false) continue;
+      sum += Econ.fabricPool(b);
+    }
+    return sum;
+  },
+
+  arrearsTick(s, offline) {
+    const C = G.cache;
+    C.arrears = C.arrears || { D: 0, gross: 0, charged: 0, ruins: 0, munus: 0, pool: 0 };
+    const A = C.arrears;
+    A.D = 0; A.gross = 0; A.charged = 0; A.ruins = 0; A.munus = 0;
+    if (!Econ.arrearsActive(s)) return;
+
+    Econ.stampShield(s);
+
+    if (s.money < 0) { A.D = -s.money; s.money = 0; }
+    A.pool = Econ.munusBase(s);
+
+    let bill = A.D;
+    if (A.D > 0 && s.policyMunus) {
+      A.munus = TUNE.MUNUS.per * A.pool * Econ.M;
+      bill = (A.D + A.munus) * (1 - TUNE.MUNUS.relief);
+    }
+    if (offline || bill <= 0) return;
+
+    const list = TUNE.ARREARS.order === 'upkeepShare' ? Econ.chargeable(s) : [];
+    let total = 0;
+    for (const b of list) total += b.uBill;
+    if (!(total > 0)) return;
+
+    const fallen = [];
+    for (const b of list) {
+      const share = b.uBill / total;
+      const gross = share * bill;
+      A.gross += gross;
+      const charge = gross * Econ.fabricShield(s, b);
+      A.charged += charge;
+      const pool = Econ.fabricPool(b);
+      if (!(pool > 0)) continue;
+      const now = Econ.fabricOf(b) - charge / pool;
+      b.fabric = Math.max(0, now);
+
+      if (b.fabric < TUNE.ARREARS.warnAt) b.status = 'dilapidated';
+      if (b.fabric <= 0) fallen.push(b);
+    }
+
+    for (const b of fallen) {
+      const spolia = TUNE.ARREARS.spoliaFrac * paidCost(b.type);
+      Grid.makeRuin(s, b, spolia);
+      Grid.removeBuilding(s, b);
+      A.ruins++;
+      s.cum.ruins = (s.cum.ruins | 0) + 1;
+
+      if (!offline) UI.firstToast('ruina', '\u{1F3DA}\u{FE0F} The ' + DEF(b.type).name +
+        ' has fallen. It refunded NOTHING — a building you demolish on purpose pays back half and ' +
+        'its parcel sells for 60% more. Its footprint is RUIN now, and it cannot be painted back: ' +
+        'a RUDERATIO can work it.', 13000);
+    }
+    if (fallen.length) Grid.rebuild(s);
+
+    if (!offline) {
+      if (A.D > 0) {
+        C.arrearsCalm = 0;
+        if (!C.arrearsWarned) {
+          C.arrearsWarned = 1;
+          const f = Econ.arrearsForecast(s);
+          UI.toast('\u{1F3DA}\u{FE0F} The treasury is empty and the city has started paying in ITSELF — $' +
+            Math.round(A.D * TUNE.TEMPO / Econ.M * Econ.BASE_M) + ' a minute, out of the buildings. ' +
+            'The far ones go first: distance already bills them up to twelve times over. ' +
+            'MOTHBALL takes a building to a fifth of base and stops its clock dead.' +
+            (f.worst ? ' The ' + f.worst.name + ' has ' + Math.round(f.secs) + ' seconds.' : ''), 15000);
+        }
+      } else {
+        C.arrearsCalm = (C.arrearsCalm || 0) + Econ.M;
+        if (C.arrearsCalm >= TUNE.ARREARS.rearmMinutes) C.arrearsWarned = 0;
+      }
+    }
+  },
+
+  repairTick(s, offline) {
+    const C = G.cache;
+    C.repaired = 0;
+    if (!Econ.arrearsActive(s)) return;
+
+    if (!(s.money > 0)) {
+      for (const b of s.buildings) {
+        const d = DEF(b.type);
+        if (!d || !d.repairRadius || b.mothballed || b.done === false) continue;
+        if (b.status === 'ok' || b.status === 'dilapidated') b.status = 'unfunded';
+      }
+      return;
+    }
+    if (offline) return;
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d || !d.repairRadius || b.mothballed || b.done === false || b.block) continue;
+      const staffEff = d.workers ? b.staff / d.workers : 1;
+      if (!(staffEff > 0)) continue;
+      const budgetFabric = (d.workers || 0) * staffEff * TUNE.ARREARS.repairPerWorker * Econ.M;
+      if (!(budgetFabric > 0)) continue;
+
+      const near = s.buildings.filter(o => {
+        const od = DEF(o.type);
+        return od && !od.fixed && o.done !== false && Econ.fabricOf(o) < 1 &&
+          Grid.within(b, o, d.repairRadius);
+      }).sort((x, y) => Econ.fabricOf(x) - Econ.fabricOf(y));
+      let left = budgetFabric;
+      for (const o of near) {
+        if (left <= 0) break;
+        const pool = Econ.fabricPool(o);
+        if (!(pool > 0)) continue;
+        const want = Math.min(left, (1 - Econ.fabricOf(o)) * pool);
+        const price = (d.repairPrice != null ? d.repairPrice : TUNE.ARREARS.repairPrice);
+        const afford = Math.min(want, s.money / price);
+        if (!(afford > 0)) break;
+        s.money -= afford * price;
+        o.fabric = Math.min(1, Econ.fabricOf(o) + afford / pool);
+        left -= afford;
+        C.repaired += afford;
+      }
+    }
+  },
+
+  arrearsForecast(s) {
+    const A = (G.cache && G.cache.arrears) || { D: 0, gross: 0, charged: 0, ruins: 0, munus: 0, pool: 0 };
+    const out = { D: A.D, munus: A.munus, bill: A.gross, pool: A.pool, charged: A.charged,
+                  ruins: A.ruins, worst: null, secs: Infinity, minFabric: 1, warned: 0,
+                  coverMin: Infinity };
+    if (!Econ.arrearsActive(s)) return out;
+    const list = Econ.chargeable(s);
+    let total = 0;
+    for (const b of list) total += b.uBill;
+    for (const b of list) {
+      const f = Econ.fabricOf(b);
+      if (f < out.minFabric) out.minFabric = f;
+      if (f < TUNE.ARREARS.warnAt) out.warned++;
+      if (!(total > 0) || !(A.gross > 0)) continue;
+      const perTick = (b.uBill / total) * A.gross * Econ.fabricShield(s, b);
+      const pool = Econ.fabricPool(b);
+      if (!(perTick > 0) || !(pool > 0)) continue;
+
+      const secs = f * pool / perTick;
+      if (secs < out.secs) { out.secs = secs; out.worst = b; }
+    }
+
+    if (A.D > 0 && out.pool > 0) out.coverMin = out.pool / (A.D / Econ.M);
+    return out;
+  },
+
+  chainsRunning(s, rung) {
+    const seen = new Set();
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d || !d.sells || defEra(d) !== rung) continue;
+      if (b.mothballed || b.done === false || b.block) continue;
+      if (d.workers && !(b.staff > 0)) continue;
+      if (!(b.rate > 0)) continue;
+      seen.add(d.sells);
+    }
+    return seen.size;
+  },
+
+  ruinSpoliaLeft(s, b) {
+    let left = 0;
+    Grid.tilesOf(b, (x, y) => { left += Grid.ruinSpoliaAt(s, x, y); });
+    return left;
+  },
+  spendRuin(s, b, amt) {
+    let want = amt, took = 0;
+    Grid.tilesOf(b, (x, y) => {
+      if (want <= 0) return;
+      const got = Grid.spendRuinSpolia(s, x, y, want);
+      want -= got; took += got;
+    });
+    return took;
+  },
+
   levyActive(s) { return rungOf(s.era) === 2; },
 
   realSecs() { return Econ.M / Econ.BASE_M; },
@@ -3619,7 +3897,9 @@ const Econ = {
                 'natron', 'glass', 'pergamena', 'epistyle',
 
                 'sigillata', 'marmor', 'pozzolana', 'concrete',
-                'galena', 'plumbum', 'linum', 'velum'],
+                'galena', 'plumbum', 'linum', 'velum',
+
+                'iron', 'spolia', 'arma', 'calx'],
 
   capOf(s, kind) {
 
@@ -3934,3 +4214,16 @@ const Econ = {
     return true;
   },
 };
+
+(() => {
+  const bad = [];
+  for (const k of Object.keys(Econ.ERA_EXTRA_GATE))
+    if (!Econ.ERA_EXTRA_LABEL[k])
+      bad.push('rung ' + k + ' has an ERA_EXTRA_GATE row and no ERA_EXTRA_LABEL — the era ' +
+               'panel will print the generic fallback instead of naming the age’s condition');
+  for (const k of Object.keys(Econ.ERA_EXTRA_LABEL))
+    if (!Econ.ERA_EXTRA_GATE[k])
+      bad.push('rung ' + k + ' has an ERA_EXTRA_LABEL and no ERA_EXTRA_GATE — the label is ' +
+               'orphaned and eraExtraLabel returns null, so it is never printed');
+  if (bad.length) console.error('EPOCH ERA_EXTRA parity:\n  ' + bad.join('\n  '));
+})();

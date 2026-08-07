@@ -412,6 +412,14 @@ const Input = {
       else if (t === TERRAIN.ROCK) txt = 'rock — finite stone, quarried from Era 3';
       else if (t === TERRAIN.WATER) txt = 'the channel — clay pits near it, weirs and jetties on it';
       else if (t === TERRAIN.MOUNTAIN) txt = 'mountain — nothing builds here';
+
+      else if (t === TERRAIN.RUIN) {
+        const left = Grid.ruinSpoliaAt(G.s, p.x, p.y);
+        txt = left > 0
+          ? 'ruin — ' + Math.round(left) + ' spolia left in it. A RUDERATIO works rubble; nothing grows here'
+          : 'ruin, worked out — the stone is gone. It still holds a building up';
+      }
+      else if (t === TERRAIN.ASH) txt = 'ash — a stand was burned out here. It builds; it grows nothing, ever';
       else if (Grid.treeAt(G.s, p.x, p.y)) txt = 'wild growth — $' + TUNE.CLEAR_TREE + ' to clear';
       else if (soil < 0.999) txt = 'worked ground — soil ' + Math.round(soil * 100) + '%';
       if (txt) showTT(txt); else Input.tt.classList.add('hidden');
@@ -687,6 +695,10 @@ const Input = {
     else if (r === 'ash') UI.firstToast('ash', '\u{1F525} Ash cannot be reshaped — not for money, not ever. ' +
       'That ground is where a forest was, and the forest is not coming back.');
 
+    else if (r === 'ruin') UI.firstToast('ruin', '\u{1F3DA}\u{FE0F} A ruin cannot be reshaped — not for money, ' +
+      'not ever. What fell down here stays down, and that is not a punishment: the rubble IS the ' +
+      'quarry. Put a RUDERATIO on it and the building you could not pay for becomes the lime for ' +
+      'the one you can.');
     else if (r === 'sea') UI.firstToast('sea', '\u{1F30A} The sea cannot be filled — not for money, not ever. ' +
       'Every other age on the ladder can dig its way out of its own geography. This is the age about ' +
       'not being able to: you cross the water in a hull, or you do not cross it.');

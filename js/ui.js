@@ -44,6 +44,8 @@ const UI = {
     UI.els.passage = document.getElementById('hud-passage');
     UI.els.annonaChip = document.getElementById('chip-annona');
     UI.els.annona = document.getElementById('hud-annona');
+    UI.els.fabricChip = document.getElementById('chip-fabric');
+    UI.els.fabric = document.getElementById('hud-fabric');
 
     UI.buildPalette();
 
@@ -1200,6 +1202,56 @@ const UI = {
           : '') + swept;
     }
 
+    const showFabric = Econ.arrearsActive(s) && (() => {
+      const f0 = Econ.arrearsForecast(s);
+      return f0.D > 0 || f0.warned > 0 || f0.minFabric < 1;
+    })();
+    if (UI.els.fabricChip) {
+      UI.els.fabricChip.classList.toggle('hidden', !showFabric);
+      UI.els.fabricChip.style.display = showFabric ? '' : 'none';
+    }
+    if (showFabric && UI.els.fabric) {
+      const f = Econ.arrearsForecast(s);
+      const perMin = f.D / Econ.M * TUNE.TEMPO;
+      const clock = (secs) => secs >= 90
+        ? Math.floor(secs / 60) + 'm ' + Math.round(secs % 60) + 's'
+        : Math.round(secs) + 's';
+      UI.els.fabric.textContent =
+        (f.D > 0 ? '−$' + Math.round(perMin) + '/min' : 'held') +
+        (f.worst && isFinite(f.secs) ? ' · ' + f.worst.name + ' ' + clock(f.secs) : '');
+
+      const bad = (isFinite(f.secs) && f.secs < 180) || f.ruins > 0;
+      UI.els.fabricChip.classList.toggle('bad', bad);
+      UI.els.fabricChip.classList.toggle('warn', !bad && (f.D > 0 || f.warned > 0));
+      UI.els.fabricChip.title =
+        (f.D > 0
+          ? 'The treasury is empty and the city is paying in ITSELF: $' + Math.round(perMin) +
+            ' a minute, charged as condition across ' + Econ.chargeable(s).length +
+            ' building' + (Econ.chargeable(s).length === 1 ? '' : 's') + ', in proportion to what ' +
+            'each one costs you.'
+          : 'The ledger is balanced, so nothing is being charged — but ' + f.warned +
+            ' building' + (f.warned === 1 ? ' is' : 's are') + ' still below ' +
+            Math.round(TUNE.ARREARS.warnAt * 100) + '% and only a CURATOR OPERUM puts condition back.') +
+        (f.worst && isFinite(f.secs)
+
+          ? ' — THE ' + f.worst.name.toUpperCase() + ' FALLS IN ' + clock(f.secs) +
+            ' AND REFUNDS NOTHING. Demolish it yourself and you get half back plus 60% of the ' +
+            'parcel; mothball it and the bill drops to a fifth and this clock stops.'
+          : '') +
+        (f.ruins > 0 ? ' ' + f.ruins + ' fell this minute.' : '') +
+
+        (s.policyMunus
+          ? ' THE MUNUS IS CALLED: −' + Math.round(TUNE.MUNUS.relief * 100) + '% on every share, ' +
+            'bought with an assessment of $' + Math.round(f.munus / Econ.M * TUNE.TEMPO) +
+            ' a minute on $' + Math.round(f.pool).toLocaleString('en-US') + ' of standing building. ' +
+            (isFinite(f.coverMin)
+              ? 'Your fabric covers ' + Math.round(f.coverMin) + ' authored minutes of this deficit, ' +
+                'against a crossover of ' + TUNE.MUNUS.crossoverMin + ' — so it is ' +
+                (f.coverMin < TUNE.MUNUS.crossoverMin ? 'PAYING for itself.' : 'COSTING you more than it saves; lift it.')
+              : 'It is not assessed at all while you are solvent.')
+          : '') ;
+    }
+
     const showHerd = Econ.trophicActive(s);
     if (UI.els.herdChip) {
       UI.els.herdChip.classList.toggle('hidden', !showHerd);
@@ -1359,7 +1411,7 @@ const UI = {
   },
 
   AMBER_STATUS: { understaffed: 1, resting: 1, flooded: 1, dry_season: 1,
-                  halted: 1, building: 1, crowded: 1, no_head: 1 },
+                  halted: 1, building: 1, crowded: 1, no_head: 1, dilapidated: 1, unfunded: 1 },
 
   statusText(b) {
     const M = {
@@ -1405,6 +1457,28 @@ const UI = {
         return 'DRY — running on rain at ' + Math.round(TUNE.CASCADE.dryYield * 100) + '%. ' +
           (w || 'No head reaches it.');
       })(), 'warn'],
+
+      dilapidated: [(() => {
+        const b = Input.selected, s = G.s;
+        if (!b) return 'DILAPIDATED';
+        const pct = Math.round(Econ.fabricOf(b) * 100);
+        const perMin = (b.uBill || 0) / Econ.M * TUNE.TEMPO;
+        const f = Econ.arrearsForecast(s);
+        const mine = f.worst === b ? f.secs : null;
+        const mult = (b.supply || 1) * (b.trade || 1);
+
+        const blocked = b.block ? ' It is also ' + (UI.statusText({ status: b.block })[0] || b.block)
+          .split(' — ')[0].toLowerCase() + '.' : '';
+        return pct + '% OF WHAT IT WAS.' + blocked + ' It is billed $' + perMin.toFixed(2) + ' a minute' +
+          (mult > 1.05 ? ' — ×' + mult.toFixed(1) + ' base, because it is ' +
+            Math.round(b.custDist != null ? b.custDist : 0) + ' tiles from its customers and off a depot' : '') +
+          '. MOTHBALL it: the bill falls to a fifth and this clock STOPS.' +
+          (mine != null && isFinite(mine) ? ' It has ' + Math.round(mine) + ' seconds.' : '') +
+          ' Repair needs cash you do not have.';
+      })(), 'warn'],
+
+      unfunded: ['NO MONEY TO SPEND — the treasury is empty, so this gang restores $0 a minute. ' +
+        'It is the building you buy AFTER you are solvent, to undo what winning cost', 'warn'],
       no_staff: ['NO WORKERS available', 'bad'], understaffed: ['UNDERSTAFFED', 'warn'],
       no_input: ['NO INPUT in stock', 'bad'], no_customers: ['NOT ENOUGH CUSTOMERS', 'bad'],
       hungry: ['RESIDENTS HUNGRY', 'bad'],
