@@ -400,6 +400,7 @@ const Shapes = {
   },
 
   ROCK_TINT: {
+    16: 0xb8b2a8,
     1:  0x8d949b,
 
     3:  0xd6cfb8,
@@ -2501,6 +2502,8 @@ const Shapes = {
 
   CITIZEN_DRESS: {
 
+    16: { robe: 'purpleDeep', torso: 'plaster', head: 'timber', bulk: 1.04 },
+
     0:  { robe: 'leafDry',  torso: 'hideDark', head: 'hidePale', bulk: 0.96 },
     1:  { robe: 'fur',     torso: 'hideDark', head: 'hidePale', hood: 'fur', bulk: 1.22 },
 
@@ -2610,7 +2613,9 @@ const Shapes = {
     return Shapes.mergeGroup(g);
   },
 
-  LEDGER_SKINS: { 1: 'boneTally', 4: 'clayTablet', 7: 'clayTablet', 8: 'boneTally',
+  LEDGER_SKINS: {
+
+    16: 'parchment', 1: 'boneTally', 4: 'clayTablet', 7: 'clayTablet', 8: 'boneTally',
                   10: 'clayTablet', 11: 'clayTablet', 12: 'clayTablet', 13: 'clayTablet',
 
                   15: 'clayTablet' },

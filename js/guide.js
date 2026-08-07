@@ -24,7 +24,10 @@ const ERA_ANCHOR = {
   14: { name: 'Council House',      short: 'Popol Nah',  note: 'The popol nah — the mat house — where lineage heads met beneath a woven-mat frieze.' },
 
   15: { name: 'The Praetorium',     short: 'Praetorium', note: 'The governor\'s residence inside a wall that was not needed when the city was built. It now administers only what can still be defended.' },
-  16: { name: 'The Great Palace',   short: 'Palace',     note: 'It outlasted the west by 977 years. The silk monopoly and the recipe for Greek fire were both state secrets, kept here.' },
+  16: { name: 'The Great Palace',   short: 'Palace',
+        note: 'It outlasted the west by 977 years. The silk monopoly and the recipe for Greek fire ' +
+        'were both state secrets, kept here \u2014 and the Book of the ' +
+        'Eparch, which says who may make what and how much of it, is enforced from the office next door.' },
   17: { name: 'The Monastery',      short: 'Monastery',  note: 'The estate is run from the cloister, because the cloister is what is left. The record survives here or it does not survive.' },
   18: { name: 'The House of Wisdom', short: 'Bayt al-Hikma', note: 'Translation, astronomy, algebra and paper. The library IS the administration — and none of it is a dark age.' },
   19: { name: 'The Longhouse',      short: 'Longhouse',  note: 'The jarl\'s hall: the thing the ships are pulled up in front of, and the only reason they come back.' },
@@ -58,6 +61,17 @@ function anchorFor(era) {
 }
 
 const ERA_RECORD = {
+
+  16: {
+    icon: '\u2696\uFE0F',
+    tally: 'The Kommerkiarios\u2019 Ledger',
+    tallyBtn: 'The Ledger',
+    tallySub: 'The customs roll: what the city is licensed for, and what it actually sold.',
+    chronicle: 'The Chronographia',
+    chronBtn: 'Chronographia',
+    chronSub: 'The court chronicle, kept year by year. It keeps the last 200 entries.',
+    keeper: 'a Kommerkiarios\u2019 Scale',
+  },
 
   _default: { icon: '\u{1F4DC}', tally: 'The Tally', tallyBtn: 'Tally',
         tallySub: 'What this city keeps count of.',
@@ -222,6 +236,19 @@ function eraFounding(era) {
 }
 
 const ERA_SITE = {
+
+  16: {
+    roadYes: '<b>the Oikema, the Peristylon, the Archontikon, the Vestiopration, the Arsenal Wharf, ' +
+      'the Mankipeion, the Lithoskala, the Kommerkion, the Serikarion, the Cheirosiphon, the ' +
+      'Marmarion, the Sitonikon, the Mitaton, the Office of the Eparch, the Hippodrome, the ' +
+      'Kommerkiarios\u2019 Scale and the Patriarchal Almonry</b>',
+    roadNo: 'the Thracian Plain, the Horizontal Water Mill, the Phiale Fountain, the Proconnesian ' +
+      'Quarry, the Naphtha Seep, the Porphyry Column \u2014 and, most importantly, the METAXEION and ' +
+      'the THYNNEION, which need nothing at all',
+    water: 'THERE IS NO RIVER ON THIS MAP AND NOTHING DRINKS THE SEA. Every home, every shop and ' +
+      'every licensed workshop must sit inside a PHIALE FOUNTAIN\u2019s 8 tiles or a KINSTERNA\u2019s ' +
+      '16. The terraces, the seeps, the quarry and the weir never do.',
+  },
 
   15: {
     roadYes: '<b>the Canabae, the Meritorium, the Turris, the Catabolum, the Vestiarium, the ' +
@@ -668,6 +695,41 @@ const ERA_SITE = {
 function eraSite(era) { return ERA_SITE[rungOf(era)] || ERA_SITE._default; }
 
 const ERA_GUIDES = {
+  16: {
+    headline: 'One good, one licence, and a number you have to hold at exactly one.',
+    mechanic: 'THE EPARCH LICENSES A SELL RATE, NOT A QUANTITY. Each Office of the Eparch licenses ' +
+      '3.30 blattion and 1.65 Greek fire a minute; up to that rate they sell at DOUBLE price, and ' +
+      'every unit past it goes for a THIRD. The licence is rebuilt every tick and an unused one is ' +
+      'gone at the end of it. ★ SO THE NUMBER IS WORSE IN BOTH DIRECTIONS — over-produce and you are ' +
+      'dumping, under-produce and you paid for permission you did not use. Watch the 🔏 chip: it ' +
+      'prints the ratio, and the target is 1.00. A second Office doubles the licence and takes 30% of ' +
+      'every licensed sale; a third takes 40%. Three is the legal maximum, and the third is a trap.',
+    chain: [
+      'Thynneion  ·  the food with NO licence, no field, no mill and no water coverage. Build it first.',
+      'Thracian Plain → Horizontal Water Mill → Mankipeion  ·  bread, unlicensed, and it feeds 322',
+      'Metaxeion → Serikarion → Vestiopration  ·  ~$690/min AT the licence — the age\'s best money, ' +
+        'and the first thing that punishes you for making more of it',
+      'Naphtha Seep → Cheirosiphon → Arsenal Wharf  ·  ~$460/min, and exactly half a licence, so ' +
+        'one Office covers both chains at once',
+      'Proconnesian Quarry → Marmarion → Lithoskala  ·  ~$265/min, unlicensed — but every block sold ' +
+        'is marble Hagia Sophia does not get',
+    ],
+    firstSteps: [
+      'Set a THYNNEION in the strait. It is planted IN the water, it carries the road to the far ' +
+        'shore, and nothing the Eparch does can touch it.',
+      'Lay MESE from the Palace to it, then a PHIALE FOUNTAIN: nothing on this map drinks the sea, ' +
+        'and without water in range a building shuts down.',
+      'Put OIKEMAS on the street and inside the fountain\'s 8 tiles — they need BOTH a road and water.',
+      'Plough the THRACIAN PLAIN, put a HORIZONTAL WATER MILL within one tile of water, and a ' +
+        'MANKIPEION on the road. That is bread, and it is not licensed.',
+      'ONLY NOW build the OFFICE OF THE EPARCH, and then exactly ONE Metaxeion → Serikarion → ' +
+        'Vestiopration behind it. One licence is one stoa. Do not build the second stoa.',
+    ],
+    mistake: 'Building a second Vestiopration, or ranking the Serikarion, before you have a second ' +
+      'Office. Both buy THROUGHPUT, and throughput is the one thing the licence refuses to let you ' +
+      'sell — the surplus goes out at a third and the chip drops off 1.00. In this age you buy the ' +
+      'CEILING first and the factory second, which is the reverse of every rung below it.',
+  },
 
   15: {
     headline: 'You inherit more city than you can pay for. Decide what to let go.',

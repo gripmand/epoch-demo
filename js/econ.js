@@ -93,6 +93,8 @@ const Econ = {
     const C = G.cache;
     if (C.dirty) Grid.rebuild(s);
 
+    C.sealLeft = null; C.sealSold = null;
+
     Econ.stampPower(s);
 
     Econ.stampWarmth(s, offline);
@@ -247,6 +249,16 @@ const Econ = {
       C.ration = true;
     }
 
+    C.chrysobull = false;
+    if (s.policyChrysobull && Econ.sealActive(s)) {
+      const bk = Econ.sealBook(s);
+      if (bk.licences > 0) {
+        let lic = 0;
+        for (const kind of Object.keys(TUNE.SEAL.quotaPerSeal)) lic += Econ.sealQuota(s, kind);
+        const need = TUNE.CHRYSOBULL.per * lic * Econ.M;
+        if (need > 0 && s.money >= need) { s.money -= need; C.chrysobull = true; C.chrysobullBill = need; }
+      }
+    }
     const wasSwept = !!C.swept;
     C.swept = false;
     if (s.policySweep && Econ.gridActive(s)) {
@@ -807,7 +819,8 @@ const Econ = {
               ' with no sellPrice — falling back to the list price $' + price + '. Author it in data.js.');
           }
         }
-        gain = sell * price * priceMult;
+
+        gain = Econ.sealRevenue(s, d.sells, sell, price * priceMult);
       }
       income += gain;
       b.rate = sell;
@@ -1575,6 +1588,8 @@ const Econ = {
     13: (s) => Econ.annonaState(s).premium <= TUNE.ANNONA.gatePremium,
 
     15: (s) => Econ.chainsRunning(s, 15) >= 3,
+
+    16: (s) => Econ.sealBook(s).filled >= 1,
     2: (s, base) => (s.cum.tributePaid || 0) - (base.tributePaid || 0) >= TUNE.TRIBUTE.gate,
 
     6: (s) => (G.cache.gridFrac || 0) >= TUNE.GRID.gateFrac,
@@ -1606,6 +1621,8 @@ const Econ = {
     11: 'The register is current',
     12: 'Berths landed for arrivals',
     13: 'The grain bill is under control',
+
+    16: 'A licence filled to the letter',
 
     15: 'Three chains are still selling',
   },
@@ -2577,6 +2594,80 @@ const Econ = {
   },
 
   annonaActive(s) { return rungOf(s.era) === 13; },
+
+  sealActive(s) { return rungOf(s.era) === 16; },
+
+  sealCount(s) {
+    if (!Econ.sealActive(s)) return 0;
+    let n = 0;
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d || !d.seal || b.building || b.mothball) continue;
+      n += (d.sealWeight || 1);
+    }
+    return Math.min(n, TUNE.SEAL.maxSeals);
+  },
+
+  sealQuota(s, kind) {
+    if (!Econ.sealActive(s)) return Infinity;
+    const per = TUNE.SEAL.quotaPerSeal[kind];
+    if (per === undefined) return Infinity;
+    return per * Econ.sealCount(s) * (s.policyChrysobull ? 1 + TUNE.CHRYSOBULL.step : 1);
+  },
+
+  sealTithe(s) {
+    if (!Econ.sealActive(s)) return 0;
+    let offices = 0;
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d || !d.seal || b.building || b.mothball) continue;
+      offices++;
+    }
+    const t = TUNE.SEAL.tithe;
+    return t[Math.min(offices, t.length - 1)] || 0;
+  },
+
+  sealBook(s) {
+    const out = { offices: 0, licences: 0, tithe: 0, legs: [], filled: 0, ratio: 1 };
+    if (!Econ.sealActive(s)) return out;
+    const C = G.cache;
+    for (const b of s.buildings) {
+      const d = DEF(b.type);
+      if (!d || !d.seal || b.building || b.mothball) continue;
+      out.offices++; out.licences += (d.sealWeight || 1);
+    }
+    out.licences = Math.min(out.licences, TUNE.SEAL.maxSeals);
+    out.tithe = Econ.sealTithe(s);
+    let worst = 0;
+    for (const kind of Object.keys(TUNE.SEAL.quotaPerSeal)) {
+      const quota = Econ.sealQuota(s, kind);
+      const sold = ((C.sealSold && C.sealSold[kind]) || 0) / Math.max(1e-9, Econ.M);
+      const ratio = quota > 0 ? sold / quota : 0;
+      out.legs.push({ kind, name: goodLabel(s.era, kind), quota, sold, ratio });
+      if (ratio >= 0.90 && ratio <= 1.10) out.filled++;
+      worst = Math.max(worst, Math.abs(ratio - 1));
+    }
+    out.ratio = 1 - worst;
+    return out;
+  },
+
+  sealRevenue(s, kind, units, unit) {
+    if (!Econ.sealActive(s) || !(units > 0)) return units * unit;
+    const q = Econ.sealQuota(s, kind);
+    if (!(q < Infinity)) return units * unit;
+    const C = G.cache;
+    if (!C.sealLeft) C.sealLeft = {};
+    if (C.sealLeft[kind] === undefined) C.sealLeft[kind] = q * Econ.M;
+    if (!C.sealSold) C.sealSold = {};
+    C.sealSold[kind] = (C.sealSold[kind] || 0) + units;
+    const lic = Math.min(units, Math.max(0, C.sealLeft[kind]));
+    C.sealLeft[kind] -= lic;
+    const over = units - lic;
+    return lic * unit * TUNE.SEAL.premium * (1 - Econ.sealTithe(s)) +
+           over * unit * TUNE.SEAL.spill;
+  },
+
+  vaultBonus(s) { return 1 + TUNE.GIFT_VAULT_STEP * ((s && s.giftVault) | 0); },
 
   annonaCapacity(s) {
     let cap = TUNE.ANNONA.base;
@@ -3935,6 +4026,8 @@ const Econ = {
   })(),
 
   CRAFT_KINDS: ['clay', 'pottery', 'wool', 'cloth', 'beer', 'reeds', 'baskets',
+
+                'blattion', 'naphtha', 'greekfire',
                 'sesame', 'oil', 'dyedcloth', 'mudbrick', 'salt', 'dates', 'fish',
                 'cacao', 'chocolate',
 
@@ -3969,7 +4062,7 @@ const Econ = {
 
   capOf(s, kind) {
 
-    const m = subTier(s).storageMult * (1 + 0.25 * (s.giftStore | 0));
+    const m = subTier(s).storageMult * (1 + 0.25 * (s.giftStore | 0)) * Econ.vaultBonus(s);
     const base = TUNE[Econ.BASE_CAP[kind]] || 30;
     if (kind === 'grain' || kind === 'flour' || kind === 'game' || kind === 'pemmican') {
 

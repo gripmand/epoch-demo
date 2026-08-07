@@ -44,6 +44,8 @@ const UI = {
     UI.els.passage = document.getElementById('hud-passage');
     UI.els.annonaChip = document.getElementById('chip-annona');
     UI.els.annona = document.getElementById('hud-annona');
+    UI.els.sealChip = document.getElementById('chip-seal');
+    UI.els.seal = document.getElementById('hud-seal');
     UI.els.fabricChip = document.getElementById('chip-fabric');
     UI.els.fabric = document.getElementById('hud-fabric');
 
@@ -1202,6 +1204,29 @@ const UI = {
           : '') + swept;
     }
 
+    const showSeal = Econ.sealActive(s) && Econ.sealBook(s).licences > 0;
+    if (UI.els.sealChip) {
+      UI.els.sealChip.classList.toggle('hidden', !showSeal);
+      UI.els.sealChip.style.display = showSeal ? '' : 'none';
+    }
+    if (showSeal && UI.els.seal) {
+      const bk = Econ.sealBook(s);
+
+      let worst = null;
+      for (const leg of bk.legs) {
+        if (!(leg.quota > 0)) continue;
+        if (!worst || Math.abs(leg.ratio - 1) > Math.abs(worst.ratio - 1)) worst = leg;
+      }
+      if (worst) {
+        UI.els.seal.textContent = worst.ratio.toFixed(2) + ' ' + worst.name;
+
+        const off = Math.abs(worst.ratio - 1);
+        UI.els.seal.style.color = off <= 0.10 ? '' : off <= 0.35 ? '#d8a34a' : '#c9553f';
+      } else {
+        UI.els.seal.textContent = '\u2014';
+        UI.els.seal.style.color = '';
+      }
+    }
     const showFabric = Econ.arrearsActive(s) && (() => {
       const f0 = Econ.arrearsForecast(s);
       return f0.D > 0 || f0.warned > 0 || f0.minFabric < 1;

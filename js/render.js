@@ -33,6 +33,17 @@ const Rend = {
 
   ERA_GROUND: {
 
+    16: {
+      base:     { color: 0xa8a08c, tex: 'silt' },
+      fertile:  { color: 0x7d9c56, tex: 'field' },
+      salt:     { color: 0xd0c8b0, tex: 'salt' },
+      saltRidge: 0xe4dcc4,
+      rock:     { color: 0xb8b2a8, tex: 'rock' },
+      cliff:    0x6e6a62,
+      bed:      0x4a6070,
+      grain: 0.12, macro: 0.16,
+    },
+
     0: {
       base:     { color: 0x86885a, tex: 'silt' },
       fertile:  { color: 0x5f7a3e, tex: 'field' },

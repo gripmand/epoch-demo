@@ -42,6 +42,7 @@ const Game = {
       giftTerra: 0,
 
       giftSupply: 0,
+      giftVault: 0,
 
       giftTable: 0,
 
@@ -108,6 +109,7 @@ const Game = {
       policyFleet: false,
 
       policyMunus: false,
+      policyChrysobull: false,
 
       policyBoneFire: false,
 
@@ -351,6 +353,7 @@ const Game = {
       giftIssue: s.giftIssue | 0,
       giftTerra: s.giftTerra | 0,
       giftSupply: s.giftSupply | 0,
+      giftVault: s.giftVault | 0,
       giftTable: s.giftTable | 0,
       giftExport: s.giftExport | 0,
       giftBeacon: s.giftBeacon | 0,
@@ -378,6 +381,7 @@ const Game = {
       policyAteleia: !!s.policyAteleia,
       policyFleet: !!s.policyFleet,
       policyMunus: !!s.policyMunus,
+      policyChrysobull: !!s.policyChrysobull,
       policyBoneFire: !!s.policyBoneFire,
       policyProfessio: !!s.policyProfessio,
 
@@ -725,6 +729,7 @@ const Game = {
       giftIssue: d.giftIssue | 0,
       giftTerra: d.giftTerra | 0,
       giftSupply: d.giftSupply | 0,
+      giftVault: d.giftVault | 0,
       giftTable: d.giftTable | 0,
       giftExport: d.giftExport | 0,
       giftBeacon: d.giftBeacon | 0,
@@ -757,6 +762,7 @@ const Game = {
       policyAteleia: !!d.policyAteleia,
       policyFleet: !!d.policyFleet,
       policyMunus: !!d.policyMunus,
+      policyChrysobull: !!d.policyChrysobull,
       policyBoneFire: !!d.policyBoneFire,
       policyProfessio: !!d.policyProfessio,
 

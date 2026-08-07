@@ -56,11 +56,15 @@ const TUNE = {
                  sigillata: 0, marmor: 0, pozzolana: 0, concrete: 0,
                  galena: 0, plumbum: 0, linum: 0, velum: 0,
 
-                 iron: 0, spolia: 0, arma: 0, calx: 0 },
+                 iron: 0, spolia: 0, arma: 0, calx: 0,
+
+                 blattion: 0, naphtha: 0, greekfire: 0 },
 
   FOUNDING_CREW: 10,
 
   ERA_STARTER: { 15: 'oleastrum',
+
+  16: 'thynneion',
                  10: 'olivegrove',
     1: 'deadwoodcutter', 2: 'terraceplot', 3: 'snailbeds', 4: 'farm',
                  5: 'emmerfield', 6: 'leveefield',
@@ -134,6 +138,24 @@ const TUNE = {
   GALENA_CAP: 175, PLUMBUM_CAP: 87, LINUM_CAP: 140, VELUM_CAP: 87,
 
   IRON_CAP: 230, SPOLIA_CAP: 230, ARMA_CAP: 90, CALX_CAP: 140,
+
+  SEAL: {
+
+    premium: 2.00,
+
+    spill: 0.35,
+
+    quotaPerSeal: { blattion: 3.30, greekfire: 1.65 },
+
+    tithe: [0, 0.20, 0.30, 0.40],
+    maxSeals: 3,
+  },
+
+  CHRYSOBULL: { step: 0.50, per: 60 },
+
+  GIFT_VAULT_STEP: 0.20,
+
+  BLATTION_CAP: 60, NAPHTHA_CAP: 180, GREEKFIRE_CAP: 45,
   PRICES: { grain: 0.5, flour: 2, stone: 1, blocks: 4,
             clay: 0.6, pottery: 4, wool: 1.2, cloth: 7, beer: 3,
             dates: 1.8, fish: 1.5, salt: 1.5, reeds: 0.35, baskets: 8.9,
@@ -170,7 +192,9 @@ const TUNE = {
             sigillata: 13, marmor: 85, pozzolana: 1.15, concrete: 10,
             galena: 1.96, plumbum: 42, linum: 3.91, velum: 23,
 
-            iron: 2.55, spolia: 1.50, arma: 110.53, calx: 16.90 },
+            iron: 2.55, spolia: 1.50, arma: 110.53, calx: 16.90,
+
+            blattion: 24.60, naphtha: 3.20, greekfire: 34.30 },
 
   NO_EXPORT: { water: 1, passage: 1 },
 
@@ -501,6 +525,8 @@ const TUNE = {
 
   ERA_IMPORT: {
 
+    16: { kind: 'grain', price: 12, who: 'A Genoese factor sold the city', unit: 'modios' },
+
     10: { kind: 'grain', price: 2, who: 'A Pontic grain ship sold the city', unit: 'measure' },
 
     11: { kind: 'grain', price: 4, who: 'A Sicilian corn factor sold the city', unit: 'modius' },
@@ -633,6 +659,8 @@ const HOUSE_RUNG_REF = { 0: 'nestmound', 1: 'hidetent', 2: 'shelter', 3: 'brushs
                          11: 'casacolonica', 12: 'katoikia', 13: 'cenaculum',
 
                          15: 'meritorium',
+
+                         16: 'oikema',
                          14: 'stonehouse' };
 function houseRungRefCost(era) {
   const rung = rungOf(era);
@@ -710,7 +738,7 @@ function eraInfo(era) {
   return r === 0 ? ERA_PROLOGUE : (ERAS[r - 1] || ERA_PROLOGUE);
 }
 
-const WRITTEN_RUNGS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+const WRITTEN_RUNGS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
 
 const START_ERA = WRITTEN_RUNGS[0];
 function nextWrittenEra(era) {
@@ -873,6 +901,10 @@ function rentNetMonthly(era, hallLevel, tierKey) {
 const HALL_COST_GROWTH = Math.pow(2.1, 12 / 35);
 
 const ERA_TERRA_LOCK = {
+
+  16: { fertile: 'nothing on this peninsula has been fallow since Constantine walled it, and painting ' +
+        'a tile green buys the BONUS, never the soil. THE METAXEION is the answer: it ignores the ' +
+        'salt clock outright and yields MORE on the ground the wheat has already killed' },
 
   15: {
     fertile: 'you did not inherit tired ground because it was the wrong colour -- this valley has ' +
@@ -1047,6 +1079,361 @@ const ROAD_REQUIRED = ['townhall', 'house', 'villa', 'stonehouse', 'market', 'ba
   'meritorium', 'canaba', 'turris'];
 
 const BUILDINGS = {
+
+  phiale: {
+    name: 'Phiale Fountain', tier: 'infra', era: 16, w: 1, h: 1, cost: 1520, upkeep: 3.06,
+    icon: '\u26F2', color: '#7fb4c9', waterRadius: 8,
+    desc: 'A public basin on a lead main, fed by an aqueduct from sixty miles away. Waters 8 tiles. ' +
+      'Nothing on this map drinks the sea: without a fountain in range, a building shuts down.',
+  },
+  sitonikon: {
+    name: 'The Sitonikon', tier: 'infra', era: 16, w: 2, h: 3, cost: 7620, upkeep: 7.28,
+    icon: '\u{1F33E}', color: '#c4a35a', storeGrain: 1200, storeFlour: 750, depot: true, needsRoad: true,
+    desc: 'The grain office and its public granary. +1,200 grain and +750 bread while connected, and a ' +
+      'SUPPLY POINT for carting - one out on the Thracian plain erases a whole district\'s premium.',
+  },
+  mitaton: {
+    name: 'The Mitaton', tier: 'infra', era: 16, w: 2, h: 4, cost: 8250, upkeep: 4.75,
+    icon: '\u{1F4E6}', color: '#a88f68', workers: 3, storeCraft: 110, depot: true, needsRoad: true,
+    desc: 'The lodging and bonded warehouse the Book of the Eparch assigned to foreign merchants: ' +
+      '+110 capacity for EVERY craft good while staffed. ★ BANK BLATTION THROUGH A LAPSED LICENCE ' +
+      'instead of spilling it - this is the building that makes a quota survivable, and it costs money.',
+  },
+
+  metaxeion: {
+    name: 'The Metaxeion', tier: 'food', era: 16, w: 2, h: 2, cost: 4900, upkeep: 5.76,
+    icon: '\u{1F41B}', color: '#8fae62', workers: 3, dryLand: true, saltProof: true,
+    out: { cocoon: 8.24 }, rp: 1.0,
+    desc: 'White mulberry on dry terraces and the trays of worm beneath them, reeled at the cocoon: ' +
+      '8.24 cocoons/min. It IGNORES the erosion clock and yields +50% on ground the grain has ruined ' +
+      '(soil under 30%) - the terrace is what exhausted fields are for.',
+  },
+  serikarion: {
+    name: 'The Serikarion', tier: 'craft', era: 16, w: 3, h: 3, cost: 11500, upkeep: 13.70,
+    icon: '\u{1F9F5}', color: '#8e4a86', workers: 5, needsWater: true, needsRoad: true, industry: true,
+    procIn: 'cocoon', procRate: 8.24, procOut: 'blattion', procRatio: 0.40, rp: 1.8,
+
+    desc: 'The sealed workshop of the serikarioi, who alone may weave the imperial cloth: 8.24 cocoons ' +
+      'into 3.30 bolts a minute - exactly one Eparch\'s licence. Ranking this building buys throughput ' +
+      'you may not be allowed to sell.',
+  },
+  vestiopration: {
+    name: 'The Vestiopration', tier: 'commerce', era: 16, w: 2, h: 2, cost: 11400, upkeep: 14.86,
+    icon: '\u{1F3EA}', color: '#a4568f', workers: 4, needsWater: true, needsRoad: true,
+    sells: 'blattion', sellRate: 3.30, sellPrice: 123.06, custRadius: 7, custMin: 24, rp: 3.0,
+    desc: 'The stall of the vestiopratai, who alone may sell the finished bolt. 3.30 blattion/min at ' +
+      '$246.12 UNDER THE LICENCE and $43.07 past it. Needs 24 residents. Rank THIS, not the loom.',
+  },
+
+  naphthaseep: {
+    name: 'Naphtha Seep', tier: 'food', era: 16, w: 2, h: 2, cost: 4900, upkeep: 5.76,
+    icon: '\u{1F6E2}\uFE0F', color: '#4a4740', workers: 3, onRock: true, industry: true,
+    out: { naphtha: 4.12 }, rp: 1.2,
+    desc: 'Crude petroleum welling from a rock fissure, skimmed and barrelled: 4.12 naphtha/min, the ' +
+      'scarcest raw on the map. Must sit on rock, and it wants the same ridges your marble does. ' +
+      'Nobody now knows what else went into the fire. Nobody then was allowed to.',
+  },
+  cheirosiphon: {
+    name: 'The Cheirosiphon', tier: 'craft', era: 16, w: 3, h: 3, cost: 11500, upkeep: 13.70,
+    icon: '\u{1F525}', color: '#a8412a', workers: 5, needsWater: true, needsRoad: true, industry: true,
+    procIn: 'naphtha', procRate: 4.12, procOut: 'greekfire', procRatio: 0.40, rp: 1.8,
+    desc: 'Naphtha, resin, and whatever else - the recipe died with the empire. 4.12 naphtha/min into ' +
+      '1.65 measures of fire that burns on water. Licensed like the silk and for a better reason: ' +
+      'this one was a state secret, and the penalty for telling it was not commercial.',
+  },
+  arsenalwharf: {
+    name: 'Arsenal Wharf', tier: 'commerce', era: 16, w: 2, h: 2, cost: 7390, upkeep: 9.11,
+    icon: '\u{1F6A2}', color: '#8a5a3a', workers: 4, nearWater: 1, needsRoad: true,
+    sells: 'greekfire', sellRate: 1.65, sellPrice: 171.50, custRadius: 7, custMin: 30, rp: 3.0,
+    desc: 'The fleet\'s own quay. 1.65 measures/min at $343.00 under the licence - the highest unit ' +
+      'price in the age, sold to one customer, who is the state. Needs 30 residents: a navy needs a ' +
+      'city behind it.',
+  },
+
+  thracianplain: {
+    name: 'The Thracian Plain', tier: 'food', era: 16, w: 4, h: 4, cost: 9110, upkeep: 16.46,
+    icon: '\u{1F33E}', color: '#a8c26a', workers: 3, needsWater: true,
+    out: { grain: 64.43 }, rp: 1.0,
+    desc: 'The open country beyond the walls: 64.43 grain/min, +50% on loam. The Egyptian grain fleet ' +
+      'stopped in 618 and never resumed after 641; from then to 1453 the city ate Thrace and Bithynia.',
+  },
+  horizmill: {
+    name: 'Horizontal Water Mill', tier: 'food', era: 16, w: 2, h: 2, cost: 7630, upkeep: 9.14,
+    icon: '\u2699\uFE0F', color: '#b09a7e', workers: 4, nearWater: 1, industry: true, grainMill: true,
+    procIn: 'grain', procRate: 64.43, procOut: 'flour', procRatio: 0.60, rp: 1.6,
+    desc: '64.43 grain/min into 38.66 bread - ONE MILL FEEDS THE WHOLE CITY. It must stand within a ' +
+      'tile of water, which here means the Horn or the strait, so your bread travels.',
+  },
+  mankipeion: {
+    name: 'The Mankipeion', tier: 'commerce', era: 16, w: 3, h: 3, cost: 11450, upkeep: 16.38,
+    icon: '\u{1F35E}', color: '#c98f5f', workers: 6, needsWater: true, needsRoad: true,
+    sells: 'flour', sellRate: 19.33, sellPrice: 13.65, custRadius: 7, custMin: 15, rp: 2.4,
+    desc: 'The bakers\' corporation, whose price the Eparch fixed and who alone were forbidden to leave ' +
+      'the city. Sells 19.33 bread/min at $13.65, leaving 19.33 to eat - 322 residents fed.',
+  },
+
+  proconnesus: {
+    name: 'Proconnesian Quarry', tier: 'food', era: 16, w: 3, h: 3, cost: 12750, upkeep: 11.85,
+    icon: '\u26F0\uFE0F', color: '#cfcac2', workers: 5, onRock: true, industry: true,
+    out: { stone: 20.00 }, rp: 1.2,
+    desc: 'White marble with grey veining, cut in beds on the island: 20.00 stone/min, scaled by the ' +
+      'rock under it. ★ THE ROCK IS FINITE AND NEVER COMES BACK, and Hagia Sophia wants most of it - ' +
+      'quarry the ridge flat and you have destroyed your own naphtha seep.',
+  },
+  marmarion: {
+    name: 'The Marmarion', tier: 'food', era: 16, w: 3, h: 3, cost: 13390, upkeep: 15.95,
+    icon: '\u{1FAA8}', color: '#b8b2a8', workers: 7, needsWater: true, needsRoad: true, industry: true,
+    procIn: 'stone', procRate: 20.00, procOut: 'blocks', procRatio: 0.50, rp: 1.6,
+    desc: 'Sand-and-water saws on a levelled floor: 20.00 stone/min into 10.00 dressed blocks - ONE ' +
+      'QUARRY FEEDS ONE YARD EXACTLY. Every block it dresses is stone the dome does not get.',
+  },
+  lithoskala: {
+    name: 'The Lithoskala', tier: 'commerce', era: 16, w: 2, h: 2, cost: 8050, upkeep: 9.93,
+    icon: '\u{1F9F1}', color: '#a89a84', workers: 4, nearWater: 1, needsRoad: true,
+    sells: 'blocks', sellRate: 3.13, sellPrice: 84.72, custRadius: 7, custMin: 19, rp: 2.4,
+    desc: 'Lighters loading dressed marble for every church on the Marmara: 3.13 blocks/min at $84.72. ' +
+      'The dome is the other customer, and it does not pay. Needs 19 residents.',
+  },
+
+  thynneion: {
+    name: 'The Thynneion', tier: 'food', era: 16, w: 2, h: 3, cost: 4610, upkeep: 5.15,
+    icon: '\u{1F41F}', color: '#6f9fb5', workers: 3, onWater: true, bridge: true,
+    out: { fish: 23.89 }, rp: 1.0,
+
+    desc: 'A fixed net across the current at the turn of the year: 23.89 fish/min, eaten at 75% of ' +
+      'bread\'s worth - 298 residents fed from one building. Food with no field, no mill, no water ' +
+      'coverage and no licence, and being planted in the water it carries the road to the far shore.',
+  },
+
+  kommerkion: {
+    name: 'The Kommerkion', tier: 'commerce', era: 16, w: 1, h: 3, cost: 2890, upkeep: 2.73,
+    icon: '\u{1F9FA}', color: '#bd9a70', workers: 2, needsRoad: true,
+    sellsRaw: ['grain', 'cocoon', 'stone', 'naphtha', 'fish'],
+    sellRate: 12.34, custRadius: 6, custMin: 15, rp: 1.2,
+    desc: 'The customs stall, selling whatever raw good you have most of at 80% of list, 12.34 ' +
+      'units/min. First income the hour your first terrace opens; knowing when to pull it down is the ' +
+      'decision. It will happily sell your Proconnesian marble for $0.80 a block - don\'t.',
+  },
+  eparchate: {
+    name: 'Office of the Eparch', tier: 'civic', era: 16, w: 3, h: 3, cost: 22950, upkeep: 15.39,
+    icon: '\u{1F50F}', color: '#8f7ab5', workers: 8, needsRoad: true, needsWater: true,
+
+    seal: true, rp: 1.0,
+    desc: 'The Book of the Eparch, and the man who enforces it. Licenses 3.30 blattion and 1.65 fire a ' +
+      'minute at DOUBLE price; everything past the licence goes for a third. A second Office doubles ' +
+      'the licence and takes 30% of every licensed sale, a third takes 40%. Three is the legal ' +
+      'maximum. A LICENCE YOU CANNOT FILL STILL TAXES THE ONES YOU CAN.',
+  },
+  hippodrome: {
+    name: 'The Hippodrome', tier: 'civic', era: 16, w: 3, h: 4, cost: 15950, upkeep: 10.27,
+    icon: '\u{1F3DF}\uFE0F', color: '#b5a07a',
+
+    amenityRadius: 24, amenityBonus: 1, needsRoad: true, rp: 0.2,
+    desc: 'Blues and Greens, four chariots a race, and a city that riots about it. +1 housing capacity ' +
+      'for EVERY home within 24 tiles. One is enough; a second adds nothing to a home already covered.',
+  },
+  kommerkiarios: {
+    name: "Kommerkiarios' Scale", tier: 'commerce', era: 16, w: 2, h: 3, cost: 6380, upkeep: 6.84,
+    icon: '\u2696\uFE0F', color: '#c9b46a', workers: 3, needsRoad: true, needsWater: true,
+
+    weighRadius: 10, keepsTally: true, rp: 1.0,
+    desc: 'The customs officer\'s sealed weights and his ledger. Shops within 10 tiles sell at +12%. ' +
+      'On a LICENSED price those twelve per cent are the best civic money in the age.',
+  },
+  patriarchate: {
+    name: 'Patriarchal Almonry', tier: 'civic', era: 16, w: 4, h: 4, cost: 21690, upkeep: 12.29,
+    icon: '\u26EA', color: '#c9a878', workers: 7, needsRoad: true, needsWater: true,
+    depot: true, storeGrain: 3600, storeFlour: 2250, amenityRadius: 10, rp: 1.2,
+    desc: 'The Church\'s own storehouse and bread dole: +3,600 grain, +2,250 bread, a supply point for ' +
+      'carting, and +1 housing capacity within 10 tiles.',
+  },
+
+  oikema: {
+    name: 'Rented Oikema', tier: 'housing', era: 16, w: 1, h: 1, cost: 3070, upkeep: 1.49,
+    icon: '\u{1F3E0}', color: '#d8a37a', cap: 14, needsWater: true, needsRoad: true, rp: 0.3,
+    desc: 'A rented room off a courtyard stair. Homes 14, rising as it earns its rungs.',
+  },
+  peristylon: {
+    name: 'The Peristylon', tier: 'housing', era: 16, w: 1, h: 1, cost: 7690, upkeep: 3.72,
+    icon: '\u{1F3E1}', color: '#e0b284', cap: 26, needsWater: true, needsRoad: true, rp: 0.3,
+    levels: ['Unroofed Court', 'The Peristylon', 'Colonnaded Peristylon', 'Marbled Peristylon',
+             "Merchant's Peristylon", 'Patrician Peristylon'],
+    desc: 'Rooms on four sides of a private colonnaded court with a well-head at its centre: homes 26.',
+  },
+  archontikon: {
+    name: 'The Archontikon', tier: 'housing', era: 16, w: 2, h: 2, cost: 15790, upkeep: 7.56,
+    icon: '\u{1F3F0}', color: '#c9b8a0', cap: 62, needsWater: true, needsRoad: true, rp: 0.3,
+    levels: ['Vaulted Undercroft', 'The Archontikon', 'Balconied Archontikon', 'Chapelled Archontikon',
+             "Logothete's Archontikon", 'Palatine Archontikon'],
+    desc: 'A galleried house on a vaulted undercroft, with its own cistern and its own chapel: homes 62.',
+  },
+
+  porphyrycolumn: {
+    name: 'Porphyry Column', tier: 'beauty', era: 16, w: 1, h: 1, cost: 1270, upkeep: 0,
+    icon: '\u{1FAA8}', color: '#7a3a4a', cosmetic: true, nameable: true,
+    desc: 'A shaft of imperial purple stone on a stepped base, with a statue on top that fell off ' +
+      'centuries ago. No output, no upkeep. Click it to name the quarter.',
+  },
+
+  koukoularion: {
+    name: 'The Koukoularion', tier: 'food', era: 16, w: 2, h: 2, cost: 9800, upkeep: 9.79,
+    icon: '\u{1F41B}', color: '#9fbe72', workers: 4, dryLand: true, saltProof: true,
+    out: { cocoon: 16.48 }, rp: 1.0,
+    desc: 'Tiered trays under a raised roof, and mulberry grafted for leaf rather than fruit: 16.48 ' +
+      'cocoons/min. Still ignores the erosion clock; still thrives on ruined ground.',
+  },
+  cornlands: {
+    name: 'Bithynian Corn Lands', tier: 'food', era: 16, w: 4, h: 4, cost: 18220, upkeep: 27.98,
+    icon: '\u{1F33E}', color: '#b8d07a', workers: 4, needsWater: true,
+    out: { grain: 128.86 }, rp: 1.0,
+    desc: 'The far shore under plough as well as the near one: 128.86 grain/min, +50% on loam.',
+  },
+  tappedfissure: {
+    name: 'The Tapped Fissure', tier: 'food', era: 16, w: 2, h: 2, cost: 9800, upkeep: 9.79,
+    icon: '\u{1F6E2}\uFE0F', color: '#57534b', workers: 4, onRock: true, industry: true,
+    out: { naphtha: 8.24 }, rp: 1.2,
+    desc: 'The seep cased, sunk and pumped: 8.24 naphtha/min off the same fissure.',
+  },
+  marmarabeds: {
+    name: 'The Marmara Beds', tier: 'food', era: 16, w: 3, h: 3, cost: 25500, upkeep: 20.14,
+    icon: '\u26F0\uFE0F', color: '#dad5cd', workers: 7, onRock: true, industry: true,
+    out: { stone: 40.00 }, rp: 1.2,
+    desc: 'Every bed on the island worked at once: 40.00 stone/min. The rock still never comes back.',
+  },
+  thynnoskopeion: {
+    name: 'The Thynnoskopeion', tier: 'food', era: 16, w: 2, h: 3, cost: 9220, upkeep: 8.76,
+    icon: '\u{1F41F}', color: '#7fb0c6', workers: 4, onWater: true, bridge: true,
+    out: { fish: 47.78 }, rp: 1.0,
+    desc: 'A watchman on a mast above the net, calling the shoal down onto it: 47.78 fish/min. ' +
+      'Still no field, no mill, no water coverage and no licence.',
+  },
+  histourgeion: {
+    name: 'The Histourgeion', tier: 'craft', era: 16, w: 3, h: 3, cost: 11500, upkeep: 18.50,
+    icon: '\u{1F9F5}', color: '#9c5494', workers: 6, needsWater: true, needsRoad: true, industry: true,
+    procIn: 'cocoon', procRate: 11.54, procOut: 'blattion', procRatio: 0.40, rp: 1.8,
+    desc: 'Drawlooms in a hall the guild inspects: 11.54 cocoons into 4.62 bolts a minute. ' +
+      '★ THAT IS 1.40 LICENCES\' WORTH OFF ONE OFFICE. Buy the licence before you buy the loom.',
+  },
+  siphonfoundry: {
+    name: 'Siphon Foundry', tier: 'craft', era: 16, w: 3, h: 3, cost: 11500, upkeep: 18.50,
+    icon: '\u{1F525}', color: '#b8492f', workers: 6, needsWater: true, needsRoad: true, industry: true,
+    procIn: 'naphtha', procRate: 5.77, procOut: 'greekfire', procRatio: 0.40, rp: 1.8,
+    desc: 'Bronze siphons cast and proofed on the premises: 5.77 naphtha into 2.31 measures a minute.',
+  },
+  shipmills: {
+    name: 'Moored Ship-Mills', tier: 'food', era: 16, w: 2, h: 2, cost: 7630, upkeep: 12.34,
+    icon: '\u2699\uFE0F', color: '#c0a98d', workers: 5, nearWater: 1, industry: true, grainMill: true,
+    procIn: 'grain', procRate: 90.20, procOut: 'flour', procRatio: 0.60, rp: 1.6,
+    desc: 'Wheels slung between moored hulls in the current of the Horn: 90.20 grain/min into 54.12 bread.',
+  },
+  hydropriston: {
+    name: 'The Hydropriston', tier: 'craft', era: 16, w: 3, h: 3, cost: 13390, upkeep: 21.53,
+    icon: '\u{1FAA8}', color: '#c4beb4', workers: 8, needsWater: true, needsRoad: true, industry: true,
+    procIn: 'stone', procRate: 28.00, procOut: 'blocks', procRatio: 0.50, rp: 1.6,
+    desc: 'A crank-and-connecting-rod saw driven off the wheel - the machine on the Hierapolis relief: ' +
+      '28.00 stone/min into 14.00 blocks.',
+  },
+  vestiopratai: {
+    name: 'Vestiopratai Exchange', tier: 'commerce', era: 16, w: 2, h: 2, cost: 17100, upkeep: 20.80,
+    icon: '\u{1F3EA}', color: '#b3629d', workers: 5, needsWater: true, needsRoad: true,
+    sells: 'blattion', sellRate: 6.60, sellPrice: 123.06, custRadius: 8, custMin: 24, rp: 3.0,
+    desc: 'The guild\'s own hall on the Mese. 6.60 blattion/min - ★ TWO FULL LICENCES, and it will ' +
+      'dump every bolt of the second one unless you have the Offices to cover it.',
+  },
+  ploimon: {
+    name: 'The Ploimon', tier: 'commerce', era: 16, w: 2, h: 2, cost: 11090, upkeep: 12.75,
+    icon: '\u{1F6A2}', color: '#9a6844', workers: 5, nearWater: 1, needsRoad: true,
+    sells: 'greekfire', sellRate: 3.30, sellPrice: 171.50, custRadius: 8, custMin: 30, rp: 3.0,
+    desc: 'The imperial fleet\'s own establishment. 3.30 measures/min - two licences, and the same warning.',
+  },
+  psomotheke: {
+    name: 'The Psomotheke', tier: 'commerce', era: 16, w: 3, h: 3, cost: 17180, upkeep: 22.93,
+    icon: '\u{1F35E}', color: '#d69a6a', workers: 7, needsWater: true, needsRoad: true,
+    sells: 'flour', sellRate: 38.66, sellPrice: 13.65, custRadius: 8, custMin: 15, rp: 2.4,
+    desc: 'Bread halls along the colonnade, at the price the Eparch set. 38.66 bread/min at $13.65.',
+  },
+  customsarcade: {
+    name: 'Customs Arcade', tier: 'commerce', era: 16, w: 1, h: 3, cost: 4340, upkeep: 3.82,
+    icon: '\u{1F9FA}', color: '#c9a87e', workers: 3, needsRoad: true,
+    sellsRaw: ['grain', 'cocoon', 'stone', 'naphtha', 'fish'],
+    sellRate: 24.68, custRadius: 7, custMin: 15, rp: 1.2,
+    desc: 'The stall grown into a colonnade of them: 24.68 raw units/min at 80% of list.',
+  },
+  marbleslipways: {
+    name: 'Marble Slipways', tier: 'commerce', era: 16, w: 2, h: 2, cost: 12080, upkeep: 13.90,
+    icon: '\u{1F9F1}', color: '#b5a893', workers: 5, nearWater: 1, needsRoad: true,
+    sells: 'blocks', sellRate: 6.26, sellPrice: 84.72, custRadius: 8, custMin: 19, rp: 2.4,
+    desc: 'Cradles and winches down to the water: 6.26 blocks/min at $84.72. The dome still does not pay.',
+  },
+  kinsterna: {
+    name: 'The Kinsterna', tier: 'infra', era: 16, w: 1, h: 1, cost: 2280, upkeep: 4.59,
+    icon: '\u{1F3DB}\uFE0F', color: '#6f9aa8', waterRadius: 16,
+
+    desc: 'A roofed reservoir on three hundred columns, filled from an aqueduct sixty miles long. ' +
+      'Waters 16 tiles - the widest reach on the ladder, and what every Phiale wants to become.',
+  },
+  lamiavaults: {
+    name: 'Lamia Grain Vaults', tier: 'infra', era: 16, w: 2, h: 3, cost: 11430, upkeep: 10.56,
+    icon: '\u{1F33E}', color: '#d0af62', storeGrain: 1740, storeFlour: 1090, depot: true, needsRoad: true,
+    desc: 'The vaults under the Lamia quarter: +1,740 grain and +1,090 bread, and still a supply point.',
+  },
+  embolos: {
+    name: 'Vaulted Embolos', tier: 'infra', era: 16, w: 2, h: 4, cost: 12380, upkeep: 6.89,
+    icon: '\u{1F4E6}', color: '#b59a73', workers: 4, storeCraft: 160, depot: true, needsRoad: true,
+    desc: 'Bonded vaults under a colonnaded street: +160 for EVERY craft good while staffed. ' +
+      'The deepest place to sit out a licence you cannot fill.',
+  },
+  kathisma: {
+    name: 'The Kathisma', tier: 'civic', era: 16, w: 3, h: 4, cost: 23930, upkeep: 14.89,
+    icon: '\u{1F3DF}\uFE0F', color: '#c2ad86',
+    amenityRadius: 35, amenityBonus: 1, needsRoad: true, rp: 0.2,
+    desc: 'The imperial box, joined to the palace by its own stair. +1 housing capacity within 35 tiles.',
+  },
+  customsbasilica: {
+    name: 'Customs Basilica', tier: 'commerce', era: 16, w: 2, h: 3, cost: 9570, upkeep: 9.92,
+    icon: '\u2696\uFE0F', color: '#d4c078', workers: 4, needsRoad: true, needsWater: true,
+    weighRadius: 15, keepsTally: true, rp: 1.0,
+    desc: 'The whole customs establishment under one roof. Shops within 15 tiles sell at +12%.',
+  },
+  diakonia: {
+    name: 'The Diakonia', tier: 'civic', era: 16, w: 4, h: 4, cost: 32540, upkeep: 17.82,
+    icon: '\u26EA', color: '#d4b384', workers: 9, needsRoad: true, needsWater: true,
+    depot: true, storeGrain: 5220, storeFlour: 3260, amenityRadius: 15, rp: 1.2,
+    desc: 'The Church\'s charitable establishment at full extent: +5,220 grain, +3,260 bread, and +1 ' +
+      'housing capacity within 15 tiles.',
+  },
+  sekreton: {
+    name: 'The Sekreton', tier: 'civic', era: 16, w: 3, h: 3, cost: 34430, upkeep: 22.31,
+    icon: '\u{1F50F}', color: '#a08cc4', workers: 10, needsRoad: true, needsWater: true,
+
+    seal: true, sealWeight: 1.5, rp: 1.0,
+    desc: 'The Eparch\'s full bureau, its logothetes and its archive. Counts as ONE AND A HALF ' +
+      'Offices - the only thing in the age that raises the ceiling instead of the throughput.',
+  },
+  xenodocheion: {
+    name: 'The Xenodocheion', tier: 'housing', era: 16, w: 1, h: 1, cost: 4610, upkeep: 2.24,
+    icon: '\u{1F3E0}', color: '#e0af86', cap: 21, needsWater: true, needsRoad: true, rp: 0.3,
+
+    levels: ['Pilgrim Room', 'The Xenodocheion', 'Warded Xenodocheion', 'Storeyed Xenodocheion',
+             "Almoner's Xenodocheion", 'Patriarchal Xenodocheion'],
+    desc: 'The rented room become a licensed lodging house with a warden. Homes 21.',
+  },
+  mesaulion: {
+    name: 'The Mesaulion', tier: 'housing', era: 16, w: 1, h: 1, cost: 11540, upkeep: 5.58,
+    icon: '\u{1F3E1}', color: '#e8be91', cap: 38, needsWater: true, needsRoad: true, rp: 0.3,
+
+    levels: ['Screened Walk', 'The Mesaulion', 'Galleried Mesaulion', 'Roofed Mesaulion',
+             "Notary's Mesaulion", 'Senatorial Mesaulion'],
+    desc: 'The inner court roofed over and the upper storey carried on it: homes 38.',
+  },
+  kouropalation: {
+    name: 'The Kouropalation', tier: 'housing', era: 16, w: 2, h: 2, cost: 23690, upkeep: 11.34,
+    icon: '\u{1F3F0}', color: '#d6c5ad', cap: 90, needsWater: true, needsRoad: true, rp: 0.3,
+    levels: ['Stepped Terrace', 'The Kouropalation', 'Porphyry Kouropalation', 'Domed Kouropalation',
+             "Caesar's Kouropalation", 'Imperial Kouropalation'],
+    desc: 'The house of a man with a court title and the staff that comes with it: homes 90.',
+  },
+
   townhall: {
     name: 'Town Hall', tier: 'civic', w: 3, h: 3, cost: 0, upkeep: 0,
     icon: '\u{1F3DB}️', color: '#c9a86a', fixed: true,
@@ -8999,6 +9386,9 @@ function houseMaxLevel(s) {
 
 const HOUSE_LEVELS = {
 
+  16: ['Lodging Cell', 'Rented Oikema', 'Tiled Oikema', 'Upper Oikema',
+       'Galleried Oikema', "Guildsman's Oikema"],
+
   10: ['Kalyba', 'Oikos', 'Pastas House', 'Prostas House', 'Peristyle House',
        'Peristyle Court'],
 
@@ -9064,6 +9454,22 @@ function houseCap(d, b) {
 }
 
 const MONUMENT_GIFT = {
+
+  16: {
+    key: 'vault',
+    icon: '\u26EA',
+    title: 'The Great Church',
+    lead: 'The dome is closed. Forty windows at its base, and the whole weight of it standing on light.',
+    body: 'It was raised in five years by a city that could not feed itself without a licence, and it ' +
+      'outlasted the empire that built it by five hundred years, the faith that built it by another ' +
+      'five, and every quota the Eparch ever set. What it taught was not how to make more of ' +
+      'something. It was how much a city can be allowed to HOLD.',
+    grant: '<b>Every store in your city -- and in every city you found after this one -- holds 20% ' +
+      'more, in this age and every age after it.</b>',
+    toast: '\u26EA The dome is closed. Every store holds 20% more, in this age and every age after it.',
+    log: 'Their gift: capacity. The city learns how much it is allowed to hold.',
+    apply(s) { s.giftVault = (s.giftVault | 0) + 1; },
+  },
 
   15: {
     key: 'supply',
@@ -9350,6 +9756,18 @@ function monumentGift(era) { return MONUMENT_GIFT[rungOf(era)] || null; }
 
 const ERA_POLICY = {
 
+  16: {
+    key: 'policyChrysobull',
+    icon: '\u{1F4DC}',
+    name: 'The Chrysobull',
+    tip: 'A golden bull seals HALF AS MUCH LICENCE AGAIN onto every good, at $60 an authored minute ' +
+      'per unit of licence granted -- PAID WHETHER YOU FILL IT OR NOT. It cannot be mothballed away ' +
+      'and demolishing does not touch it. Take it only when your workshops are already over quota; ' +
+      'take it early and you are paying rent on permission you are not using.',
+    on: 'The bull is sealed and read in the Forum. The licence is half as large again, and so is the bill.',
+    off: 'The bull is revoked. The city goes back to what the Book allows it.',
+  },
+
   15: {
     key: 'policyMunus', icon: '\u{1F4DC}', name: 'The Munus',
 
@@ -9551,6 +9969,15 @@ function eraImport(era) {
 
 const ERA_ROAD = {
 
+  16: {
+    flavour: 'The Mese',
+
+    color: 0x5c5a54, hw: 0.44,
+    desc: 'The great colonnaded street and every lane that feeds it, marble-kerbed and porticoed both ' +
+      'sides. Only SOME buildings need one: homes, shops, stores and the civics must reach the Great ' +
+      'Palace; terraces, seeps, quarries and the weirs never do. $10 a tile, nothing to keep.',
+  },
+
   15: { flavour: 'Via Vetus', color: 0x4a4a46, hw: 0.42,
         desc: 'Polygonal basalt setts on a rubble bed, cambered and kerbed -- the widest road on ' +
           'the ladder and the only thing in this age that needs no maintenance at all. Only SOME ' +
@@ -9695,6 +10122,8 @@ const MONUMENTS = [
   { id: 'colosseum',   name: 'Colosseum',       era: 13, cost: 57200,     icon: '\u{1F3DF}️', desc: 'Concrete vaults seating fifty thousand -- the first monument on this ladder built for the population rather than for the heavens.' },
 
   { id: 'murus',       name: 'Murus Aurelianus', era: 15, cost: 95140,    icon: '\u{1F9F1}', desc: 'A circuit raised in fear, out of the city that used to be inside it.' },
+
+  { id: 'hagiasophia', name: 'Hagia Sophia',    era: 16, cost: 147600,   icon: '\u26EA', desc: 'A dome on forty windows, raised in five years, standing on light.' },
   { id: 'cathedral',   name: 'Cathedral',       era: 22, cost: 4600000,   icon: '⛪', desc: 'A lodge of masons, working for a century.' },
   { id: 'duomo',       name: 'Grand Duomo',     era: 28, cost: 14000000,  icon: '\u{1F54C}', desc: 'A dome raised without centring.' },
   { id: 'crystalPal',  name: 'Crystal Palace',  era: 30, cost: 42000000,  icon: '\u{1F3ED}', desc: 'Iron and plate glass, prefabricated.' },
@@ -9889,6 +10318,8 @@ const PLOWED = ['farm', 'estate', 'farm2', 'sesamefield', 'terraceplot', 'irriga
 for (const t of PLOWED) if (BUILDINGS[t]) BUILDINGS[t].plowed = true;
 
 const QUARRIED = ['quarry', 'deepquarry', 'granitequarry', 'desertquarry',
+
+  'proconnesus', 'marmarabeds',
   'gypsumcutter', 'sawpit', 'copperadit', 'deepgallery',
   'flintquarry', 'bonebed', 'deeplens',
 
@@ -9937,6 +10368,8 @@ const MONUMENT_BUILD = {
   colosseum:  { money: 51480, concrete: 8580, marmor: 6435, velum: 2145 },
 
   murus:      { money: 85620, calx: 11330, arma: 8500, spolia: 2830 },
+
+  hagiasophia:{ money: 132830, blocks: 9500, blattion: 900, calx: 5200 },
   ziggurat:  { money: 3600, clay: 900, beer: 300 },
   pyramid:   { money: 12000, clay: 2200, stone: 900 },
   templePyr: { money: 40000, stone: 3000, blocks: 1200 },
@@ -10041,6 +10474,31 @@ function rankUpCost(d, fromRank) {
 }
 
 const UPGRADES = {
+
+  metaxeion:      { to: 'koukoularion',   cost:  9800, era: 16, label: 'The Koukoularion' },
+  thracianplain:  { to: 'cornlands',      cost: 18220, era: 16, label: 'Bithynian Corn Lands' },
+  naphthaseep:    { to: 'tappedfissure',  cost:  9800, era: 16, label: 'The Tapped Fissure' },
+  proconnesus:    { to: 'marmarabeds',    cost: 25500, era: 16, label: 'The Marmara Beds' },
+  thynneion:      { to: 'thynnoskopeion', cost:  9220, era: 16, label: 'The Thynnoskopeion' },
+  serikarion:     { to: 'histourgeion',   cost: 11500, era: 16, label: 'The Histourgeion' },
+  cheirosiphon:   { to: 'siphonfoundry',  cost: 11500, era: 16, label: 'Siphon Foundry' },
+  horizmill:      { to: 'shipmills',      cost:  7630, era: 16, label: 'Moored Ship-Mills' },
+  marmarion:      { to: 'hydropriston',   cost: 13390, era: 16, label: 'The Hydropriston' },
+  vestiopration:  { to: 'vestiopratai',   cost: 17100, era: 16, label: 'Vestiopratai Exchange' },
+  arsenalwharf:   { to: 'ploimon',        cost: 11090, era: 16, label: 'The Ploimon' },
+  mankipeion:     { to: 'psomotheke',     cost: 17180, era: 16, label: 'The Psomotheke' },
+  kommerkion:     { to: 'customsarcade',  cost:  4340, era: 16, label: 'Customs Arcade' },
+  lithoskala:     { to: 'marbleslipways', cost: 12080, era: 16, label: 'Marble Slipways' },
+  phiale:         { to: 'kinsterna',      cost:  2280, era: 16, label: 'The Kinsterna' },
+  sitonikon:      { to: 'lamiavaults',    cost: 11430, era: 16, label: 'Lamia Grain Vaults' },
+  mitaton:        { to: 'embolos',        cost: 12380, era: 16, label: 'Vaulted Embolos' },
+  hippodrome:     { to: 'kathisma',       cost: 23930, era: 16, label: 'The Kathisma' },
+  kommerkiarios:  { to: 'customsbasilica',cost:  9570, era: 16, label: 'Customs Basilica' },
+  patriarchate:   { to: 'diakonia',       cost: 32540, era: 16, label: 'The Diakonia' },
+  eparchate:      { to: 'sekreton',       cost: 34430, era: 16, label: 'The Sekreton' },
+  oikema:         { to: 'xenodocheion',   cost:  4610, era: 16, label: 'The Xenodocheion' },
+  peristylon:     { to: 'mesaulion',      cost: 11540, era: 16, label: 'The Mesaulion' },
+  archontikon:    { to: 'kouropalation',  cost: 23690, era: 16, label: 'The Kouropalation' },
 
   well:      { to: 'cistern',    cost: 160, era: 4, label: 'Cistern' },
 
@@ -10845,6 +11303,8 @@ function auditDataTables() {
 
 const ERA_FOOD_LABEL = { 10: 'Bread, figs, pulses and fish this age',
 
+  16: 'Bread and fish GROWN this age',
+
                          15: 'Bread, olives and fish GROWN this age',
 
                          13: 'Fish, figs and farina GROWN this age',
@@ -10865,6 +11325,20 @@ const ERA_FOOD_LABEL = { 10: 'Bread, figs, pulses and fish this age',
 function eraFoodLabel(era) { return ERA_FOOD_LABEL[rungOf(era)] || 'Food produced this age'; }
 
 const ERA_VOICE = {
+
+  16: {
+    settlers: ['Anna', 'Theodoros', 'Eirene', 'Nikephoros', 'Zoe', 'Bardas'],
+    place: 'city',
+    mill: 'Horizontal Water Mill',
+    tally: "The Kommerkiarios' Scale",
+    tallyLine: 'The sealed weights come out and the ledger is read across. Every shop in reach is ' +
+      'checked against the Book — and now you can see exactly what this city is licensed for.',
+    ration: 'The last of the Genoese grain is issued. No fleet is coming; the city eats Thrace.',
+    saltName: 'a thousand years of the same furrow behind the same walls',
+    saltAnswers: 'a METAXEION, which ignores the salt clock entirely and yields MORE on ground the ' +
+      'wheat has killed, or a spell fallow -- and note that painting a tile fertile buys the BONUS, ' +
+      'never the soil',
+  },
 
   15: {
     settlers: ['Aurelia', 'Victorinus', 'Sabina', 'Maximus', 'Placidia', 'Faustinus'],
@@ -11104,6 +11578,22 @@ function settlerName(s) {
 }
 
 const ERA_STAPLE = {
+
+  16: {
+    raw: 'grain', cooked: 'flour', rawIcon: '\u{1F33E}', cookedIcon: '\u{1F35E}',
+    rawName: 'Grain', cookedName: 'Bread', cookedVerb: 'milled',
+    rawFrom: 'the Thracian plain',
+    rawNote: 'the mills always draw before anything else',
+    shortNote: 'Every licence adds mouths and only one chain adds bread -- set a THYNNEION across the ' +
+      'current. It needs no field, no mill, no water coverage and NO LICENCE, so it is the one food ' +
+      'the Eparch cannot touch.',
+    hungerFix: 'set a Thynneion in the strait, or plough the Thracian Plain and put a mill on the water',
+    goodNames: {
+      flour: 'Bread', fish: 'Fish', grain: 'Grain',
+      cocoon: 'Cocoons', blattion: 'Imperial Silk', naphtha: 'Naphtha',
+      greekfire: 'Greek Fire', blocks: 'Dressed Marble', stone: 'Marble',
+    },
+  },
 
   15: {
     raw: 'grain', cooked: 'flour',

@@ -17,6 +17,10 @@ const Grid = {
 
   TERRAIN_PROFILE: {
 
+    16: { trunkW: 7.2, trunkW2: 6.0, branch: 1, secondW: 3.0, wander: 0.28,
+          fertileTo: 3, dryFrom: 6, edgeJitter: 2, beyond: 'GRASS',
+          saltAt: 0.99, rockAt: 0.52, peakR: 7 },
+
     0: { trunkW: 4.2, trunkW2: 3.8, branch: 3, secondW: 2.6, wander: 0.55,
          fertileTo: 6, dryFrom: 20, edgeJitter: 4,
          beyond: 'GRASS', saltAt: 0.99, rockAt: 0.86, peakR: 3,
