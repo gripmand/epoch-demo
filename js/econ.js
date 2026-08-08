@@ -559,14 +559,18 @@ const Econ = {
         const good = Object.keys(d.out)[0];
         const left = Econ.ruinSpoliaLeft(s, b);
         b.stoneLeft = left;
-        const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b) * Econ.siteMult(s, b);
+        const mult = (1 + (b.adjBoost || 0)) * rankOutMult(b) * Econ.siteMult(s, b) *
+          Econ.warrantOut(s);
         made = left > 0 ? d.out[good] * staffEff * mult * Econ.M * (1 + C.beerBonus) : 0;
 
         made = Math.min(made, Math.max(0, Econ.capOf(s, good) - s.stock[good]));
         made = Math.min(made, left);
         if (made > 0) {
-          Econ.spendRuin(s, b, made);
+
+          Econ.spendRuin(s, b, Math.min(left, made * Econ.warrantWaste(s)));
           Econ.addStock(s, good, made);
+
+          if (good === 'stone') s.cum.stone += made;
         }
         b.rate = made;
         b.status = left <= 0 ? 'stand_spent' : (staffEff < 1 ? 'understaffed' : 'ok');
@@ -1346,8 +1350,11 @@ const Econ = {
 
   buyHouseUpgrade(s, h) {
     const up = Econ.houseUpgrade(s, h);
-    if (!up || up.blocked || s.money < up.cost) return false;
-    s.money -= up.cost;
+
+    if (!up || up.blocked) return false;
+    const upCost = Econ.houseUpgradeQuote(s, up);
+    if (s.money < upCost) return false;
+    s.money -= upCost;
     h.level = up.level;
     h.bought = up.level;
     h.evolve = 0;
@@ -1579,6 +1586,8 @@ const Econ = {
 
   ERA_EXTRA_GATE: {
 
+    17: s => Econ.chainsRunning(s, 17) >= 4,
+
     10: (s) => Econ.opsonTable(s).laid >= 0.95,
 
     11: (s) => Econ.censusState(s).frac >= TUNE.CENSUS.gateFrac,
@@ -1612,6 +1621,8 @@ const Econ = {
   },
 
   ERA_EXTRA_LABEL: {
+
+    17: 'Four chains still earning',
     2:  'The quota is paid',
     6:  'Most of the town is planned',
     7:  'The magazines administer the roll',
@@ -3129,6 +3140,37 @@ const Econ = {
     }
     return seen.size;
   },
+
+  occupyActive(s) { return rungOf(s.era) === 17; },
+
+  giftCopyMult(s) { return Math.max(0.5, 1 - 0.15 * (s.giftCopy | 0)); },
+
+  houseUpgradeQuote(s, up) {
+    return up ? Math.round(up.cost * Econ.giftCopyMult(s)) : 0;
+  },
+
+  ruinBook(s) {
+    if (!Econ.occupyActive(s)) return null;
+    const C = G.cache;
+    if (C.ruinBookAt === s.tick && C.ruinBook) return C.ruinBook;
+    let left = 0, tiles = 0;
+    for (const key of s.owned) {
+      const p = key.split(','), cx = +p[0], cy = +p[1];
+      for (let y = cy * TUNE.CHUNK; y < (cy + 1) * TUNE.CHUNK; y++)
+        for (let x = cx * TUNE.CHUNK; x < (cx + 1) * TUNE.CHUNK; x++) {
+          if (!Grid.inB(x, y)) continue;
+          const v = Grid.ruinSpoliaAt(s, x, y);
+          if (v > 0) { left += v; tiles++; }
+        }
+    }
+    C.ruinBook = { left: left, tiles: tiles };
+    C.ruinBookAt = s.tick;
+    return C.ruinBook;
+  },
+
+  warrantOn(s) { return !!s.policyWarrant && Econ.occupyActive(s); },
+  warrantOut(s) { return Econ.warrantOn(s) ? 1 + TUNE.WARRANT.bonus : 1; },
+  warrantWaste(s) { return Econ.warrantOn(s) ? 1 + TUNE.WARRANT.waste : 1; },
 
   ruinSpoliaLeft(s, b) {
     let left = 0;

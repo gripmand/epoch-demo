@@ -58,11 +58,14 @@ const TUNE = {
 
                  iron: 0, spolia: 0, arma: 0, calx: 0,
 
-                 blattion: 0, naphtha: 0, greekfire: 0 },
+                 blattion: 0, naphtha: 0, greekfire: 0,
+
+                 bogore: 0, codex: 0, pork: 0 },
 
   FOUNDING_CREW: 10,
 
   ERA_STARTER: { 15: 'oleastrum',
+    17: 'spoilgang',
 
   16: 'thynneion',
                  10: 'olivegrove',
@@ -156,6 +159,18 @@ const TUNE = {
   GIFT_VAULT_STEP: 0.20,
 
   BLATTION_CAP: 60, NAPHTHA_CAP: 180, GREEKFIRE_CAP: 45,
+
+  BOGORE_CAP: 380, CODEX_CAP: 55, PORK_CAP: 540,
+
+  OCCUPY: {
+
+    deepest: 0.28,
+
+    roads: true,
+  },
+
+  WARRANT: { bonus: 0.25, waste: 0.50 },
+
   PRICES: { grain: 0.5, flour: 2, stone: 1, blocks: 4,
             clay: 0.6, pottery: 4, wool: 1.2, cloth: 7, beer: 3,
             dates: 1.8, fish: 1.5, salt: 1.5, reeds: 0.35, baskets: 8.9,
@@ -194,13 +209,17 @@ const TUNE = {
 
             iron: 2.55, spolia: 1.50, arma: 110.53, calx: 16.90,
 
-            blattion: 24.60, naphtha: 3.20, greekfire: 34.30 },
+            blattion: 24.60, naphtha: 3.20, greekfire: 34.30,
+
+            bogore: 5.99, codex: 154.00, pork: 2.80 },
 
   NO_EXPORT: { water: 1, passage: 1 },
 
   FOODS: [ { kind: 'flour', eff: 1.0 }, { kind: 'pemmican', eff: 1.0 },
            { kind: 'dates', eff: 1.0 }, { kind: 'forage', eff: 0.8 },
-           { kind: 'fish', eff: 0.75 }, { kind: 'honey', eff: 0.6 } ],
+           { kind: 'fish', eff: 0.75 }, { kind: 'honey', eff: 0.6 },
+
+           { kind: 'pork', eff: 1.0 } ],
   LAND_BASE: 150,
   LAND_EXP: 1.35,
 
@@ -525,6 +544,8 @@ const TUNE = {
 
   ERA_IMPORT: {
 
+    17: { kind: 'grain', price: 4, who: 'A pedlar sold the vill', unit: 'sack' },
+
     16: { kind: 'grain', price: 12, who: 'A Genoese factor sold the city', unit: 'modios' },
 
     10: { kind: 'grain', price: 2, who: 'A Pontic grain ship sold the city', unit: 'measure' },
@@ -653,6 +674,7 @@ const TUNE = {
 const HOUSE_RUNG_COST_MULT = [0.6, 1.0, 1.8, 3.0];
 
 const HOUSE_RUNG_REF = { 0: 'nestmound', 1: 'hidetent', 2: 'shelter', 3: 'brushshelter', 4: 'house',
+  17: 'wattlehut',
                          5: 'villa', 6: 'brickhouse', 7: 'ashlarhouse',
                          8: 'courtyardcompound', 9: 'halepili', 10: 'oikos',
 
@@ -738,7 +760,7 @@ function eraInfo(era) {
   return r === 0 ? ERA_PROLOGUE : (ERAS[r - 1] || ERA_PROLOGUE);
 }
 
-const WRITTEN_RUNGS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+const WRITTEN_RUNGS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
 
 const START_ERA = WRITTEN_RUNGS[0];
 function nextWrittenEra(era) {
@@ -902,6 +924,12 @@ const HALL_COST_GROWTH = Math.pow(2.1, 12 / 35);
 
 const ERA_TERRA_LOCK = {
 
+  17: {
+    rock: 'there is no quarry-grade stone in this landscape and there must be no way to make any — ' +
+      'every dressed block in this world already exists, standing in something somebody else built. ' +
+      'Painting an outcrop would print the one thing this age cannot replace',
+  },
+
   16: { fertile: 'nothing on this peninsula has been fallow since Constantine walled it, and painting ' +
         'a tile green buys the BONUS, never the soil. THE METAXEION is the answer: it ignores the ' +
         'salt clock outright and yields MORE on the ground the wheat has already killed' },
@@ -1039,6 +1067,11 @@ for (let l = 1; l <= MAX_ERA; l++) {
 }
 
 const ROAD_REQUIRED = ['townhall', 'house', 'villa', 'stonehouse', 'market', 'bazaar',
+
+  'wattlehut', 'toft', 'thegnhall', 'aisledhouse', 'bowerrange',
+  'stanhithe', 'blockstaithe', 'irenstall', 'irenbooth', 'quirestall', 'bookhoard',
+  'chepe', 'chepecross', 'brewhouse', 'guesthall', 'webbery', 'fairbooth',
+  'sokebarn', 'grange',
   'stoneyard', 'bakery', 'templeGranary', 'granary', 'temple',
 
   'rawstall', 'basketweaver', 'oilpress', 'dyeworks', 'weighhouse', 'tablethouse',
@@ -9368,6 +9401,397 @@ const BUILDINGS = {
     desc: 'The boundary stone re-cut, sworn to and set in mortar, with the survey line inscribed on its ' +
       'flank. Still no output, still no upkeep, still cannot fall down.',
   },
+
+  spoilgang: {
+    name: 'Spoliation Gang', tier: 'food', era: 17, w: 2, h: 2, cost: 7600, upkeep: 8.94,
+    icon: '\u{1F9F1}', color: '#a09585', workers: 4, onRuin: true, salvaged: true,
+    out: { stone: 20.00 }, rp: 1.2,
+    desc: 'Four men with crowbars and a cart, taking a dead town apart: 20.00 stone a minute, +50% ' +
+      'standing on ruin. THE RUBBLE UNDER THEM IS FINITE AND NOTHING PUTS IT BACK. Needs no road, no ' +
+      'water and no outcrop — it is the one building in this age you can raise on turn one, anywhere.',
+  },
+  stonewright: {
+    name: 'The Stonewright', tier: 'craft', era: 17, w: 3, h: 3, cost: 20770, upkeep: 24.74,
+    icon: '\u{1F528}', color: '#b3a794', workers: 8, industry: true,
+    procIn: 'stone', procRate: 20.00, procOut: 'blocks', procRatio: 0.5,
+    desc: 'Roman ashlar squared down to something a Saxon mason can lift: 20.00 stone a minute into ' +
+      '10.00 blocks. ★ Sized to eat EXACTLY ONE Spoliation Gang — a declared deviation from the +55% ' +
+      'curve, because a one-to-one opening is what teaches the chain.',
+  },
+  stanhithe: {
+    name: 'Stone Hithe', tier: 'commerce', era: 17, w: 2, h: 2, cost: 12490, upkeep: 15.41,
+    icon: '\u2693', color: '#9fa89b', workers: 6, needsRoad: true,
+    sells: 'blocks', sellRate: 4.86, sellPrice: 131.44, custRadius: 8, custMin: 21,
+    desc: 'A landing on the river where dressed stone goes downstream to somebody rebuilding: 4.86 ' +
+      'blocks a minute at $131.44. Two hithes drink one Stonewright.',
+  },
+
+  bogpit: {
+    name: 'Bog Ore Pit', tier: 'food', era: 17, w: 2, h: 2, cost: 7600, upkeep: 8.94,
+    icon: '\u{1FAA8}', color: '#7a6a4f', workers: 4, onSalt: true,
+    out: { bogore: 6.39 },
+    desc: 'Iron pans out of standing water and settles as nodules you can lift with a rake: 6.39 bog ' +
+      'ore a minute off the peat. ★ THE ONE GROUND IN THIS AGE THAT DOES NOT RUN OUT — slower per ' +
+      'unit than the ruins and still there when they are gone.',
+  },
+  bloomhearth: {
+    name: 'The Bloom Hearth', tier: 'craft', era: 17, w: 3, h: 3, cost: 17840, upkeep: 21.26,
+    icon: '\u{1F525}', color: '#8a6b52', workers: 7, industry: true,
+    procIn: 'bogore', procRate: 6.39, procOut: 'iron', procRatio: 0.4,
+    desc: 'A clay shaft, a goatskin bellows and a day of charcoal for a lump the size of a fist: 6.39 ' +
+      'ore into 2.56 iron. Nobody here can cast it — it is hammered, and that is why it is worth what ' +
+      'it is worth.',
+  },
+  irenstall: {
+    name: 'The Iren Stall', tier: 'commerce', era: 17, w: 2, h: 2, cost: 11460, upkeep: 14.13,
+    icon: '\u2692\uFE0F', color: '#6f6a63', workers: 6, needsRoad: true,
+    sells: 'iron', sellRate: 2.56, sellPrice: 266.06, custRadius: 8, custMin: 34,
+    desc: 'Bar iron sold by weight to anybody with a plough to mend: 2.56 a minute at $266.06. The ' +
+      'age has no arms industry and no market for one; what it has is edge tools and horseshoes.',
+  },
+
+  calfcroft: {
+    name: 'The Calf Croft', tier: 'food', era: 17, w: 2, h: 4, cost: 11800, upkeep: 13.87,
+    icon: '\u{1F404}', color: '#a89a7d', workers: 5, needsWater: true, soilRadius: 5,
+    out: { pergamena: 6.39 },
+    desc: 'The close behind the church: calves, a liming pit and a stretching frame. 6.39 skins a ' +
+      'minute, scraped thin enough to write on. One animal, one bifolium, and the abbey needs two ' +
+      'hundred for a Bible.',
+  },
+  copyingroom: {
+    name: 'The Copying Room', tier: 'craft', era: 17, w: 3, h: 3, cost: 17840, upkeep: 21.26,
+    icon: '\u{1F4DC}', color: '#c8b99a', workers: 7, needsWater: true, industry: true,
+    procIn: 'pergamena', procRate: 6.39, procOut: 'codex', procRatio: 0.4,
+    desc: 'Cold hands, north light and no talking: 6.39 skins into 2.56 bound codices. Nothing in ' +
+      'this room was invented here. Every sentence came from somewhere else and survives only ' +
+      'because somebody who did not understand it copied it out anyway.',
+  },
+  quirestall: {
+    name: 'The Quire Stall', tier: 'commerce', era: 17, w: 3, h: 3, cost: 17690, upkeep: 23.05,
+    icon: '\u{1F4D6}', color: '#b8a684', workers: 6, needsRoad: true,
+    sells: 'codex', sellRate: 2.56, sellPrice: 246.16, custRadius: 9, custMin: 27,
+    desc: 'Gatherings sold to other houses, sewn or loose: 2.56 codices a minute at $246.16. The ' +
+      'dearest thing this age makes, and the only one that is worth more in four hundred years than ' +
+      'it is today.',
+  },
+
+  assart: {
+    name: 'Assart Field', tier: 'food', era: 17, w: 4, h: 4, cost: 14130, upkeep: 25.53,
+    icon: '\u{1F33E}', color: '#b6a75e', workers: 5, needsWater: true,
+    out: { grain: 99.96 },
+    desc: 'Woodland grubbed out by hand and put under corn: 99.96 a minute. An assart is land taken ' +
+      'BACK from the forest — which is also where the forest goes when you finish a ruin.',
+  },
+  watermill: {
+    name: 'The Leat Mill', tier: 'food', era: 17, w: 2, h: 2, cost: 11840, upkeep: 14.18,
+    icon: '\u2699\uFE0F', color: '#8f9a7d', workers: 6, nearWater: 2, grainMill: true,
+    procIn: 'grain', procRate: 99.96, procOut: 'flour', procRatio: 0.6,
+    desc: 'A horizontal wheel in a leat off the stream: 99.96 corn into 59.98 meal. The one machine ' +
+      'this age has more of than Rome did — six thousand of them by Domesday, and each one is a ' +
+      'village that stopped grinding by hand.',
+  },
+  chepe: {
+    name: 'The Chepe', tier: 'commerce', era: 17, w: 3, h: 3, cost: 17760, upkeep: 25.41,
+    icon: '\u{1F35E}', color: '#c9a96a', workers: 9, needsRoad: true, needsWater: true,
+    sells: 'flour', sellRate: 29.99, sellPrice: 21.17, custRadius: 7, custMin: 17,
+    desc: 'The market place, which in this age is a wide spot in the road with a cross in it: 29.99 ' +
+      'measures of meal a minute at $21.17.',
+  },
+  brewhouse: {
+    name: 'Brewhouse', tier: 'commerce', era: 17, w: 2, h: 3, cost: 21400, upkeep: 26.00,
+    icon: '\u{1F37A}', color: '#b98d4e', workers: 9, needsRoad: true, needsWater: true,
+    procIn: 'grain', procRate: 66.64, procOut: 'beer', procRatio: 0.17,
+    sells: 'beer', sellRate: 11.33, sellPrice: 58.16, custRadius: 8, custMin: 23,
+    desc: 'Ale is food here, and it is safer than the stream. 66.64 corn into 11.33 of ale at $58.16. ' +
+      '★ THE AGE\'S ONE AXIS CROSSING: it drinks the same corn the Water Mill wants, so bread and ' +
+      'beer are the same decision — as they were at Sumer, twelve rungs down.',
+  },
+
+  sheeprun: {
+    name: 'Sheep Run', tier: 'food', era: 17, w: 3, h: 3, cost: 7600, upkeep: 8.94,
+    icon: '\u{1F411}', color: '#c3bda8', workers: 4, dryLand: true,
+    out: { wool: 9.59 },
+    desc: 'Small horned sheep on the heath, kept for the fleece and not the meat: 9.59 wool a minute. ' +
+      'Dry ground only — you do not run sheep on your own corn.',
+  },
+  fullingshed: {
+    name: 'Fulling Shed', tier: 'craft', era: 17, w: 2, h: 2, cost: 12710, upkeep: 16.75,
+    icon: '\u{1F9F6}', color: '#9aa08c', workers: 6, needsWater: true, industry: true,
+    procIn: 'wool', procRate: 9.59, procOut: 'cloth', procRatio: 0.5,
+    desc: 'Woven cloth trodden in stale urine and fuller\'s earth until it felts: 9.59 wool into 4.80 ' +
+      'of cloth. It is done by foot in this age and it stinks; site it downwind of nothing, because ' +
+      'nobody here has the word for downwind.',
+  },
+  webbery: {
+    name: 'The Webbery', tier: 'commerce', era: 17, w: 2, h: 2, cost: 13570, upkeep: 16.75,
+    icon: '\u{1F9F5}', color: '#a8917a', workers: 6, needsRoad: true,
+    sells: 'cloth', sellRate: 4.80, sellPrice: 131.44, custRadius: 8, custMin: 27,
+    desc: 'Cloth sold by the ell off a trestle: 4.80 a minute at $131.44. Steady, unglamorous, and ' +
+      'the only trade in the age that is exactly as good on the last day as on the first.',
+  },
+
+  pannage: {
+    name: 'Pannage Wood', tier: 'food', era: 17, w: 2, h: 2, cost: 10590, upkeep: 12.00,
+    icon: '\u{1F437}', color: '#6f7d4e', workers: 4,
+    out: { pork: 14.00 },
+    desc: 'Swine turned into the oaks in autumn to fatten on mast: 14.00 of pork a minute. ★ NEEDS ' +
+      'NOTHING — no road, no water, no ruin. It is what feeds you when either of the others fails, ' +
+      'and the forest it wants is the forest a worked-out ruin becomes.',
+  },
+  cruive: {
+    name: 'The Cruive', tier: 'food', era: 17, w: 1, h: 3, cost: 7150, upkeep: 7.99,
+    icon: '\u{1F41F}', color: '#6d8794', workers: 4, onWater: true,
+    out: { fish: 37.06 },
+    desc: 'A wattle trap set in a gap in a stone weir: 37.06 fish a minute. Owes the ground nothing ' +
+      'at all, which in this age is the whole of its argument.',
+  },
+
+  wattlehut: {
+    name: 'Wattle Hut', tier: 'housing', era: 17, w: 1, h: 1, cost: 2860, upkeep: 1.39,
+    icon: '\u{1F6D6}', color: '#a8926f', cap: 13, needsWater: true, needsRoad: true, rp: 0.3,
+    desc: 'Hazel rods, daub and thatch, raised in a day: homes 13. ★ A DELIBERATE 0.6x ON THE CURVE ' +
+      '— the first building this age asks you to place is worse than the one the last age retired, ' +
+      'and it should say so in its price.',
+  },
+  toft: {
+    name: 'The Toft', tier: 'housing', era: 17, w: 1, h: 1, cost: 11930, upkeep: 5.77,
+    icon: '\u{1F3E1}', color: '#b8a077', cap: 40, needsWater: true, needsRoad: true, rp: 0.3,
+    levels: ['Toft Row', 'The Toft', 'Walled Toft', 'Toft and Garth',
+             "Reeve's Toft", "Sokeman's Toft"],
+    desc: 'A house and the fenced ground behind it — pigsty, midden, a few apples: homes 40.',
+  },
+  thegnhall: {
+    name: "Thegn's Hall", tier: 'housing', era: 17, w: 2, h: 2, cost: 24500, upkeep: 11.73,
+    icon: '\u{1F3DB}\uFE0F', color: '#9c8055', cap: 96, needsWater: true, needsRoad: true, rp: 0.3,
+    levels: ['Bower', "Thegn's Hall", 'Aisled Hall', 'Timbered Hall',
+             'Painted Hall', 'Burh Hall'],
+    desc: 'One long room with a hearth in the middle and a bench down each side, and everybody who ' +
+      'matters sleeps in it: homes 96.',
+  },
+
+  drawwell: {
+    name: 'Draw Well', tier: 'infra', era: 17, w: 1, h: 1, cost: 2360, upkeep: 4.75,
+    icon: '\u{1F573}\uFE0F', color: '#8d9aa2', waterRadius: 6,
+    desc: 'A shaft, a windlass and a bucket. Waters 6 tiles. It is what is left when nobody can ' +
+      'maintain a channel any more.',
+  },
+  roofedcistern: {
+    name: 'Roofed Cistern', tier: 'infra', era: 17, w: 1, h: 1, cost: 5460, upkeep: 8.00,
+    icon: '\u{1F6E2}\uFE0F', color: '#7f8d96', waterRadius: 9,
+    desc: 'A stone tank under a shingled roof, fed off the church gutters. Waters 9.',
+  },
+  tappedaqueduct: {
+    name: 'Tapped Aqueduct', tier: 'infra', era: 17, w: 1, h: 1, cost: 4750, upkeep: 6.00,
+    icon: '\u{1F309}', color: '#94908a', waterRadius: 12, onRuin: true,
+    desc: 'Somebody has knocked a hole in a Roman arcade and hung a lead pipe out of it. Waters 12 — ' +
+      'the widest reach in the age. ★ IT WANTS RUIN UNDER IT, so raising one FORFEITS that ' +
+      'footprint\'s stone forever. The stone in an arcade is worth about ninety seconds of a Webbery; ' +
+      'the water is worth the age.',
+  },
+
+  cornstead: {
+    name: 'The Corn Stead', tier: 'infra', era: 17, w: 1, h: 1, cost: 3390, upkeep: 3.20,
+    icon: '\u{1F33F}', color: '#a99a72', storeGrain: 4500, storeFlour: 2800,
+    desc: 'A sunken pit lined with straw and capped with turf. Holds 4,500 corn and 2,800 meal.',
+  },
+  packstation: {
+    name: 'Pack Station', tier: 'infra', era: 17, w: 1, h: 1, cost: 8480, upkeep: 5.20,
+    icon: '\u{1F40E}', color: '#8b7f6b', workers: 3, depot: true,
+    desc: 'Ponies, panniers and a man who knows the fords. Everything within reach of it carts at the ' +
+      'near rate instead of the far one.',
+  },
+  sokebarn: {
+    name: 'The Soke Barn', tier: 'infra', era: 17, w: 4, h: 4, cost: 11820, upkeep: 11.29,
+    icon: '\u{1F3DA}\uFE0F', color: '#9d8a63', needsRoad: true, depot: true,
+    storeGrain: 18620, storeFlour: 11640, storeCraft: 190,
+    desc: 'Where the renders of a whole jurisdiction come in and sit. Holds 18,620 corn, 11,640 meal ' +
+      'and 190 of craft, and carts at the near rate.',
+  },
+
+  mootgreen: {
+    name: 'The Moot Green', tier: 'civic', era: 17, w: 1, h: 1, cost: 3390, upkeep: 2.00,
+    icon: '\u{1F333}', color: '#7f9460', capRadius: 20, keepsTally: true,
+    desc: 'The open ground where the hundred meets, and where the reeve says out loud what is owed. ' +
+      '+1 housing rung within 20 tiles, and it keeps your tally.',
+  },
+  waysidechapel: {
+    name: 'Wayside Chapel', tier: 'civic', era: 17, w: 1, h: 1, cost: 3820, upkeep: 2.30,
+    icon: '\u26EA', color: '#b0a894', amenityRadius: 8,
+    desc: 'A single cell of dry stone at a crossing, with a priest in it three days a month.',
+  },
+  boundarycross: {
+    name: 'Boundary Cross', tier: 'beauty', era: 17, w: 1, h: 1, cost: 1970, upkeep: 0,
+    icon: '\u271D\uFE0F', color: '#a5a096', cosmetic: true,
+    desc: 'A carved shaft at the edge of the estate. It marks where one man\'s claim stops, which in ' +
+      'this age is the only document there is.',
+  },
+
+  robbingcrew: {
+    name: 'Robbing Crew', tier: 'food', era: 17, w: 2, h: 2, cost: 15200, upkeep: 17.88,
+    icon: '\u{1F9F1}', color: '#948977', workers: 6, onRuin: true, salvaged: true,
+    out: { stone: 40.00 }, rp: 1.2,
+    desc: 'Now they bring down what is still standing instead of picking up what has fallen: 40.00 ' +
+      'stone a minute. ★ TWICE THE RATE IS TWICE THE SPEED AT WHICH THE AGE ENDS.',
+  },
+  cuttingshed: {
+    name: 'Cutting Shed', tier: 'craft', era: 17, w: 3, h: 3, cost: 20770, upkeep: 33.42,
+    icon: '\u{1F528}', color: '#a89c88', workers: 9, industry: true,
+    procIn: 'stone', procRate: 28.00, procOut: 'blocks', procRatio: 0.5,
+    desc: 'Frame saws and a sand slurry: 28.00 stone a minute into 14.00 blocks.',
+  },
+  blockstaithe: {
+    name: 'Block Staithe', tier: 'commerce', era: 17, w: 2, h: 2, cost: 18740, upkeep: 21.56,
+    icon: '\u2693', color: '#93a08f', workers: 7, needsRoad: true,
+    sells: 'blocks', sellRate: 9.72, sellPrice: 131.44, custRadius: 8, custMin: 21,
+    desc: 'Planked over, with a crane. 9.72 blocks a minute at $131.44.',
+  },
+  fendiggings: {
+    name: 'Fen Diggings', tier: 'food', era: 17, w: 2, h: 2, cost: 15200, upkeep: 17.88,
+    icon: '\u{1FAA8}', color: '#6d5f47', workers: 6, onSalt: true,
+    out: { bogore: 12.78 },
+    desc: 'Drained, cut in baulks and worked in courses: 12.78 bog ore a minute, forever.',
+  },
+  shaftfurnace: {
+    name: 'Shaft Furnace', tier: 'craft', era: 17, w: 3, h: 3, cost: 17840, upkeep: 28.70,
+    icon: '\u{1F525}', color: '#7d6049', workers: 9, industry: true,
+    procIn: 'bogore', procRate: 8.95, procOut: 'iron', procRatio: 0.4,
+    desc: 'Taller, hotter, and tapped from the bottom: 8.95 ore into 3.58 iron.',
+  },
+  irenbooth: {
+    name: 'The Iren Booth', tier: 'commerce', era: 17, w: 2, h: 2, cost: 17190, upkeep: 19.78,
+    icon: '\u2692\uFE0F', color: '#645f58', workers: 7, needsRoad: true,
+    sells: 'iron', sellRate: 5.12, sellPrice: 266.06, custRadius: 8, custMin: 34,
+    desc: 'A roofed booth with a weighbeam. 5.12 of bar iron a minute at $266.06.',
+  },
+  vaccary: {
+    name: 'The Vaccary', tier: 'food', era: 17, w: 2, h: 4, cost: 23600, upkeep: 23.57,
+    icon: '\u{1F404}', color: '#9b8e72', workers: 6, needsWater: true, soilRadius: 5,
+    out: { pergamena: 12.78 },
+    desc: 'A cattle farm run for the skins as much as the milk: 12.78 scraped skins a minute.',
+  },
+  scrivenry: {
+    name: 'The Scrivenry', tier: 'craft', era: 17, w: 3, h: 3, cost: 17840, upkeep: 28.70,
+    icon: '\u{1F4DC}', color: '#bcae90', workers: 9, needsWater: true, industry: true,
+    procIn: 'pergamena', procRate: 8.95, procOut: 'codex', procRatio: 0.4,
+    desc: 'Carrels, a rubricator and a man who does nothing but rule lines: 8.95 skins into 3.58.',
+  },
+  bookhoard: {
+    name: 'The Book Hoard', tier: 'commerce', era: 17, w: 3, h: 3, cost: 26540, upkeep: 32.27,
+    icon: '\u{1F4D6}', color: '#ad9b78', workers: 8, needsRoad: true,
+    sells: 'codex', sellRate: 5.12, sellPrice: 246.16, custRadius: 9, custMin: 27,
+    desc: 'A chained press with a catalogue on the inside of the lid: 5.12 codices a minute.',
+  },
+  openfield: {
+    name: 'Open Field', tier: 'food', era: 17, w: 4, h: 4, cost: 28260, upkeep: 43.40,
+    icon: '\u{1F33E}', color: '#c0b063', workers: 6, needsWater: true,
+    out: { grain: 199.92 },
+    desc: 'Strips in two great fields with one lying fallow: 199.92 corn a minute.',
+  },
+  tidemill: {
+    name: 'Tide Mill', tier: 'food', era: 17, w: 2, h: 2, cost: 11840, upkeep: 19.15,
+    icon: '\u2699\uFE0F', color: '#7f8f74', workers: 8, nearWater: 2, grainMill: true,
+    procIn: 'grain', procRate: 139.94, procOut: 'flour', procRatio: 0.6,
+    desc: 'A pond filled on the flood and let go on the ebb: 139.94 corn into 83.96 of meal. Nendrum ' +
+      'built one in 619 and it is still there.',
+  },
+  chepecross: {
+    name: 'The Chepe Cross', tier: 'commerce', era: 17, w: 3, h: 3, cost: 26640, upkeep: 35.57,
+    icon: '\u{1F35E}', color: '#d0b16f', workers: 11, needsRoad: true, needsWater: true,
+    sells: 'flour', sellRate: 59.98, sellPrice: 21.17, custRadius: 7, custMin: 17,
+    desc: 'A market with a charter, a standing cross and a court to settle it: 59.98 a minute.',
+  },
+  guesthall: {
+    name: 'The Guest Hall', tier: 'commerce', era: 17, w: 2, h: 3, cost: 32100, upkeep: 36.40,
+    icon: '\u{1F37A}', color: '#c2954f', workers: 12, needsRoad: true, needsWater: true,
+    procIn: 'grain', procRate: 66.64, procOut: 'beer', procRatio: 0.17,
+    sells: 'beer', sellRate: 22.66, sellPrice: 58.16, custRadius: 8, custMin: 23,
+    desc: 'The house obliged to feed anybody who arrives, which turns out to be a business: 22.66 of ' +
+      'ale a minute at $58.16.',
+  },
+  wetherflock: {
+    name: 'Wether Flock', tier: 'food', era: 17, w: 3, h: 3, cost: 15200, upkeep: 17.88,
+    icon: '\u{1F411}', color: '#cec8b2', workers: 6, dryLand: true,
+    out: { wool: 19.18 },
+    desc: 'Castrated males kept four years for the heaviest fleece: 19.18 wool a minute.',
+  },
+  tenteryard: {
+    name: 'Tenter Yard', tier: 'craft', era: 17, w: 2, h: 2, cost: 12710, upkeep: 26.00,
+    icon: '\u{1F9F6}', color: '#8f9682', workers: 8, needsWater: true, industry: true,
+    procIn: 'wool', procRate: 13.43, procOut: 'cloth', procRatio: 0.5,
+    desc: 'Frames and hooks to dry the cloth on stretch so it does not shrink: 13.43 into 6.72.',
+  },
+  fairbooth: {
+    name: 'Fair Booth', tier: 'commerce', era: 17, w: 2, h: 2, cost: 20360, upkeep: 25.13,
+    icon: '\u{1F9F5}', color: '#b59b7f', workers: 7, needsRoad: true,
+    sells: 'cloth', sellRate: 9.60, sellPrice: 131.44, custRadius: 8, custMin: 27,
+    desc: 'A booth at a saint\'s-day fair with a licence to keep it up all week: 9.60 a minute.',
+  },
+  swinepark: {
+    name: 'The Swine Park', tier: 'food', era: 17, w: 2, h: 2, cost: 21180, upkeep: 24.00,
+    icon: '\u{1F437}', color: '#657444', workers: 6,
+    out: { pork: 28.00 },
+    desc: 'Enclosed woodland kept for mast, with a swineherd who lives in it: 28.00 pork a minute.',
+  },
+  yairdyke: {
+    name: 'The Yair Dyke', tier: 'food', era: 17, w: 1, h: 3, cost: 14300, upkeep: 15.98,
+    icon: '\u{1F41F}', color: '#5f7c8a', workers: 6, onWater: true,
+    out: { fish: 74.12 },
+    desc: 'A stone V across the whole channel with the trap at the point: 74.12 fish a minute.',
+  },
+  aisledhouse: {
+    name: 'The Aisled House', tier: 'housing', era: 17, w: 1, h: 1, cost: 17900, upkeep: 8.66,
+    icon: '\u{1F3E1}', color: '#c4ac81', cap: 62, needsWater: true, needsRoad: true, rp: 0.3,
+    levels: ['Toft Row', 'The Toft', 'Walled Toft', 'Toft and Garth',
+             "Reeve's Toft", "Sokeman's Toft"],
+    desc: 'Two rows of posts down the inside carry the roof, so the walls no longer have to: homes 62.',
+  },
+  bowerrange: {
+    name: 'The Bower Range', tier: 'housing', era: 17, w: 2, h: 2, cost: 36750, upkeep: 17.60,
+    icon: '\u{1F3DB}\uFE0F', color: '#a88a5c', cap: 144, needsWater: true, needsRoad: true, rp: 0.3,
+    levels: ['Bower', "Thegn's Hall", 'Aisled Hall', 'Timbered Hall',
+             'Painted Hall', 'Burh Hall'],
+    desc: 'Private chambers built off the hall for the family and their people: homes 144.',
+  },
+  leadenpipe: {
+    name: 'The Leaden Pipe', tier: 'infra', era: 17, w: 1, h: 1, cost: 8190, upkeep: 12.00,
+    icon: '\u{1F6E2}\uFE0F', color: '#77848d', waterRadius: 12,
+    desc: 'Lead run from the cistern to a cluster of standpipes. Waters 12.',
+  },
+  tappedhead: {
+    name: 'The Tapped Head', tier: 'infra', era: 17, w: 1, h: 1, cost: 7130, upkeep: 9.00,
+    icon: '\u{1F309}', color: '#8b8781', waterRadius: 17, onRuin: true,
+    desc: 'The arcade cleared back to the springing and re-rendered: waters 17, the widest reach the ' +
+      'age will ever have. ★ AND IT IS STILL THE SAME ONE PIECE OF RUIN YOU DECIDED NOT TO ROB.',
+  },
+  cornkist: {
+    name: 'Corn Kist', tier: 'infra', era: 17, w: 1, h: 1, cost: 5090, upkeep: 4.80,
+    icon: '\u{1F33F}', color: '#b8a97e', storeGrain: 6800, storeFlour: 4200,
+    desc: 'A raised chest on staddle stones, out of reach of the rats. 6,800 corn, 4,200 meal.',
+  },
+  drovestand: {
+    name: 'Drove Stand', tier: 'infra', era: 17, w: 1, h: 1, cost: 12720, upkeep: 7.80,
+    icon: '\u{1F40E}', color: '#7d7260', workers: 4, depot: true, storeCraft: 190,
+    desc: 'A walled stance on the drove road with water and a night\'s grazing.',
+  },
+  grange: {
+    name: 'The Grange', tier: 'civic', era: 17, w: 4, h: 4, cost: 38130, upkeep: 27.65,
+    icon: '\u{1F3DA}\uFE0F', color: '#8d7b56', workers: 11, needsRoad: true, depot: true,
+    storeGrain: 28800, storeFlour: 18000, storeCraft: 275,
+    desc: 'An outfarm of the abbey, run by lay brothers and answerable to nobody local: 28,800 corn, ' +
+      '18,000 meal, 275 of craft.',
+  },
+  hundredcourt: {
+    name: 'The Hundred Court', tier: 'civic', era: 17, w: 1, h: 1, cost: 5090, upkeep: 3.00,
+    icon: '\u{1F333}', color: '#6f8754', capRadius: 29, keepsTally: true,
+    desc: 'The moot with a written custom behind it now. +1 housing rung within 29 tiles.',
+  },
+  preachingcross: {
+    name: 'The Preaching Cross', tier: 'civic', era: 17, w: 1, h: 1, cost: 5730, upkeep: 3.45,
+    icon: '\u26EA', color: '#bab29c', amenityRadius: 12,
+    desc: 'A carved standing cross where a church has not been built yet, and a priest who walks a ' +
+      'circuit to it. Reaches 12.',
+  },
+
 };
 
 const HOUSE_CAP_MULT = [0.5, 1.0, 1.75, 2.5, 3.5];
@@ -9385,6 +9809,9 @@ function houseMaxLevel(s) {
 }
 
 const HOUSE_LEVELS = {
+
+  17: ['Turf Shelter', 'Wattle Hut', 'Daubed Hut', 'Sunken Croft',
+       "Crofter's Croft", 'Free Croft'],
 
   16: ['Lodging Cell', 'Rented Oikema', 'Tiled Oikema', 'Upper Oikema',
        'Galleried Oikema', "Guildsman's Oikema"],
@@ -9454,6 +9881,22 @@ function houseCap(d, b) {
 }
 
 const MONUMENT_GIFT = {
+
+  17: {
+    key: 'copy',
+    icon: '\u{1F4D6}',
+    title: 'The Second Copy',
+    lead: 'The Monastery is closed and the last quire is sewn in.',
+    body: 'Nothing here was invented. Every sentence in that room came from somewhere else, and the ' +
+          'only reason any of it still exists is that a man who did not understand it copied it out ' +
+          'anyway, and then somebody copied his copy. That habit is worth more than the building.',
+    grant: '<b>Every upgrade you ever buy, in this age and every age after it, costs 15% less — ' +
+           'because somebody already worked out how, and wrote it down.</b>',
+    toast: '\u{1F4D6} The habit of the second copy is yours. Every upgrade in this age and every ' +
+           'age after it costs 15% less.',
+    log: 'Their gift: the copy. What is written twice does not die with the man who wrote it.',
+    apply(s) { s.giftCopy = (s.giftCopy | 0) + 1; },
+  },
 
   16: {
     key: 'vault',
@@ -9756,6 +10199,15 @@ function monumentGift(era) { return MONUMENT_GIFT[rungOf(era)] || null; }
 
 const ERA_POLICY = {
 
+  17: {
+    key: 'policyWarrant', icon: '\u{1FA93}', name: 'The Spolia Warrant',
+    tip: 'Every Spoliation Gang works +25% — and takes the good stone and leaves the rubble, so ' +
+      'each ruin tile gives up 33% LESS in total before it is finished. Costs no money and no ' +
+      'goods. It is the only lever in the game that spends something you cannot make again.',
+    on: 'The warrant is sealed. Take what is good and leave the rest — the walls come down faster now.',
+    off: 'The warrant is withdrawn. The gangs go back to working a ruin out properly.',
+  },
+
   16: {
     key: 'policyChrysobull',
     icon: '\u{1F4DC}',
@@ -9968,6 +10420,11 @@ function eraImport(era) {
 }
 
 const ERA_ROAD = {
+  17: { flavour: 'Rutted Track', color: 0xcfc6ae, hw: 0.28,
+        desc: 'Chalk and flint rammed into the mud and re-laid every spring. Only SOME buildings ' +
+              'need one — homes, shops, stores and the Monastery must reach the seat of power; ' +
+              'gangs, pits, crofts, fields, mills and wells never do. Rome laid fifty thousand ' +
+              'miles of it; you are laying twelve.' },
 
   16: {
     flavour: 'The Mese',
@@ -10081,6 +10538,10 @@ function roadFor(era) {
 }
 
 const MONUMENTS = [
+
+  { id: 'monastery', name: 'The Monastery', era: 17, cost: 960000, icon: '\u26EA',
+    desc: 'Church, cloister, dorter, barn and gatehouse, raised out of an empire that is not ' +
+          'coming back. The record survives here or it does not survive at all.' },
   { id: 'paintedcave', name: 'The Painted Cave', era: 1, cost: 4000,      icon: '\u{1F3A8}', desc: 'Horses and lions on a wall four hundred metres inside the earth, in absolute dark.' },
 
   { id: 'enclosure', name: 'The Enclosure of the Pillars', era: 3, cost: 3053, icon: '\u{1F5FF}',
@@ -10346,6 +10807,7 @@ const QUARRIED = ['quarry', 'deepquarry', 'granitequarry', 'desertquarry',
 for (const t of QUARRIED) if (BUILDINGS[t]) BUILDINGS[t].quarried = true;
 
 const MONUMENT_BUILD = {
+  monastery:  { money: 206070, blocks: 14740, codex: 850, iron: 1300 },
 
   paintedcave: { money: 3600, ochre: 900, charcoal: 300, carvings: 100 },
 
@@ -10474,6 +10936,34 @@ function rankUpCost(d, fromRank) {
 }
 
 const UPGRADES = {
+
+  spoilgang:      { to: 'robbingcrew',       cost: 15200 , era: 17, label: "Robbing Crew" },
+  stonewright:    { to: 'cuttingshed',       cost: 20770 , era: 17, label: "Cutting Shed" },
+  stanhithe:      { to: 'blockstaithe',      cost: 18740 , era: 17, label: "Block Staithe" },
+  bogpit:         { to: 'fendiggings',       cost: 15200 , era: 17, label: "Fen Diggings" },
+  bloomhearth:    { to: 'shaftfurnace',      cost: 17840 , era: 17, label: "Shaft Furnace" },
+  irenstall:      { to: 'irenbooth',         cost: 17190 , era: 17, label: "The Iren Booth" },
+  calfcroft:      { to: 'vaccary',           cost: 23600 , era: 17, label: "The Vaccary" },
+  copyingroom:    { to: 'scrivenry',         cost: 17840 , era: 17, label: "The Scrivenry" },
+  quirestall:     { to: 'bookhoard',         cost: 26540 , era: 17, label: "The Book Hoard" },
+  assart:         { to: 'openfield',         cost: 28260 , era: 17, label: "Open Field" },
+  watermill:      { to: 'tidemill',          cost: 11840 , era: 17, label: "Tide Mill" },
+  chepe:          { to: 'chepecross',        cost: 26640 , era: 17, label: "The Chepe Cross" },
+  brewhouse:      { to: 'guesthall',         cost: 32100 , era: 17, label: "The Guest Hall" },
+  sheeprun:       { to: 'wetherflock',       cost: 15200 , era: 17, label: "Wether Flock" },
+  fullingshed:    { to: 'tenteryard',        cost: 12710 , era: 17, label: "Tenter Yard" },
+  webbery:        { to: 'fairbooth',         cost: 20360 , era: 17, label: "Fair Booth" },
+  pannage:        { to: 'swinepark',         cost: 21180 , era: 17, label: "The Swine Park" },
+  cruive:         { to: 'yairdyke',          cost: 14300 , era: 17, label: "The Yair Dyke" },
+  toft:           { to: 'aisledhouse',       cost: 17900 , era: 17, label: "The Aisled House" },
+  thegnhall:      { to: 'bowerrange',        cost: 36750 , era: 17, label: "The Bower Range" },
+  roofedcistern:  { to: 'leadenpipe',        cost: 8190  , era: 17, label: "The Leaden Pipe" },
+  tappedaqueduct: { to: 'tappedhead',        cost: 7130  , era: 17, label: "The Tapped Head" },
+  cornstead:      { to: 'cornkist',          cost: 5090  , era: 17, label: "Corn Kist" },
+  packstation:    { to: 'drovestand',        cost: 12720 , era: 17, label: "Drove Stand" },
+  sokebarn:       { to: 'grange',            cost: 38130 , era: 17, label: "The Grange" },
+  mootgreen:      { to: 'hundredcourt',      cost: 5090  , era: 17, label: "The Hundred Court" },
+  waysidechapel:  { to: 'preachingcross',    cost: 5730  , era: 17, label: "The Preaching Cross" },
 
   metaxeion:      { to: 'koukoularion',   cost:  9800, era: 16, label: 'The Koukoularion' },
   thracianplain:  { to: 'cornlands',      cost: 18220, era: 16, label: 'Bithynian Corn Lands' },
@@ -11202,9 +11692,10 @@ function auditDataTables() {
       if (d.rockRadius)
         say(k + ' declares rockRadius but is not in QUARRIED — it works the finite ROCK ledger ' +
             'and would never deplete it');
+      if (d.salvaged) continue;
       if (d.out) for (const g in d.out) if (quarriedGoods.has(g))
         say(k + ' emits "' + g + '", which quarried buildings take out of the finite ROCK ledger, ' +
-            'but is not in QUARRIED — it would mint that good out of nothing');
+            'but is neither `quarried` nor `salvaged` — it would mint that good out of nothing');
     }
 
     for (const k in BUILDINGS)
@@ -11302,6 +11793,7 @@ function auditDataTables() {
 }
 
 const ERA_FOOD_LABEL = { 10: 'Bread, figs, pulses and fish this age',
+  17: 'Meal, pork and fish this age',
 
   16: 'Bread and fish GROWN this age',
 
@@ -11325,6 +11817,19 @@ const ERA_FOOD_LABEL = { 10: 'Bread, figs, pulses and fish this age',
 function eraFoodLabel(era) { return ERA_FOOD_LABEL[rungOf(era)] || 'Food produced this age'; }
 
 const ERA_VOICE = {
+  17: {
+
+    settlers: ['Wulfric', 'Eadgyth', 'Cuthbert', 'Aelfwyn', 'Osric', 'Hild'],
+    place: 'vill',
+    mill: 'Leat Mill',
+    tally: 'The Moot Green',
+    tallyLine: 'The reeve has begun the count on the moot green. There is no clerk in this vill, ' +
+      'so the tally is a stick and a memory — and now you can read your own numbers.',
+    ration: 'The founding stores are finished — the last of the carried grain is handed out.',
+    saltName: 'an assart cropped back to scrub',
+    saltAnswers: 'let the field lie fallow — and note that the PANNAGE WOOD and THE CRUIVE owe the ' +
+      'ground nothing at all, because a pig eats acorns and a fish does not need a field',
+  },
 
   16: {
     settlers: ['Anna', 'Theodoros', 'Eirene', 'Nikephoros', 'Zoe', 'Bardas'],
@@ -11578,6 +12083,19 @@ function settlerName(s) {
 }
 
 const ERA_STAPLE = {
+  17: {
+    raw: 'grain', cooked: 'flour',
+    rawIcon: '\u{1F33E}', cookedIcon: '\u{1F35E}',
+    rawName: 'Corn', cookedName: 'Meal',
+    cookedVerb: 'milled', rawFrom: 'the assarts',
+    rawNote: 'the leat mills draw on it before the brewhouses do',
+    shortNote: 'Every chain adds mouths and no meal — assart a field and set a Leat Mill turning, ' +
+      'or turn pigs into the oaks and set a cruive in the stream.',
+    hungerFix: 'assart a field and set a Leat Mill turning, or put a Pannage Wood in the oaks',
+    goodNames: { grain: 'Corn', flour: 'Meal', stone: 'Spolia', blocks: 'Dressed Blocks',
+                 bogore: 'Bog Ore', iron: 'Bar Iron', pergamena: 'Parchment', codex: 'Codices',
+                 pork: 'Pork', wool: 'Fleece', cloth: 'Cloth', beer: 'Ale' },
+  },
 
   16: {
     raw: 'grain', cooked: 'flour', rawIcon: '\u{1F33E}', cookedIcon: '\u{1F35E}',

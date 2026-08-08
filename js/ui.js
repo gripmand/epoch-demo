@@ -48,6 +48,8 @@ const UI = {
     UI.els.seal = document.getElementById('hud-seal');
     UI.els.fabricChip = document.getElementById('chip-fabric');
     UI.els.fabric = document.getElementById('hud-fabric');
+    UI.els.ruinChip = document.getElementById('chip-ruin');
+    UI.els.ruin = document.getElementById('hud-ruin');
 
     UI.buildPalette();
 
@@ -1227,6 +1229,20 @@ const UI = {
         UI.els.seal.style.color = '';
       }
     }
+
+    const rb = Econ.ruinBook(s);
+    if (UI.els.ruinChip) {
+      UI.els.ruinChip.classList.toggle('hidden', !rb);
+      UI.els.ruinChip.style.display = rb ? '' : 'none';
+    }
+    if (rb && UI.els.ruin) {
+      if (s.ruinPeak === undefined || rb.left > s.ruinPeak) s.ruinPeak = rb.left;
+      UI.els.ruin.textContent = Math.round(rb.left).toLocaleString() +
+        (rb.tiles ? ' · ' + rb.tiles : '');
+      const frac = s.ruinPeak > 0 ? rb.left / s.ruinPeak : 1;
+      UI.els.ruin.style.color = rb.left <= 0 ? '#c9553f'
+        : frac <= 0.15 ? '#c9553f' : frac <= 0.40 ? '#d8a34a' : '';
+    }
     const showFabric = Econ.arrearsActive(s) && (() => {
       const f0 = Econ.arrearsForecast(s);
       return f0.D > 0 || f0.warned > 0 || f0.minFabric < 1;
@@ -2048,9 +2064,13 @@ const UI = {
         buttons += '<button class="btn-gold" disabled>Needs ' + up.need +
           ' neighbouring homes to become a house<br><small>' + up.have + ' of ' + up.need + ' within 2 tiles</small></button>';
       } else {
-        const ok = s.money >= up.cost;
+
+        const upCost = Econ.houseUpgradeQuote(s, up);
+        const ok = s.money >= upCost;
         buttons += '<button id="insp-houseup" class="btn-gold" ' + (ok ? '' : 'disabled') + '>Rebuild as a ' +
-          up.name + ' — ' + Util.fmtMoney(up.cost) + '<br><small>houses ' +
+          up.name + ' — ' + Util.fmtMoney(upCost) +
+          (upCost < up.cost ? ' <span class="gold-dim">was ' + Util.fmtMoney(up.cost) + '</span>' : '') +
+          '<br><small>houses ' +
           Math.max(1, houseCap(d, { level: up.level })) + ' residents</small></button>';
       }
     }

@@ -17,6 +17,10 @@ const Grid = {
 
   TERRAIN_PROFILE: {
 
+    17: { trunkW: 3.2, trunkW2: 2.4, branch: 2, secondW: 2, wander: 0.34,
+          fertileTo: 3, dryFrom: 7, edgeJitter: 3, beyond: 'GRASS',
+          saltAt: 0.86, rockAt: 1.0, peakR: 3, ruinFrac: 0.010 },
+
     16: { trunkW: 7.2, trunkW2: 6.0, branch: 1, secondW: 3.0, wander: 0.28,
           fertileTo: 3, dryFrom: 6, edgeJitter: 2, beyond: 'GRASS',
           saltAt: 0.99, rockAt: 0.52, peakR: 7 },
@@ -377,6 +381,52 @@ const Grid = {
           const step = Math.floor(v * (mx + 1));
           EL[Grid.key(x, y)] = step < 0 ? 0 : step > mx ? mx : step;
         }
+    }
+
+    if (P.ruinFrac > 0) {
+      const buildable = k => {
+        const v = t[k];
+        return v === TERRAIN.GRASS || v === TERRAIN.FERTILE || v === TERRAIN.SALT;
+      };
+      const stamp = (x0, y0, w, h) => {
+        for (let y = y0; y < y0 + h; y++)
+          for (let x = x0; x < x0 + w; x++) {
+            if (!Grid.inB(x, y)) continue;
+            const k = Grid.key(x, y);
+            if (buildable(k)) t[k] = TERRAIN.RUIN;
+          }
+      };
+      const target = Math.round(W * W * P.ruinFrac);
+      let laid = 0, guard = 0;
+
+      const PLAN = [
+        { w: 6, h: 6, n: 1 },
+        { w: 4, h: 4, n: 2 },
+        { w: 3, h: 5, n: 12 },
+        { w: 2, h: 2, n: 20 },
+      ];
+      for (const shape of PLAN)
+        for (let i = 0; i < shape.n && laid < target && guard < 4000; i++) {
+          guard++;
+          const x = 8 + Math.floor(rnd() * (W - 24));
+          const y = 8 + Math.floor(rnd() * (W - 24));
+          stamp(x, y, shape.w, shape.h);
+          laid += shape.w * shape.h;
+        }
+
+      const lines = 6;
+      for (let i = 0; i < lines && laid < target * 1.6; i++) {
+        const horiz = (i & 1) === 0;
+        const len = 40 + Math.floor(rnd() * 60);
+        let x = 10 + Math.floor(rnd() * (W - 20 - (horiz ? len : 0)));
+        let y = 10 + Math.floor(rnd() * (W - 20 - (horiz ? 0 : len)));
+        for (let j = 0; j < len; j++) {
+          const px = horiz ? x + j : x, py = horiz ? y : y + j;
+          if (!Grid.inB(px, py)) break;
+          const k = Grid.key(px, py);
+          if (buildable(k)) { t[k] = TERRAIN.RUIN; laid++; }
+        }
+      }
     }
 
     for (const k in (s.terraEdits || {})) t[k] = s.terraEdits[k];
@@ -961,6 +1011,59 @@ const Grid = {
     const have = Grid.ruinSpoliaAt(s, x, y);
     s.ruinStock[k] = Math.max(0, have - amt);
     return Math.min(have, amt);
+  },
+
+  ruinFullness(s, type, x, y, rot) {
+    const d = DEF(type); if (!d) return 0;
+    const sz = Grid.dimsOf({ type, rot: rot | 0 });
+    let ruinTiles = 0, footTiles = 0, have = 0;
+    for (let dy = 0; dy < sz.h; dy++)
+      for (let dx = 0; dx < sz.w; dx++) {
+        const px = x + dx, py = y + dy;
+
+        if (!Grid.inB(px, py)) continue;
+        footTiles++;
+        if (G.cache.terrain[Grid.key(px, py)] !== TERRAIN.RUIN) continue;
+        ruinTiles++;
+        have += Grid.ruinSpoliaAt(s, px, py);
+      }
+
+    if (!ruinTiles) return 0;
+    const full = footTiles * TUNE.ARREARS.ruinTileSpolia;
+    return Math.max(0, Math.min(1, have / Math.max(1, full)));
+  },
+
+  occupyQuote(s, type, x, y, rot) {
+    const d = DEF(type);
+    const base = d ? (d.cost | 0) : 0;
+    const off = { cost: base, base, frac: 1, fullness: 0, burns: 0, on: false };
+    if (!d || !Econ.occupyActive(s)) return off;
+    if (type === 'road' && !TUNE.OCCUPY.roads) return off;
+
+    if (d.salvaged) return off;
+    const fullness = Grid.ruinFullness(s, type, x, y, rot);
+    if (fullness <= 0) return off;
+
+    const frac = 1 - (1 - TUNE.OCCUPY.deepest) * fullness;
+    const sz = Grid.dimsOf({ type, rot: rot | 0 });
+    let burns = 0;
+    for (let dy = 0; dy < sz.h; dy++)
+      for (let dx = 0; dx < sz.w; dx++) burns += Grid.ruinSpoliaAt(s, x + dx, y + dy);
+    return { cost: Math.round(base * frac), base, frac, fullness, burns, on: true };
+  },
+
+  occupyBurn(s, b) {
+    if (!Econ.occupyActive(s)) return 0;
+    let burnt = 0;
+    Grid.tilesOf(b, (x, y) => {
+      if (!Grid.inB(x, y)) return;
+      const k = Grid.key(x, y);
+      if (G.cache.terrain[k] !== TERRAIN.RUIN) return;
+      burnt += Grid.ruinSpoliaAt(s, x, y);
+      if (!s.ruinStock) s.ruinStock = {};
+      s.ruinStock[k] = 0;
+    });
+    return burnt;
   },
 
   makeRuin(s, b, spolia) {

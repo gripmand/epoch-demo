@@ -44,6 +44,8 @@ const Game = {
       giftSupply: 0,
       giftVault: 0,
 
+      giftCopy: 0,
+
       giftTable: 0,
 
       giftExport: 0,
@@ -110,6 +112,10 @@ const Game = {
 
       policyMunus: false,
       policyChrysobull: false,
+
+      policyWarrant: false,
+
+      ruinPeak: 0,
 
       policyBoneFire: false,
 
@@ -354,6 +360,8 @@ const Game = {
       giftTerra: s.giftTerra | 0,
       giftSupply: s.giftSupply | 0,
       giftVault: s.giftVault | 0,
+
+      giftCopy: s.giftCopy | 0,
       giftTable: s.giftTable | 0,
       giftExport: s.giftExport | 0,
       giftBeacon: s.giftBeacon | 0,
@@ -382,6 +390,9 @@ const Game = {
       policyFleet: !!s.policyFleet,
       policyMunus: !!s.policyMunus,
       policyChrysobull: !!s.policyChrysobull,
+
+      policyWarrant: !!s.policyWarrant,
+      ruinPeak: +s.ruinPeak || 0,
       policyBoneFire: !!s.policyBoneFire,
       policyProfessio: !!s.policyProfessio,
 
@@ -730,6 +741,8 @@ const Game = {
       giftTerra: d.giftTerra | 0,
       giftSupply: d.giftSupply | 0,
       giftVault: d.giftVault | 0,
+
+      giftCopy: d.giftCopy | 0,
       giftTable: d.giftTable | 0,
       giftExport: d.giftExport | 0,
       giftBeacon: d.giftBeacon | 0,
@@ -763,6 +776,9 @@ const Game = {
       policyFleet: !!d.policyFleet,
       policyMunus: !!d.policyMunus,
       policyChrysobull: !!d.policyChrysobull,
+
+      policyWarrant: !!d.policyWarrant,
+      ruinPeak: +d.ruinPeak || 0,
       policyBoneFire: !!d.policyBoneFire,
       policyProfessio: !!d.policyProfessio,
 

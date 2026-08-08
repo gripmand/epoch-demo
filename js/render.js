@@ -33,6 +33,17 @@ const Rend = {
 
   ERA_GROUND: {
 
+    17: {
+      base:     { color: 0x5c5442, tex: 'silt' },
+      fertile:  { color: 0x6d6a4e, tex: 'field' },
+      salt:     { color: 0x8a8168, tex: 'salt' },
+      saltRidge: 0x9d9478,
+      rock:     { color: 0x6a665c, tex: 'rock' },
+      cliff:    0x4c4840,
+      bed:      0x3e5460,
+      grain: 0.14, macro: 0.18,
+    },
+
     16: {
       base:     { color: 0xa8a08c, tex: 'silt' },
       fertile:  { color: 0x7d9c56, tex: 'field' },
@@ -1224,6 +1235,35 @@ const Rend = {
   },
 
   ROAD_CONTRAST_MIN: 45,
+
+  auditGroundRows() {
+    const src = Rend.makeGroundMaterial.toString();
+    const need = [], nested = [];
+    for (const m of src.matchAll(/GR\.([a-zA-Z]+)(\.color)?/g)) {
+      const f = m[1], isNested = !!m[2];
+
+      if (!isNested && (new RegExp('GR\\.' + f + '\\s*\\|\\|').test(src) ||
+                        new RegExp('GR\\.' + f + '\\s*===\\s*undefined').test(src))) continue;
+      if (need.indexOf(f) < 0) need.push(f);
+      if (isNested && nested.indexOf(f) < 0) nested.push(f);
+    }
+    const rows = Rend.ERA_GROUND, keys = Object.keys(rows);
+    const known = {};
+    for (const k of keys) for (const f in rows[k]) known[f] = (known[f] || 0) + 1;
+    const out = [];
+    for (const k of keys) {
+      const g = Rend.groundFor(+k);
+      const missing = need.filter(f => g[f] === undefined);
+      const noColor = nested.filter(f => g[f] !== undefined && g[f].color === undefined);
+
+      const invented = Object.keys(rows[k])
+        .filter(f => known[f] === 1 && keys.length > 1 && src.indexOf('GR.' + f) < 0);
+      if (missing.length || noColor.length || invented.length)
+        out.push({ era: +k, missing: missing, noColor: noColor, invented: invented });
+    }
+    return { need: need, findings: out };
+  },
+
   auditRoadContrast() {
     const luma = c => 0.2126 * ((c >> 16) & 255) + 0.7152 * ((c >> 8) & 255) + 0.0722 * (c & 255);
     const bad = [];

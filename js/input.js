@@ -618,15 +618,25 @@ const Input = {
       UI.toast('Can’t build the ' + d.name + ' there — ' + Grid.whyBlocked(s, type, x, y, useRot) + '.', 10000);
       return false;
     }
+
+    const q = Grid.occupyQuote(s, type, x, y, useRot);
     if (!(dev && dev.freeBuild)) {
-      if (s.money < d.cost) { UI.toast('Not enough money — ' + d.name + ' costs $' + d.cost + '.'); return false; }
-      s.money -= d.cost;
+      if (s.money < q.cost) { UI.toast('Not enough money — ' + d.name + ' costs $' + q.cost + '.'); return false; }
+      s.money -= q.cost;
     }
     const nb = Grid.addBuilding(s, type, x, y, useRot);
+
+    if (nb && q.on && q.burns > 0) {
+      Grid.occupyBurn(s, nb);
+      UI.firstToast('occupy', '\u{1F9F1} Raised on ruin: $' + (q.base - q.cost).toLocaleString() +
+        ' off, and the ' + Math.round(q.burns).toLocaleString() + ' spolia under it is gone for good. ' +
+        'There is no way back from either half of that.');
+    }
     Grid.rebuild(s);
 
     if (nb && !(dev && dev.freeBuild)) {
-      Input.lastAction = { kind: 'place', id: nb.id, cost: d.cost, t: performance.now() };
+
+      Input.lastAction = { kind: 'place', id: nb.id, cost: q.cost, t: performance.now() };
     }
 
     if (d.monument && nb) {
@@ -660,15 +670,18 @@ const Input = {
       if (Grid.treeAt(s, x, y)) { Grid.clearTree(s, x, y); Rend.layerDirty = true; }
     }
     if (!Grid.canPlace(s, 'road', x, y)) return;
-    if (!(dev && dev.freeBuild) && DEF('road').cost > 0) {
-      if (s.money < DEF('road').cost) { UI.firstToast('roadbroke', 'Out of money for roads — each tile is $' + DEF('road').cost + '.'); return; }
-      s.money -= DEF('road').cost;
+
+    const rq = Grid.occupyQuote(s, 'road', x, y, 0);
+    if (!(dev && dev.freeBuild) && rq.cost > 0) {
+      if (s.money < rq.cost) { UI.firstToast('roadbroke', 'Out of money for roads — each tile is $' + rq.cost + '.'); return; }
+      s.money -= rq.cost;
     }
     const rb = Grid.addBuilding(s, 'road', x, y);
+    if (rb && rq.on && rq.burns > 0) Grid.occupyBurn(s, rb);
 
     if (Input.stroke && Input.stroke.kind === 'road') {
       Input.stroke.tiles.push(rb.id);
-      Input.stroke.cost += DEF('road').cost;
+      Input.stroke.cost += rq.cost;
     }
     Grid.rebuild(s);
     UI.firstToast('road', 'Roads carry people and goods, and only SOME buildings need one — each says so ' +

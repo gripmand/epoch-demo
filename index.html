@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>EPOCH</title>
-<link rel="stylesheet" href="css/style.css?v=11d931a8">
+<link rel="stylesheet" href="css/style.css?v=708fbba2">
 </head>
 <body>
 <canvas id="game"></canvas>
@@ -54,6 +54,7 @@
   <div class="res hidden" id="chip-annona" title="The annona. This city is too big for the land under it, so it buys the bread it cannot grow — and the price rises with the number of mouths. Land what you need through a Statio Annonae or a Navicularium and you pay the fair price; outgrow your landings and the WHOLE shipment reprices, not just the excess. And bought bread will not open the gate: only what you grow counts toward it."><span class="res-ico">🌾</span><span id="hud-annona">×1.0</span></div>
   <div class="res hidden" id="chip-seal" title="The seal. The Eparch licenses a RATE, not a quantity: up to it your licensed goods sell at double price, and every unit past it goes for a third. The licence is rebuilt every tick and an unused one is gone at the end of it - so the number is worse in BOTH directions. 1.00 is the target. Under it you are paying for permission you are not using; over it you are dumping, and nothing else on screen will tell you, because nothing is wrong with the city. A second Office of the Eparch doubles the licence and takes 30% of every licensed sale; a third takes 40%."><span class="res-ico">🔏</span><span id="hud-seal">1.00</span></div>
   <div class="res hidden" id="chip-fabric" title="The arrears. When the treasury reaches zero the city keeps paying — out of the buildings. Every minute of deficit is charged as CONDITION, in proportion to what each building costs you, and a building at zero condition FALLS and refunds nothing. Distance is the multiplier: a shop far from a depot and far from its customers is billed up to twelve times over and rots twelve times faster. MOTHBALL takes it to a fifth of base and stops its clock dead; DEMOLISH pays back half and sells the parcel. Letting it fall is always the worse deal."><span class="res-ico">🏚️</span><span id="hud-fabric">—</span></div>
+  <div class="res hidden" id="chip-ruin" title="The ruins. Every ruin tile on ground you own holds spolia, and NOTHING puts it back — there is no quarry in this age. A Spoliation Gang strips what it stands on and pays full price to do it. Any other building raised on ruin costs down to 28% of its price and buries that footprint's stone forever: the more of the footprint is rubble, the bigger the discount AND the bigger the loss, in step. Stripped or stood under, never both. When this number reaches zero the age has nothing left to give you, so the thing to buy is more ruin."><span class="res-ico">🧱</span><span id="hud-ruin">—</span></div>
   <div class="res hidden" id="chip-table" title="The table. No single food may cover more than its share of a citizen's meal — bread half, figs, pulses and fish a quarter each. A full granary and nothing else feeds half your city. The answer is never more of what you already have."><span class="res-ico">⚖️</span><span id="hud-table">100%</span></div>
 </div>
 
@@ -76,19 +77,19 @@
 <div id="toasts"></div>
 
 
-<script src="js/vendor/three.min.js?v=11d931a8"></script>
-<script src="js/util.js?v=11d931a8"></script>
-<script src="js/data.js?v=11d931a8"></script>
-<script src="js/grid.js?v=11d931a8"></script>
-<script src="js/state.js?v=11d931a8"></script>
-<script src="js/econ.js?v=11d931a8"></script>
-<script src="js/guide.js?v=11d931a8"></script>
+<script src="js/vendor/three.min.js?v=708fbba2"></script>
+<script src="js/util.js?v=708fbba2"></script>
+<script src="js/data.js?v=708fbba2"></script>
+<script src="js/grid.js?v=708fbba2"></script>
+<script src="js/state.js?v=708fbba2"></script>
+<script src="js/econ.js?v=708fbba2"></script>
+<script src="js/guide.js?v=708fbba2"></script>
 
-<script src="js/gfx.js?v=11d931a8"></script>
-<script src="js/shapes.js?v=11d931a8"></script>
-<script src="js/render.js?v=11d931a8"></script>
-<script src="js/ui.js?v=11d931a8"></script>
-<script src="js/input.js?v=11d931a8"></script>
-<script src="js/main.js?v=11d931a8"></script>
+<script src="js/gfx.js?v=708fbba2"></script>
+<script src="js/shapes.js?v=708fbba2"></script>
+<script src="js/render.js?v=708fbba2"></script>
+<script src="js/ui.js?v=708fbba2"></script>
+<script src="js/input.js?v=708fbba2"></script>
+<script src="js/main.js?v=708fbba2"></script>
 </body>
 </html>

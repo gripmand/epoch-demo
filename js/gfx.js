@@ -196,6 +196,16 @@ const Gfx = {
   },
 
   ERA_GRADE: {
+    17: {
+      sky: ['#5f7386', '#93a5a8', '#c6c9b8'],
+      hemi: [0xc6cdc0, 0x5c6046, 0.88],
+      sun: [0xf4efe0, 0.92],
+      fog: 0xbcc2b2, fogN: 70, fogF: 260, expo: 0.94,
+      apron: 0x7d8468,
+      sunDir: [-88, 46, -70],
+      water: { color: 0x3d4a3a, shallow: 0x76866a, opacity: 0.91,
+               glint: 0xbfcdb6, glintAmt: 0.12 },
+    },
 
     16: { sky: ['#7d94ae', '#b6c0bc', '#e0d6c0'],
           hemi: [0xcad4dc, 0x7a7f74, 0.74], sun: [0xfff4d8, 1.06],

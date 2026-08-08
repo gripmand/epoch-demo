@@ -1,6 +1,10 @@
 'use strict';
 
 const ERA_ANCHOR = {
+  17: { name: "The Reeve's Hall", short: 'Hall',
+        note: 'A timber hall with a smoke hole and a bench down each side. The reeve holds the ' +
+              'estate for somebody who is not here, keeps the count of what is owed, and settles ' +
+              'what he can. The cloister this age is remembered for is not built yet — you build it.' },
 
   0:  { name: 'The Landmark',       short: 'Landmark',   note: 'A sixty-metre araucaria on a rise, standing alone above the fern. The whole camp is laid out around it, and nothing on this floodplain is out of sight of it. It is not a seat of power — it is the thing everyone can find their way back to.' },
 
@@ -28,7 +32,7 @@ const ERA_ANCHOR = {
         note: 'It outlasted the west by 977 years. The silk monopoly and the recipe for Greek fire ' +
         'were both state secrets, kept here \u2014 and the Book of the ' +
         'Eparch, which says who may make what and how much of it, is enforced from the office next door.' },
-  17: { name: 'The Monastery',      short: 'Monastery',  note: 'The estate is run from the cloister, because the cloister is what is left. The record survives here or it does not survive.' },
+
   18: { name: 'The House of Wisdom', short: 'Bayt al-Hikma', note: 'Translation, astronomy, algebra and paper. The library IS the administration — and none of it is a dark age.' },
   19: { name: 'The Longhouse',      short: 'Longhouse',  note: 'The jarl\'s hall: the thing the ships are pulled up in front of, and the only reason they come back.' },
   20: { name: 'The Manor',          short: 'Manor',      note: 'Demesne, strip field and dovecote. Whether any of this was a coherent "system" is still argued — treat it as a landscape, not a claim.' },
@@ -61,6 +65,7 @@ function anchorFor(era) {
 }
 
 const ERA_RECORD = {
+  17: { tally: 'The Reeve\'s Tally', history: 'The Chronicle', keeper: 'a Moot Green' },
 
   16: {
     icon: '\u2696\uFE0F',
@@ -236,6 +241,26 @@ function eraFounding(era) {
 }
 
 const ERA_SITE = {
+  17: {
+    roadYes: '<b>Wattle Huts, Tofts, Thegn\'s Halls, the Chepe, the Brewhouse, the Stone Hithe, ' +
+      'the Webbery, the Iren Stall, the Quire Stall, the Soke Barn and the Monastery</b>',
+    roadNo: 'Spoliation Gangs, Bog Ore Pits, Calf Crofts, Assart Fields, Sheep Runs, Pannage Woods, ' +
+      'Cruives, Stonewrights, Bloom Hearths, Copying Rooms, Fulling Sheds, Leat Mills, wells, ' +
+      'cisterns, tapped aqueducts and Corn Steads',
+    water: 'Most buildings must sit inside a <b>Draw Well\'s</b> six tiles or a <b>Roofed ' +
+      'Cistern\'s</b> nine. A <b>Tapped Aqueduct</b> reaches twelve and you can only ever get one ' +
+      'out of a ruin. Standing on a stream does NOT count as water coverage. Press <b>O</b> to see ' +
+      'the rings.',
+    extra: [
+      '<b>The ruins.</b> Every ruin tile holds 700 spolia and there is no more anywhere on the map. ' +
+      'A Spoliation Gang eats what it stands on and then reads <i>worked out</i>. Nothing puts it ' +
+      'back and nothing makes more — there is no rock in this landscape and no way to paint any in.',
+      '<b>Occupying.</b> Raise a building on ruin and it costs LESS in proportion to the stone still ' +
+      'under it — down to 28% on untouched rubble — and that footprint\'s stone is gone forever. ' +
+      'The richest ruin buys the biggest discount and is the biggest thing you give up. A road over ' +
+      'a Roman agger is cheap the same way. There is no way back from either half of the choice.',
+    ],
+  },
 
   16: {
     roadYes: '<b>the Oikema, the Peristylon, the Archontikon, the Vestiopration, the Arsenal Wharf, ' +
@@ -695,6 +720,36 @@ const ERA_SITE = {
 function eraSite(era) { return ERA_SITE[rungOf(era)] || ERA_SITE._default; }
 
 const ERA_GUIDES = {
+  17: {
+    headline: 'The ruins are the resource, and there is no second batch.',
+    mechanic: 'SPEND THE RUINS ONCE. Every ruin tile holds 700 spolia and nothing puts it back — ' +
+      'there is no quarry in this age and no way to paint one in. A Spoliation Gang STRIPS what it ' +
+      'stands on. Or OCCUPY instead: any OTHER building raised on ruin costs down to 28% of its ' +
+      'price, and that footprint\'s stone is gone forever. STRIPPED OR STOOD UNDER, NEVER BOTH — a ' +
+      'gang pays full price precisely so that it still has something left to eat. The more of a ' +
+      'footprint is rubble the bigger the discount AND the bigger the loss, in step. ' +
+      'Watch the ruin chip.',
+    chain: [
+      'Spoliation Gang -> Stonewright -> Stone Hithe  ·  the opening, and blocks build the Monastery',
+      'Bog Ore Pit -> Bloom Hearth -> Iren Stall  ·  slower per unit, and it NEVER runs out',
+      'Calf Croft -> Copying Room -> Quire Stall  ·  the dearest thing the age makes',
+      'Assart Field -> Leat Mill -> The Chepe  ·  bread. Or the Brewhouse, which drinks the same corn',
+      'Sheep Run -> Fulling Shed -> The Webbery  ·  off the dry heath, and exactly as good on the last day',
+    ],
+    firstSteps: [
+
+      'BUY OUT to the nearest rubble — there is never any inside the grant — and put the SPOLIATION ' +
+        'GANG on it. No road, no water, nothing else needed. It pays list price: a gang is the one ' +
+        'thing that does NOT get the ruin discount, because it is here to eat the ruin.',
+      'A STONEWRIGHT beside it: it is sized to eat exactly one gang, so one feeds one.',
+      'Then a rutted track and a STONE HITHE on it. That is income at building three.',
+      'DRAW WELL next (6 tiles), then Wattle Huts inside it. Water is 6 and 9 here; there is no 11.',
+      'A PANNAGE WOOD in the oaks — no water, no road, no ruin. It is what feeds you when either fails.',
+    ],
+    mistake: 'Robbing the arcade. A Tapped Aqueduct is the only 12-tile water in the age, it exists ' +
+      'ONLY as an occupied ruin, and the stone in that footprint is worth about ninety seconds of a ' +
+      'Webbery. Strip it and you have sold the age for a minute and a half.',
+  },
   16: {
     headline: 'One good, one licence, and a number you have to hold at exactly one.',
     mechanic: 'THE EPARCH LICENSES A SELL RATE, NOT A QUANTITY. Each Office of the Eparch licenses ' +
